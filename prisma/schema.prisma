@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  city        String?
+  state       String?
+  zipCode     String?
+  type        String?  // residential, commercial, etc.
+  units       Int      @default(1)
+  ownerId     String?
+  ownerName   String?
+  ownerEmail  String?
+  ownerPhone  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenants         Tenant[]
+  complianceItems ComplianceItem[]
+
+  @@index([ownerId])
+}
+
+model Tenant {
+  id              String   @id @default(cuid())
+  propertyId      String
+  name            String
+  email           String?
+  phone           String?
+  leaseStartDate  DateTime?
+  leaseEndDate    DateTime?
+  rentAmount      Float?
+  status          String   @default("active") // active, inactive, pending
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  property            Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  documents           Document[]
+  communicationLogs   CommunicationLog[]
+  complianceItems     ComplianceItem[]
+
+  @@index([propertyId])
+  @@index([status])
+}
+
+model Document {
+  id              String   @id @default(cuid())
+  tenantId        String
+  type            String   // w9, insurance, lease, etc.
+  name            String
+  status          String   @default("pending") // pending, submitted, approved, expired
+  fileUrl         String?
+  expirationDate  DateTime?
+  uploadedAt      DateTime?
+  extractedData   String?  // AI-extracted tenant info as JSON
+  confidence      Float?   // Overall confidence score
+  processingStatus String  @default("pending") // pending, processing, completed, failed
+  thumbnailUrl    String?  // Preview image
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([type])
+}
+
+model ComplianceItem {
+  id              String   @id @default(cuid())
+  propertyId      String?
+  tenantId        String?
+  type            String   // lease_renewal, inspection, insurance_renewal, etc.
+  title           String
+  description     String?
+  dueDate         DateTime
+  status          String   @default("pending") // pending, completed, overdue
+  priority        String   @default("medium") // low, medium, high
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant   Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model CommunicationLog {
+  id              String   @id @default(cuid())
+  tenantId        String
+  channel         String   // sms, email, voice
+  direction       String   // outbound, inbound
+  message         String
+  status          String   // sent, delivered, failed, received
+  metadata        Json?    // additional data like Twilio SID, delivery status, etc.
+  createdAt       DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([channel])
+  @@index([createdAt])
+}
+
+model WorkflowExecution {
+  id              String   @id @default(cuid())
+  workflowType    String   // tenant_followup, document_collection, compliance_check
+  tenantId        String?
+  propertyId      String?
+  status          String   // running, completed, failed
+  attemptCount    Int      @default(0)
+  lastAttemptAt   DateTime?
+  nextAttemptAt   DateTime?
+  metadata        Json?    // workflow-specific data
+  result          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([workflowType])
+  @@index([status])
+  @@index([tenantId])
+  @@index([nextAttemptAt])
+}
