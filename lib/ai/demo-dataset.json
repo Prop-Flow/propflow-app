@@ -1,0 +1,841 @@
+{
+  "generated_timestamp": "2025-12-19",
+  "dataset_id": "DEMO-BATCH-001",
+  "properties": [
+    {
+      "property_id": "PROP-001",
+      "property_name": "123 Main Street Apartments",
+      "utility_type": "water",
+      "unit": "gallons",
+      "has_anomaly": false,
+      "anomaly_severity": null,
+      "anomaly_description": "No anomaly detected",
+      "monthly_usage": [
+        {
+          "month": "July 2023",
+          "usage": 5571
+        },
+        {
+          "month": "August 2023",
+          "usage": 5728
+        },
+        {
+          "month": "September 2023",
+          "usage": 5176
+        },
+        {
+          "month": "October 2023",
+          "usage": 4966
+        },
+        {
+          "month": "November 2023",
+          "usage": 5075
+        },
+        {
+          "month": "December 2023",
+          "usage": 4561
+        },
+        {
+          "month": "January 2024",
+          "usage": 4809
+        },
+        {
+          "month": "February 2024",
+          "usage": 5044
+        },
+        {
+          "month": "March 2024",
+          "usage": 4752
+        },
+        {
+          "month": "April 2024",
+          "usage": 5047
+        },
+        {
+          "month": "May 2024",
+          "usage": 4770
+        },
+        {
+          "month": "June 2024",
+          "usage": 4852
+        },
+        {
+          "month": "July 2024",
+          "usage": 5504
+        },
+        {
+          "month": "August 2024",
+          "usage": 5326
+        },
+        {
+          "month": "September 2024",
+          "usage": 5288
+        },
+        {
+          "month": "October 2024",
+          "usage": 5208
+        },
+        {
+          "month": "November 2024",
+          "usage": 4780
+        },
+        {
+          "month": "December 2024",
+          "usage": 4496
+        }
+      ]
+    },
+    {
+      "property_id": "PROP-002",
+      "property_name": "456 Oak Boulevard Townhomes",
+      "utility_type": "water",
+      "unit": "gallons",
+      "has_anomaly": true,
+      "anomaly_severity": "low",
+      "anomaly_description": "Small leak detected - 1.5x usage spike in December 2024",
+      "monthly_usage": [
+        {
+          "month": "July 2023",
+          "usage": 5423
+        },
+        {
+          "month": "August 2023",
+          "usage": 5470
+        },
+        {
+          "month": "September 2023",
+          "usage": 4733
+        },
+        {
+          "month": "October 2023",
+          "usage": 4809
+        },
+        {
+          "month": "November 2023",
+          "usage": 5222
+        },
+        {
+          "month": "December 2023",
+          "usage": 5010
+        },
+        {
+          "month": "January 2024",
+          "usage": 4894
+        },
+        {
+          "month": "February 2024",
+          "usage": 4732
+        },
+        {
+          "month": "March 2024",
+          "usage": 4866
+        },
+        {
+          "month": "April 2024",
+          "usage": 5223
+        },
+        {
+          "month": "May 2024",
+          "usage": 4705
+        },
+        {
+          "month": "June 2024",
+          "usage": 5003
+        },
+        {
+          "month": "July 2024",
+          "usage": 5396
+        },
+        {
+          "month": "August 2024",
+          "usage": 5402
+        },
+        {
+          "month": "September 2024",
+          "usage": 5290
+        },
+        {
+          "month": "October 2024",
+          "usage": 4728
+        },
+        {
+          "month": "November 2024",
+          "usage": 7826
+        },
+        {
+          "month": "December 2024",
+          "usage": 7912
+        }
+      ]
+    },
+    {
+      "property_id": "PROP-003",
+      "property_name": "789 Pine Residence",
+      "utility_type": "water",
+      "unit": "gallons",
+      "has_anomaly": false,
+      "anomaly_severity": null,
+      "anomaly_description": "No anomaly detected",
+      "monthly_usage": [
+        {
+          "month": "July 2023",
+          "usage": 5494
+        },
+        {
+          "month": "August 2023",
+          "usage": 5722
+        },
+        {
+          "month": "September 2023",
+          "usage": 5264
+        },
+        {
+          "month": "October 2023",
+          "usage": 5232
+        },
+        {
+          "month": "November 2023",
+          "usage": 4979
+        },
+        {
+          "month": "December 2023",
+          "usage": 4542
+        },
+        {
+          "month": "January 2024",
+          "usage": 4882
+        },
+        {
+          "month": "February 2024",
+          "usage": 5269
+        },
+        {
+          "month": "March 2024",
+          "usage": 4849
+        },
+        {
+          "month": "April 2024",
+          "usage": 5080
+        },
+        {
+          "month": "May 2024",
+          "usage": 5107
+        },
+        {
+          "month": "June 2024",
+          "usage": 4987
+        },
+        {
+          "month": "July 2024",
+          "usage": 5471
+        },
+        {
+          "month": "August 2024",
+          "usage": 5208
+        },
+        {
+          "month": "September 2024",
+          "usage": 5246
+        },
+        {
+          "month": "October 2024",
+          "usage": 5186
+        },
+        {
+          "month": "November 2024",
+          "usage": 5017
+        },
+        {
+          "month": "December 2024",
+          "usage": 4508
+        }
+      ]
+    },
+    {
+      "property_id": "PROP-004",
+      "property_name": "101 Cedar Village",
+      "utility_type": "water",
+      "unit": "gallons",
+      "has_anomaly": false,
+      "anomaly_severity": null,
+      "anomaly_description": "No anomaly detected",
+      "monthly_usage": [
+        {
+          "month": "July 2023",
+          "usage": 5738
+        },
+        {
+          "month": "August 2023",
+          "usage": 5689
+        },
+        {
+          "month": "September 2023",
+          "usage": 5190
+        },
+        {
+          "month": "October 2023",
+          "usage": 5029
+        },
+        {
+          "month": "November 2023",
+          "usage": 4748
+        },
+        {
+          "month": "December 2023",
+          "usage": 4729
+        },
+        {
+          "month": "January 2024",
+          "usage": 4559
+        },
+        {
+          "month": "February 2024",
+          "usage": 4729
+        },
+        {
+          "month": "March 2024",
+          "usage": 4967
+        },
+        {
+          "month": "April 2024",
+          "usage": 4848
+        },
+        {
+          "month": "May 2024",
+          "usage": 5138
+        },
+        {
+          "month": "June 2024",
+          "usage": 5264
+        },
+        {
+          "month": "July 2024",
+          "usage": 5594
+        },
+        {
+          "month": "August 2024",
+          "usage": 5669
+        },
+        {
+          "month": "September 2024",
+          "usage": 4718
+        },
+        {
+          "month": "October 2024",
+          "usage": 5133
+        },
+        {
+          "month": "November 2024",
+          "usage": 5099
+        },
+        {
+          "month": "December 2024",
+          "usage": 4642
+        }
+      ]
+    },
+    {
+      "property_id": "PROP-005",
+      "property_name": "202 Maple Courts",
+      "utility_type": "water",
+      "unit": "gallons",
+      "has_anomaly": false,
+      "anomaly_severity": null,
+      "anomaly_description": "No anomaly detected",
+      "monthly_usage": [
+        {
+          "month": "July 2023",
+          "usage": 5312
+        },
+        {
+          "month": "August 2023",
+          "usage": 5444
+        },
+        {
+          "month": "September 2023",
+          "usage": 4807
+        },
+        {
+          "month": "October 2023",
+          "usage": 4953
+        },
+        {
+          "month": "November 2023",
+          "usage": 5014
+        },
+        {
+          "month": "December 2023",
+          "usage": 4889
+        },
+        {
+          "month": "January 2024",
+          "usage": 4809
+        },
+        {
+          "month": "February 2024",
+          "usage": 5167
+        },
+        {
+          "month": "March 2024",
+          "usage": 4916
+        },
+        {
+          "month": "April 2024",
+          "usage": 5105
+        },
+        {
+          "month": "May 2024",
+          "usage": 4896
+        },
+        {
+          "month": "June 2024",
+          "usage": 5103
+        },
+        {
+          "month": "July 2024",
+          "usage": 5333
+        },
+        {
+          "month": "August 2024",
+          "usage": 5264
+        },
+        {
+          "month": "September 2024",
+          "usage": 4963
+        },
+        {
+          "month": "October 2024",
+          "usage": 5173
+        },
+        {
+          "month": "November 2024",
+          "usage": 4815
+        },
+        {
+          "month": "December 2024",
+          "usage": 4832
+        }
+      ]
+    },
+    {
+      "property_id": "PROP-006",
+      "property_name": "303 Birch Plaza",
+      "utility_type": "water",
+      "unit": "gallons",
+      "has_anomaly": true,
+      "anomaly_severity": "medium",
+      "anomaly_description": "Running toilet detected - 2.5x+ usage spike in December 2024",
+      "monthly_usage": [
+        {
+          "month": "July 2023",
+          "usage": 5561
+        },
+        {
+          "month": "August 2023",
+          "usage": 5535
+        },
+        {
+          "month": "September 2023",
+          "usage": 4741
+        },
+        {
+          "month": "October 2023",
+          "usage": 5043
+        },
+        {
+          "month": "November 2023",
+          "usage": 4756
+        },
+        {
+          "month": "December 2023",
+          "usage": 4692
+        },
+        {
+          "month": "January 2024",
+          "usage": 4790
+        },
+        {
+          "month": "February 2024",
+          "usage": 4781
+        },
+        {
+          "month": "March 2024",
+          "usage": 5125
+        },
+        {
+          "month": "April 2024",
+          "usage": 5179
+        },
+        {
+          "month": "May 2024",
+          "usage": 4780
+        },
+        {
+          "month": "June 2024",
+          "usage": 4846
+        },
+        {
+          "month": "July 2024",
+          "usage": 5225
+        },
+        {
+          "month": "August 2024",
+          "usage": 5295
+        },
+        {
+          "month": "September 2024",
+          "usage": 4734
+        },
+        {
+          "month": "October 2024",
+          "usage": 4888
+        },
+        {
+          "month": "November 2024",
+          "usage": 12777
+        },
+        {
+          "month": "December 2024",
+          "usage": 13019
+        }
+      ]
+    },
+    {
+      "property_id": "PROP-007",
+      "property_name": "404 Willow Heights",
+      "utility_type": "water",
+      "unit": "gallons",
+      "has_anomaly": false,
+      "anomaly_severity": null,
+      "anomaly_description": "No anomaly detected",
+      "monthly_usage": [
+        {
+          "month": "July 2023",
+          "usage": 5433
+        },
+        {
+          "month": "August 2023",
+          "usage": 5357
+        },
+        {
+          "month": "September 2023",
+          "usage": 5006
+        },
+        {
+          "month": "October 2023",
+          "usage": 4831
+        },
+        {
+          "month": "November 2023",
+          "usage": 4893
+        },
+        {
+          "month": "December 2023",
+          "usage": 5037
+        },
+        {
+          "month": "January 2024",
+          "usage": 5041
+        },
+        {
+          "month": "February 2024",
+          "usage": 5262
+        },
+        {
+          "month": "March 2024",
+          "usage": 4954
+        },
+        {
+          "month": "April 2024",
+          "usage": 4993
+        },
+        {
+          "month": "May 2024",
+          "usage": 5269
+        },
+        {
+          "month": "June 2024",
+          "usage": 5191
+        },
+        {
+          "month": "July 2024",
+          "usage": 5339
+        },
+        {
+          "month": "August 2024",
+          "usage": 5425
+        },
+        {
+          "month": "September 2024",
+          "usage": 5248
+        },
+        {
+          "month": "October 2024",
+          "usage": 4875
+        },
+        {
+          "month": "November 2024",
+          "usage": 4991
+        },
+        {
+          "month": "December 2024",
+          "usage": 4728
+        }
+      ]
+    },
+    {
+      "property_id": "PROP-008",
+      "property_name": "505 Elm Square",
+      "utility_type": "water",
+      "unit": "gallons",
+      "has_anomaly": false,
+      "anomaly_severity": null,
+      "anomaly_description": "No anomaly detected",
+      "monthly_usage": [
+        {
+          "month": "July 2023",
+          "usage": 5572
+        },
+        {
+          "month": "August 2023",
+          "usage": 5728
+        },
+        {
+          "month": "September 2023",
+          "usage": 4940
+        },
+        {
+          "month": "October 2023",
+          "usage": 4857
+        },
+        {
+          "month": "November 2023",
+          "usage": 5045
+        },
+        {
+          "month": "December 2023",
+          "usage": 4978
+        },
+        {
+          "month": "January 2024",
+          "usage": 4819
+        },
+        {
+          "month": "February 2024",
+          "usage": 4952
+        },
+        {
+          "month": "March 2024",
+          "usage": 4842
+        },
+        {
+          "month": "April 2024",
+          "usage": 5112
+        },
+        {
+          "month": "May 2024",
+          "usage": 5227
+        },
+        {
+          "month": "June 2024",
+          "usage": 4883
+        },
+        {
+          "month": "July 2024",
+          "usage": 5611
+        },
+        {
+          "month": "August 2024",
+          "usage": 5731
+        },
+        {
+          "month": "September 2024",
+          "usage": 5223
+        },
+        {
+          "month": "October 2024",
+          "usage": 4875
+        },
+        {
+          "month": "November 2024",
+          "usage": 5239
+        },
+        {
+          "month": "December 2024",
+          "usage": 4925
+        }
+      ]
+    },
+    {
+      "property_id": "PROP-009",
+      "property_name": "606 Spruce Gardens",
+      "utility_type": "water",
+      "unit": "gallons",
+      "has_anomaly": true,
+      "anomaly_severity": "high",
+      "anomaly_description": "Major leak detected - 3.6x+ usage spike in December 2024",
+      "monthly_usage": [
+        {
+          "month": "July 2023",
+          "usage": 5231
+        },
+        {
+          "month": "August 2023",
+          "usage": 5292
+        },
+        {
+          "month": "September 2023",
+          "usage": 4790
+        },
+        {
+          "month": "October 2023",
+          "usage": 4878
+        },
+        {
+          "month": "November 2023",
+          "usage": 4855
+        },
+        {
+          "month": "December 2023",
+          "usage": 4714
+        },
+        {
+          "month": "January 2024",
+          "usage": 4873
+        },
+        {
+          "month": "February 2024",
+          "usage": 4904
+        },
+        {
+          "month": "March 2024",
+          "usage": 5096
+        },
+        {
+          "month": "April 2024",
+          "usage": 4716
+        },
+        {
+          "month": "May 2024",
+          "usage": 4873
+        },
+        {
+          "month": "June 2024",
+          "usage": 4940
+        },
+        {
+          "month": "July 2024",
+          "usage": 5316
+        },
+        {
+          "month": "August 2024",
+          "usage": 5405
+        },
+        {
+          "month": "September 2024",
+          "usage": 4706
+        },
+        {
+          "month": "October 2024",
+          "usage": 4899
+        },
+        {
+          "month": "November 2024",
+          "usage": 5163
+        },
+        {
+          "month": "December 2024",
+          "usage": 18293
+        }
+      ]
+    },
+    {
+      "property_id": "PROP-0010",
+      "property_name": "707 Aspen Lofts",
+      "utility_type": "water",
+      "unit": "gallons",
+      "has_anomaly": false,
+      "anomaly_severity": null,
+      "anomaly_description": "No anomaly detected",
+      "monthly_usage": [
+        {
+          "month": "July 2023",
+          "usage": 5220
+        },
+        {
+          "month": "August 2023",
+          "usage": 5502
+        },
+        {
+          "month": "September 2023",
+          "usage": 5295
+        },
+        {
+          "month": "October 2023",
+          "usage": 4946
+        },
+        {
+          "month": "November 2023",
+          "usage": 4888
+        },
+        {
+          "month": "December 2023",
+          "usage": 4524
+        },
+        {
+          "month": "January 2024",
+          "usage": 4727
+        },
+        {
+          "month": "February 2024",
+          "usage": 5169
+        },
+        {
+          "month": "March 2024",
+          "usage": 5021
+        },
+        {
+          "month": "April 2024",
+          "usage": 5227
+        },
+        {
+          "month": "May 2024",
+          "usage": 4927
+        },
+        {
+          "month": "June 2024",
+          "usage": 5044
+        },
+        {
+          "month": "July 2024",
+          "usage": 5332
+        },
+        {
+          "month": "August 2024",
+          "usage": 5323
+        },
+        {
+          "month": "September 2024",
+          "usage": 5016
+        },
+        {
+          "month": "October 2024",
+          "usage": 4705
+        },
+        {
+          "month": "November 2024",
+          "usage": 5204
+        },
+        {
+          "month": "December 2024",
+          "usage": 4830
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_properties": 10,
+    "properties_with_anomalies": 3,
+    "anomaly_percentage": 30
+  }
+}
