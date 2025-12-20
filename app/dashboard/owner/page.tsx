@@ -1,18 +1,37 @@
 'use client';
 import React, { useState } from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
-import { Users, Building, AlertCircle, CheckCircle, Zap, Droplets, Activity } from 'lucide-react';
+import { Users, Building, AlertCircle, CheckCircle, Zap, Droplets, Activity, Loader2 } from 'lucide-react';
+import { AnalysisResult } from '@/lib/ai/anomaly-detection';
 
 export default function OwnerDashboard() {
     const [showAnomalies, setShowAnomalies] = useState(false);
 
-    // Mock data representing utilities with potential anomalies
-    const utilityData = [
-        { type: 'Water', property: 'Sunset Apts', value: '4500 gal', status: 'normal', change: '+2%' },
-        { type: 'Electricity', property: 'Sunset Apts', value: '1200 kWh', status: 'anomaly', change: '+45%', warning: 'Unusual spike in Unit 4B' },
-        { type: 'Water', property: 'Sunrise Complex', value: '3200 gal', status: 'normal', change: '-1%' },
-        { type: 'Gas', property: 'Sunrise Complex', value: '80 therms', status: 'normal', change: '+5%' },
-    ];
+    const [anomalyData, setAnomalyData] = React.useState<AnalysisResult | null>(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        fetch('/api/analysis/anomalies')
+            .then(res => res.json())
+            .then(data => {
+                setAnomalyData(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error('Failed to fetch anomalies:', err);
+                setLoading(false);
+            });
+    }, []);
+
+    // Map real data to UI format
+    const utilityData = anomalyData?.detection_results.map(r => ({
+        type: 'Water', // Currently only water is simulated
+        property: r.property_name,
+        value: r.recent_months[r.recent_months.length - 1].usage.toLocaleString() + ' gal',
+        status: r.anomaly_detected ? 'anomaly' : 'normal',
+        change: r.anomaly_detected ? `+${Math.round((r.recent_months[r.recent_months.length - 1].usage / r.baseline_average - 1) * 100)}%` : 'stable',
+        warning: r.alert_message
+    })) || [];
 
     return (
         <DashboardShell role="owner">
@@ -21,10 +40,10 @@ export default function OwnerDashboard() {
                 {/* Top Stats Row - High Visual Hierarchy */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[
-                        { label: 'Total Properties', value: '8', icon: Building, color: 'text-blue-400', bg: 'bg-blue-400/10', sub: 'Active Portfolios' },
-                        { label: 'Active Tenants', value: '20', icon: Users, color: 'text-green-400', bg: 'bg-green-400/10', sub: '98% Occupancy Rate' },
-                        { label: 'Pending Actions', value: '3', icon: AlertCircle, color: 'text-orange-400', bg: 'bg-orange-400/10', sub: 'Requires Attention' },
-                        { label: 'Revenue (Month)', value: '$42,500', icon: CheckCircle, color: 'text-purple-400', bg: 'bg-purple-400/10', sub: '+4.5% vs Last Month' },
+                        { label: 'Total Properties', value: '10', icon: Building, color: 'text-blue-400', bg: 'bg-blue-400/10', sub: 'Active Portfolios' },
+                        { label: 'Active Tenants', value: '25', icon: Users, color: 'text-green-400', bg: 'bg-green-400/10', sub: '98% Occupancy Rate' },
+                        { label: 'Pending Actions', value: anomalyData?.summary.properties_with_anomalies.toString() || '0', icon: AlertCircle, color: 'text-orange-400', bg: 'bg-orange-400/10', sub: 'Detected Anomalies' },
+                        { label: 'Compliance Health', value: '92%', icon: CheckCircle, color: 'text-purple-400', bg: 'bg-purple-400/10', sub: 'Across Portfolio' },
                     ].map((stat, i) => (
                         <div key={i} className="bg-card/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-all duration-300 group">
                             <div className="flex justify-between items-start mb-4">
@@ -64,33 +83,42 @@ export default function OwnerDashboard() {
                         </div>
 
                         <div className="space-y-4">
-                            {utilityData.map((item, i) => (
-                                <div key={i} className={`p-4 rounded-xl border transition-all duration-300 ${item.status === 'anomaly' && showAnomalies ? 'bg-orange-500/5 border-orange-500/30' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-4">
-                                            <div className={`p-2.5 rounded-lg ${item.type === 'Water' ? 'bg-blue-500/10 text-blue-400' : item.type === 'Electricity' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-green-500/10 text-green-400'}`}>
-                                                {item.type === 'Water' ? <Droplets className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
-                                            </div>
-                                            <div>
-                                                <div className="font-semibold text-white">{item.type} <span className="text-muted-foreground font-normal mx-1">•</span> {item.property}</div>
-                                                <div className="text-sm text-muted-foreground">Using {item.value}</div>
-                                            </div>
-                                        </div>
-
-                                        <div className="text-right">
-                                            <div className={`font-bold ${item.status === 'anomaly' && showAnomalies ? 'text-orange-400' : 'text-white'}`}>{item.change}</div>
-                                            <div className="text-xs text-muted-foreground">vs last mo</div>
-                                        </div>
-                                    </div>
-
-                                    {item.status === 'anomaly' && showAnomalies && (
-                                        <div className="mt-3 pt-3 border-t border-orange-500/20 flex items-start text-sm text-orange-300 animate-in fade-in slide-in-from-top-1">
-                                            <AlertCircle className="w-4 h-4 mr-2 mt-0.5 shrink-0" />
-                                            <span>{item.warning} - <span className="underline cursor-pointer hover:text-orange-200">Investigate</span></span>
-                                        </div>
-                                    )}
+                            {loading ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                    <Loader2 className="w-8 h-8 animate-spin mb-4" />
+                                    <p>PropFlow AI is analyzing usage patterns...</p>
                                 </div>
-                            ))}
+                            ) : utilityData.length === 0 ? (
+                                <p className="text-center py-8 text-muted-foreground">No utility data available.</p>
+                            ) : (
+                                utilityData.map((item, i) => (
+                                    <div key={i} className={`p-4 rounded-xl border transition-all duration-300 ${item.status === 'anomaly' && showAnomalies ? 'bg-orange-500/5 border-orange-500/30' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-4">
+                                                <div className={`p-2.5 rounded-lg ${item.type === 'Water' ? 'bg-blue-500/10 text-blue-400' : item.type === 'Electricity' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-green-500/10 text-green-400'}`}>
+                                                    {item.type === 'Water' ? <Droplets className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
+                                                </div>
+                                                <div>
+                                                    <div className="font-semibold text-white">{item.type} <span className="text-muted-foreground font-normal mx-1">•</span> {item.property}</div>
+                                                    <div className="text-sm text-muted-foreground">Using {item.value}</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-right">
+                                                <div className={`font-bold ${item.status === 'anomaly' && showAnomalies ? 'text-orange-400' : 'text-white'}`}>{item.change}</div>
+                                                <div className="text-xs text-muted-foreground">vs last mo</div>
+                                            </div>
+                                        </div>
+
+                                        {item.status === 'anomaly' && showAnomalies && (
+                                            <div className="mt-3 pt-3 border-t border-orange-500/20 flex items-start text-sm text-orange-300 animate-in fade-in slide-in-from-top-1">
+                                                <AlertCircle className="w-4 h-4 mr-2 mt-0.5 shrink-0" />
+                                                <span>{item.warning} - <span className="underline cursor-pointer hover:text-orange-200">Investigate</span></span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
 

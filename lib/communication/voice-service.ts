@@ -111,13 +111,19 @@ export async function processIVRResponse(
         }
 
         // Find the communication log by Twilio SID
-        const log = await prisma.communicationLog.findFirst({
+        const logs = await prisma.communicationLog.findMany({
             where: {
-                metadata: {
-                    path: ['twilioSid'],
-                    equals: callSid,
-                },
+                channel: 'voice'
             },
+            orderBy: {
+                createdAt: 'desc'
+            },
+            take: 50
+        });
+
+        const log = logs.find(l => {
+            const meta = l.metadata as Record<string, unknown>;
+            return meta && meta.twilioSid === callSid;
         });
 
         if (log) {

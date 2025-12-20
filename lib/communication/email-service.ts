@@ -139,7 +139,6 @@ export async function processIncomingEmail(
             where: {
                 email: {
                     equals: from,
-                    mode: 'insensitive',
                 },
             },
         });

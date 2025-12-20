@@ -11,7 +11,7 @@ import { ExtractedPropertyData } from '@/lib/ai/ingestion';
 interface Property {
     id: string;
     name: string;
-    type?: string;
+    type: string | null;
     address: string;
     _count: {
         tenants: number;
