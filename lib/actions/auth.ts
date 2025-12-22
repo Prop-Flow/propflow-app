@@ -37,7 +37,17 @@ export async function registerUser(prevState: RegisterState, formData: FormData)
         phone: formData.get('phone'),
     });
 
+    console.log('Register Payload:', {
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        email: formData.get('email'),
+        role: formData.get('role'),
+        phone: formData.get('phone'),
+        // Don't log password
+    });
+
     if (!validatedFields.success) {
+        console.error('Validation failed:', JSON.stringify(validatedFields.error.flatten(), null, 2));
         return {
             errors: validatedFields.error.flatten().fieldErrors,
             message: 'Missing Fields. Failed to Register.',

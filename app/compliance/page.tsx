@@ -16,11 +16,10 @@ export default function CompliancePage() {
         );
     }
 
-    const normalizedRole = user?.role?.toLowerCase();
-    const role = (normalizedRole === 'property_manager' ? 'manager' : normalizedRole) as "tenant" | "owner" | "manager" | undefined || 'owner';
+    const currentRole = (user?.role === 'property_manager' ? 'manager' : user?.role as "tenant" | "owner" | "manager") || 'owner';
 
     return (
-        <DashboardShell role={role}>
+        <DashboardShell role={currentRole}>
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground">Compliance</h1>

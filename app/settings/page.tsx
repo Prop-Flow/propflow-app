@@ -1,9 +1,24 @@
+'use client';
+
 import DashboardShell from '@/components/layout/DashboardShell';
-import { User } from 'lucide-react';
+import { User, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SettingsPage() {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-background">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    const currentRole = (user?.role === 'property_manager' ? 'manager' : user?.role as "tenant" | "owner" | "manager") || 'owner';
+
     return (
-        <DashboardShell role="owner">
+        <DashboardShell role={currentRole}>
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground">Settings</h1>
@@ -37,11 +52,11 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
                         <div>
                             <label className="block text-sm font-medium text-muted-foreground mb-1">Full Name</label>
-                            <input type="text" defaultValue="Alexander Taylor" className="w-full bg-background border border-white/10 rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-muted-foreground/50" />
+                            <input type="text" defaultValue={user ? `${user.firstName} ${user.lastName}` : ''} className="w-full bg-background border border-white/10 rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-muted-foreground/50" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-muted-foreground mb-1">Email Address</label>
-                            <input type="email" defaultValue="alex@propflow.ai" className="w-full bg-background border border-white/10 rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-muted-foreground/50" />
+                            <input type="email" defaultValue={user?.email || ''} className="w-full bg-background border border-white/10 rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-muted-foreground/50" />
                         </div>
                     </div>
                 </div>

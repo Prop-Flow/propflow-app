@@ -99,7 +99,9 @@ export default function SignupPage() {
                     router.push(targetPath);
                 }
             } else {
-                console.error('Registration failed:', result.errors || result.message);
+                console.error('Registration failed result:', result);
+                console.error('Registration failed errors:', result.errors);
+                console.error('Registration failed message:', result.message);
                 alert(result.message || 'Registration failed. Please check your inputs.');
                 setIsLoading(false);
             }

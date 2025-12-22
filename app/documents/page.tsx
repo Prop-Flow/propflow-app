@@ -1,9 +1,23 @@
+'use client';
+
 import DashboardShell from '@/components/layout/DashboardShell';
-import { FileText, Upload } from 'lucide-react';
+import { FileText, Upload, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function DocumentsPage() {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-background">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+    const currentRole = (user?.role === 'property_manager' ? 'manager' : user?.role as "tenant" | "owner" | "manager") || 'owner';
+
     return (
-        <DashboardShell role="owner">
+        <DashboardShell role={currentRole}>
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground">Documents</h1>
