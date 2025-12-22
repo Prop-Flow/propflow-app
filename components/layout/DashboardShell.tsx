@@ -4,12 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import UserDropdown from './UserDropdown';
-import { LayoutDashboard, Building2, Users, FileText, Settings, Bell, MessageSquare, AlertCircle } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, FileText, Settings, MessageSquare, AlertCircle, Receipt, Activity, Hammer } from 'lucide-react';
 import { cn } from '@/lib/utils'; // Assuming standard Shadcn utils location.
+import NotificationDropdown from '@/components/notifications/NotificationDropdown';
 
 interface DashboardShellProps {
     children: React.ReactNode;
-    role?: 'tenant' | 'owner'; // to customize sidebar links
+    role?: 'tenant' | 'owner' | 'manager'; // to customize sidebar links
 }
 
 import Image from 'next/image';
@@ -23,31 +24,64 @@ export default function DashboardShell({ children, role = 'owner' }: DashboardSh
 
     if (loading || !user) return null;
 
-    const links = [
-        { href: role === 'tenant' ? '/dashboard/tenant' : '/dashboard/owner', label: 'Dashboard', icon: LayoutDashboard },
+    if (loading || !user) return null;
+
+    const ownerLinks = [
+        { href: '/dashboard/owner', label: 'Dashboard', icon: LayoutDashboard },
         { href: '/properties', label: 'Properties', icon: Building2 },
         { href: '/tenants', label: 'Tenants', icon: Users },
+        { href: '/maintenance', label: 'Maintenance', icon: Hammer },
+        { href: '/dashboard/owner/utilities', label: 'Utilities', icon: Activity },
+        { href: '/dashboard/owner/billing', label: 'Billing', icon: Receipt },
         { href: '/communications', label: 'Communications', icon: MessageSquare },
         { href: '/compliance', label: 'Compliance', icon: AlertCircle },
         { href: '/documents', label: 'Documents', icon: FileText },
         { href: '/settings', label: 'Settings', icon: Settings },
     ];
 
+    const managerLinks = [
+        { href: '/dashboard/manager', label: 'Dashboard', icon: LayoutDashboard },
+        { href: '/properties', label: 'Properties', icon: Building2 },
+        { href: '/tenants', label: 'Tenants', icon: Users },
+        { href: '/maintenance', label: 'Maintenance', icon: Hammer },
+        { href: '/compliance', label: 'Compliance', icon: AlertCircle },
+        { href: '/communications', label: 'Communications', icon: MessageSquare },
+        { href: '/documents', label: 'Documents', icon: FileText },
+        { href: '/settings', label: 'Settings', icon: Settings },
+    ];
+
+    const tenantLinks = [
+        { href: '/dashboard/tenant', label: 'Home', icon: LayoutDashboard },
+        { href: '/dashboard/tenant/documents', label: 'My Documents', icon: FileText },
+        { href: '/dashboard/tenant/payments', label: 'Payments', icon: Receipt },
+        // ... more tenant links
+    ];
+
+    const links = role === 'manager' ? managerLinks : role === 'tenant' ? tenantLinks : ownerLinks;
+
     return (
         <div className="min-h-screen bg-background flex text-foreground relative overflow-hidden">
             <ReactiveBackground />
             {/* Sidebar */}
-            <aside className="w-64 border-r border-border bg-card/30 backdrop-blur-xl hidden md:flex flex-col fixed inset-y-0 z-30">
-                <div className="h-16 flex items-center px-6 border-b border-white/5">
-                    <div className="relative h-8 w-8 mr-3">
+            <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 z-50 border-r border-white/5 bg-background/80 backdrop-blur-md">
+                <div className="relative flex flex-col items-center justify-center px-4 pt-8 pb-4 border-b border-white/5 gap-0">
+                    <div className="relative h-20 w-20 flex-shrink-0 transition-transform hover:scale-105 duration-300 z-10">
                         <Image
-                            src="/logo.png"
-                            alt="PropFlow AI Logo"
+                            src="/propflow_logo_new.png"
+                            alt="PropFlow"
                             fill
-                            className="object-contain"
+                            className="object-contain brightness-0 invert drop-shadow-xl"
+                            priority
                         />
                     </div>
-                    <span className="text-xl font-bold tracking-tight text-white">PropFlow AI</span>
+                    <div className="flex flex-col items-center -mt-6 relative z-20">
+                        <span className="text-2xl font-bold tracking-wide text-white drop-shadow-lg" style={{ fontFamily: 'var(--font-outfit)' }}>
+                            PropFlow
+                        </span>
+                        <span className="text-[10px] text-blue-200/90 tracking-widest uppercase font-medium mt-1">
+                            Property Management
+                        </span>
+                    </div>
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -78,14 +112,11 @@ export default function DashboardShell({ children, role = 'owner' }: DashboardSh
                 {/* Top Header */}
                 <header className="h-16 border-b border-white/5 bg-background/80 backdrop-blur-md sticky top-0 z-20 px-6 flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-foreground">
-                        {role === 'owner' ? 'Owner Dashboard' : 'Tenant Portal'}
+                        {role === 'owner' ? 'Owner Dashboard' : role === 'manager' ? 'Manager Dashboard' : 'Tenant Portal'}
                     </h2>
 
                     <div className="flex items-center space-x-4">
-                        <button className="p-2 rounded-full text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors relative">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-background"></span>
-                        </button>
+                        <NotificationDropdown />
                         <div className="h-6 w-px bg-white/10 mx-2" />
                         <UserDropdown />
                     </div>
@@ -96,6 +127,6 @@ export default function DashboardShell({ children, role = 'owner' }: DashboardSh
                     {children}
                 </div>
             </main>
-        </div>
+        </div >
     );
 }

@@ -170,44 +170,11 @@ export default async function DashboardPage() {
 
             {/* Three Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Utility Anomalies */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-slate-900">Utility Anomalies</h2>
-                        <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">AI POWERED</span>
-                    </div>
-                    <div className="space-y-4">
-                        {(stats.anomalyData?.detection_results || []).filter(r => r.anomaly_detected).length === 0 ? (
-                            <p className="text-slate-500 text-center py-8">No utility anomalies detected</p>
-                        ) : (
-                            (stats.anomalyData?.detection_results || [])
-                                .filter(r => r.anomaly_detected)
-                                .map(anomaly => {
-                                    const severityColors = {
-                                        high: 'bg-red-100 text-red-700 border-red-200',
-                                        medium: 'bg-orange-100 text-orange-700 border-orange-200',
-                                        low: 'bg-blue-100 text-blue-700 border-blue-200',
-                                    };
-
-                                    return (
-                                        <div key={anomaly.property_id} className="border border-slate-200 rounded-lg p-4 bg-slate-50/50">
-                                            <div className="flex items-start justify-between mb-2">
-                                                <h3 className="font-semibold text-slate-900">{anomaly.property_name}</h3>
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${severityColors[anomaly.severity as keyof typeof severityColors]}`}>
-                                                    {anomaly.severity}
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-slate-700 leading-snug">{anomaly.alert_message}</p>
-                                            <div className="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center text-xs">
-                                                <span className="font-medium text-red-600">Impact: +${anomaly.cost_impact_monthly}/mo</span>
-                                                <button className="text-blue-600 font-bold hover:underline">NOTIFY TENANT</button>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                        )}
-                    </div>
-                </div>
+                {/* Utility Anomalies - MOVED TO DASHBOARD */}
+                {/* 
+                   We used to show anomalies here, but now they live in /dashboard/owner/utilities 
+                   to keep the landing page clean.
+                */}
 
                 {/* Compliance Alerts */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

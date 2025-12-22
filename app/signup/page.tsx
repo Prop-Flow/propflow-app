@@ -5,15 +5,18 @@ import Link from 'next/link';
 import AuthLayout from '@/components/auth/AuthLayout';
 import RoleSelector from '@/components/auth/RoleSelector';
 import { Input } from '@/components/ui/Input';
+import { PhoneInput } from '@/components/ui/PhoneInputStrict';
 import { cn } from '@/lib/utils';
 
 
 import { useRouter } from 'next/navigation';
+import { registerUser } from '@/lib/actions/auth';
+import { signIn } from 'next-auth/react';
 
 export default function SignupPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
-    const [role, setRole] = useState<'tenant' | 'owner' | null>(null);
+    const [role, setRole] = useState<'tenant' | 'owner' | 'manager' | null>(null);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -23,45 +26,108 @@ export default function SignupPage() {
         confirmPassword: '',
     });
 
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!role) return;
 
         setIsLoading(true);
+        setErrors({});
 
-        // Simulate "instant" network request with slight delay for UX
-        await new Promise(resolve => setTimeout(resolve, 800));
+        const newErrors: { [key: string]: string } = {};
 
-        // Persist to LocalStorage (Simulate Backend)
-        const userData = {
-            id: crypto.randomUUID(),
-            role,
-            ...formData,
-            createdAt: new Date().toISOString(),
-        };
-        localStorage.setItem('propflow_user', JSON.stringify(userData));
+        if (!formData.firstName) newErrors.firstName = 'First name is required';
+        if (!formData.lastName) newErrors.lastName = 'Last name is required';
 
-        // Instant Redirect
-        const targetPath = role === 'tenant' ? '/dashboard/tenant' : '/dashboard/owner';
-        router.push(targetPath);
+        if (!formData.email) {
+            newErrors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            newErrors.email = 'Invalid email address';
+        }
+
+        if (!formData.phone) {
+            newErrors.phone = 'Phone number is required';
+        } else if (formData.phone.replace(/\D/g, '').length < 7) {
+            newErrors.phone = 'Phone number is too short';
+        }
+
+        if (!formData.password) {
+            newErrors.password = 'Password is required';
+        } else if (formData.password.length < 8) {
+            newErrors.password = 'Password must be at least 8 characters';
+        }
+
+        if (!formData.confirmPassword) {
+            newErrors.confirmPassword = 'Confirm password is required';
+        } else if (formData.password !== formData.confirmPassword) {
+            newErrors.confirmPassword = 'Passwords do not match';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            setIsLoading(false);
+            return;
+        }
+
+        const formDataPayload = new FormData();
+        formDataPayload.append('firstName', formData.firstName);
+        formDataPayload.append('lastName', formData.lastName);
+        formDataPayload.append('email', formData.email);
+        formDataPayload.append('password', formData.password);
+        formDataPayload.append('role', role);
+        formDataPayload.append('phone', formData.phone);
+
+        try {
+            // Call server action
+            const result = await registerUser({}, formDataPayload);
+
+            if (result.success) {
+                // Auto login after success
+                const loginResult = await signIn('credentials', {
+                    email: formData.email,
+                    password: formData.password,
+                    redirect: false,
+                });
+
+                if (loginResult?.error) {
+                    console.error('Login failed after registration:', loginResult.error);
+                    // Fallback to login page
+                    router.push('/login');
+                } else {
+                    const targetPath = role === 'tenant' ? '/dashboard/tenant' : role === 'manager' ? '/dashboard/manager' : '/dashboard/owner';
+                    router.push(targetPath);
+                }
+            } else {
+                console.error('Registration failed:', result.errors || result.message);
+                alert(result.message || 'Registration failed. Please check your inputs.');
+                setIsLoading(false);
+            }
+        } catch (error) {
+            console.error('An unexpected error occurred:', error);
+            setIsLoading(false);
+        }
     };
 
     return (
-        <AuthLayout>
-            <div className="w-full bg-card/50 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-xl">
-                <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
-                        Create an account
+        <AuthLayout maxWidth="max-w-2xl">
+            <div className="w-full bg-card/40 backdrop-blur-2xl border border-white/10 p-8 py-10 rounded-3xl shadow-2xl relative overflow-hidden group">
+                {/* Subtle top glow */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent blur-sm group-hover:via-primary/80 transition-all duration-500" />
+
+                <div className="mb-8 text-center space-y-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-sm">
+                        Create an Account
                     </h1>
-                    <p className="text-muted-foreground">
-                        Join PropFlow to streamline your property management.
+                    <p className="text-base text-muted-foreground font-medium">
+                        The AI-Powered Operating System for Modern Real Estate.
                     </p>
                 </div>
 
                 <RoleSelector role={role} onSelect={setRole} />
 
                 {role && (
-                    <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500" noValidate>
                         <div className="grid grid-cols-2 gap-4">
                             <Input
                                 label="First Name"
@@ -69,6 +135,7 @@ export default function SignupPage() {
                                 value={formData.firstName}
                                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                                 required
+                                error={errors.firstName}
                             />
                             <Input
                                 label="Last Name"
@@ -76,6 +143,7 @@ export default function SignupPage() {
                                 value={formData.lastName}
                                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                                 required
+                                error={errors.lastName}
                             />
                         </div>
 
@@ -86,15 +154,15 @@ export default function SignupPage() {
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             required
+                            error={errors.email}
                         />
 
-                        <Input
-                            type="tel"
+                        <PhoneInput
                             label="Phone Number"
-                            placeholder="+1 (555) 000-0000"
                             value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            onChange={(value) => setFormData({ ...formData, phone: value })}
                             required
+                            error={errors.phone}
                         />
 
                         <Input
@@ -104,6 +172,7 @@ export default function SignupPage() {
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                             required
+                            error={errors.password}
                         />
 
                         <Input
@@ -113,13 +182,14 @@ export default function SignupPage() {
                             value={formData.confirmPassword}
                             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                             required
+                            error={errors.confirmPassword}
                         />
 
                         <button
                             type="submit"
                             disabled={isLoading}
                             className={cn(
-                                "w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-md transition-all mt-6 flex items-center justify-center",
+                                "w-full h-14 text-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-md transition-all mt-8 flex items-center justify-center shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5",
                                 isLoading && "opacity-80 cursor-not-allowed"
                             )}
                         >
@@ -132,7 +202,7 @@ export default function SignupPage() {
                                     Creating Account...
                                 </span>
                             ) : (
-                                `Sign Up as ${role === 'tenant' ? 'Tenant' : 'Owner'}`
+                                `Sign Up as ${role === 'tenant' ? 'Tenant' : role === 'manager' ? 'Property Manager' : 'Owner'}`
                             )}
                         </button>
                     </form>

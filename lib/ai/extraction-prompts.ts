@@ -131,24 +131,56 @@ Required JSON Structure:
 Prioritize extracting the LEGAL OWNER NAME and PROPERTY ADDRESS exactly as they appear in the Deed.
 `;
 
+export const RENT_ROLL_EXTRACTION_PROMPT = `You are analyzing a Rent Roll document. Extract property and tenant information for all units.
+
+Required JSON Structure:
+{
+  "propertyAddress": string | null, // The property address the rent roll is for
+  "units": [
+    {
+      "unitNumber": string | null,
+      "tenantName": string | null, // "Vacant" if empty
+      "marketRent": number | null,
+      "currentRent": number | null,
+      "leaseStartDate": string | null, // YYYY-MM-DD
+      "leaseEndDate": string | null, // YYYY-MM-DD
+      "deposit": number | null,
+      "balance": number | null // Outstanding balance
+    }
+  ],
+  "totals": {
+    "totalMonthlyRent": number | null,
+    "totalDeposits": number | null
+  },
+  "confidence": {
+     // Confidence score (0-1) for overall extraction
+     "overall": number
+  }
+}
+
+If a field is missing, use null.
+`;
+
 /**
  * Build extraction prompt based on document type
  */
-export function buildExtractionPrompt(documentType: 'lease' | 'application' | 'id' | 'w9' | 'property' | 'unknown'): string {
-    switch (documentType) {
-        case 'lease':
-            return LEASE_EXTRACTION_PROMPT;
-        case 'application':
-            return APPLICATION_EXTRACTION_PROMPT;
-        case 'id':
-            return ID_EXTRACTION_PROMPT;
-        case 'w9':
-            return W9_EXTRACTION_PROMPT;
-        case 'property':
-            return PROPERTY_EXTRACTION_PROMPT;
-        default:
-            return LEASE_EXTRACTION_PROMPT; // Default to lease
-    }
+export function buildExtractionPrompt(documentType: 'lease' | 'application' | 'id' | 'w9' | 'property' | 'rent_roll' | 'unknown'): string {
+  switch (documentType) {
+    case 'lease':
+      return LEASE_EXTRACTION_PROMPT;
+    case 'application':
+      return APPLICATION_EXTRACTION_PROMPT;
+    case 'id':
+      return ID_EXTRACTION_PROMPT;
+    case 'w9':
+      return W9_EXTRACTION_PROMPT;
+    case 'property':
+      return PROPERTY_EXTRACTION_PROMPT;
+    case 'rent_roll':
+      return RENT_ROLL_EXTRACTION_PROMPT;
+    default:
+      return LEASE_EXTRACTION_PROMPT; // Default to lease
+  }
 }
 
 /**
@@ -160,6 +192,7 @@ export const DOCUMENT_CLASSIFICATION_PROMPT = `Analyze this document and classif
 - id: Identification document (driver's license, passport, state ID)
 - w9: W-9 tax form
 - property: Deed, Mortgage, or Management Agreement
+- rent_roll: Rent Roll, Rent Schedule, or Tenant Ledger (contains multiple units/tenants)
 - unknown: Cannot determine type
 
 Return only the type as a single word.`;

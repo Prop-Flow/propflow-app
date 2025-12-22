@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseIngestionDocument, IngestionDocumentType } from '@/lib/ai/ingestion';
-
-// pdf-parse is a CommonJS module, use require
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require('pdf-parse');
+import { parseDocument } from '@/lib/ai/document-parser';
 
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const file = formData.get('file') as File;
-        const documentType = formData.get('documentType') as IngestionDocumentType || 'deed';
 
         if (!file) {
             return NextResponse.json(
@@ -31,23 +26,14 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        let textContent = '';
-
-        if (file.type === 'application/pdf') {
-            const pdfData = await pdf(buffer);
-            textContent = pdfData.text;
-        } else {
-            // Assume text/plain or try to decode
-            textContent = buffer.toString('utf-8');
-        }
-
         // Parse document with AI
-        const extractedData = await parseIngestionDocument(textContent, documentType);
+        const result = await parseDocument(buffer, file.type);
 
         return NextResponse.json({
             success: true,
-            documentType,
-            extractedData,
+            documentType: result.documentType,
+            extractedData: result.extractedData,
+            confidence: result.overallConfidence
         });
 
     } catch (error) {

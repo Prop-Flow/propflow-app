@@ -1,9 +1,25 @@
+'use client';
+
 import DashboardShell from '@/components/layout/DashboardShell';
-import { MessageSquare, Mail, Phone } from 'lucide-react';
+import { MessageSquare, Mail, Phone, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function CommunicationsPage() {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-background">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    const normalizedRole = user?.role?.toLowerCase();
+    const role = (normalizedRole === 'property_manager' ? 'manager' : normalizedRole) as "tenant" | "owner" | "manager" | undefined || 'owner';
+
     return (
-        <DashboardShell role="owner">
+        <DashboardShell role={role}>
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground">Communications</h1>

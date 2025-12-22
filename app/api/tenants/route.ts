@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Create required documents based on property type
-        const requiredDocs = getRequiredDocuments(property.type || 'residential');
+        const requiredDocs = getRequiredDocuments(property.propertyType || 'residential');
         await createRequiredDocuments(tenant.id, requiredDocs);
 
         return NextResponse.json({ tenant }, { status: 201 });

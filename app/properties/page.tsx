@@ -1,10 +1,19 @@
-import { prisma } from '@/lib/prisma';
 import PropertiesClient from '@/components/properties/PropertiesClient';
+import { prisma } from '@/lib/prisma';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
+export default async function PropertiesPage() {
+    const session = await auth();
 
-async function getProperties() {
-    return await prisma.property.findMany({
+    if (!session?.user) {
+        redirect('/login');
+    }
+
+    const properties = await prisma.property.findMany({
+        where: {
+            ownerUserId: session.user.id
+        },
         include: {
             _count: {
                 select: {
@@ -17,10 +26,14 @@ async function getProperties() {
             createdAt: 'desc',
         },
     });
-}
 
-export default async function PropertiesPage() {
-    const properties = await getProperties();
+    const mappedProperties = properties.map(p => ({
+        ...p,
+        type: p.propertyType
+    }));
 
-    return <PropertiesClient initialProperties={properties} />;
+    // Transform properties to match the interface expected by PropertiesClient if needed
+    // The Prisma result should match Property interface in PropertiesClient mostly.
+
+    return <PropertiesClient initialProperties={mappedProperties} />;
 }

@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { buildAgentPrompt } from './prompts';
-import { getTenantContext, storeTenantInteraction } from './vector-store';
+import { storeTenantInteraction } from './vector-store';
 import { prisma } from '@/lib/prisma';
 
 let openaiClient: OpenAI | null = null;
@@ -90,8 +90,7 @@ export function shouldEscalate(attemptCount: number, maxAttempts: number = 5): b
  * Determine next communication channel based on attempt history
  */
 export async function determineNextChannel(
-    tenantId: string,
-    currentAttempt: number
+    tenantId: string
 ): Promise<'sms' | 'email' | 'voice'> {
     // Get recent communication logs
     const recentLogs = await prisma.communicationLog.findMany({

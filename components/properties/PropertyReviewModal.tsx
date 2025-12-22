@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Check, X, Building2, MapPin, Hash, User, DollarSign } from 'lucide-react';
+import { Check, X, Building2, MapPin, User, DollarSign } from 'lucide-react';
 import { ExtractedPropertyData } from '@/lib/ai/document-parser';
 
 interface PropertyReviewModalProps {

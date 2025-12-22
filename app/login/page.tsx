@@ -1,7 +1,9 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { Input } from '@/components/ui/Input';
 
@@ -10,11 +12,61 @@ export default function LoginPage() {
         email: '',
         password: '',
     });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+    const router = useRouter();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Login:', formData);
-        // In real app, call API
+        setLoading(true);
+        setError('');
+        setErrors({});
+
+        const { email, password } = formData;
+        const newErrors: { email?: string; password?: string } = {};
+
+        if (!email) {
+            newErrors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            newErrors.email = 'Invalid email address';
+        }
+
+        if (!password) {
+            newErrors.password = 'Password is required';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const result = await signIn('credentials', {
+                email,
+                password,
+                redirect: false,
+            });
+
+            if (result?.error) {
+                setError('Invalid credentials');
+                setLoading(false);
+            } else {
+                // Successful login
+                if (email.includes('owner')) {
+                    router.push('/dashboard/owner');
+                } else if (email.includes('manager')) {
+                    router.push('/dashboard/manager');
+                } else {
+                    router.push('/dashboard/tenant/maintenance'); // Default tenant view
+                }
+            }
+        } catch (err) {
+            console.error('Login error:', err);
+            setError('An error occurred during login');
+            setLoading(false);
+        }
     };
 
     return (
@@ -29,7 +81,7 @@ export default function LoginPage() {
                     </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500" noValidate>
                     <Input
                         type="email"
                         label="Email Address"
@@ -37,6 +89,7 @@ export default function LoginPage() {
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         required
+                        error={errors.email}
                     />
 
                     <div className="space-y-1">
@@ -50,18 +103,33 @@ export default function LoginPage() {
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                             required
-                            className="mt-0" // override input's default mt if needed, but Input has its own label logic so maybe I should not duplicate label.
-                        // Actually my Input component has a label prop. If I provide it, it renders it. 
-                        // Here I am rendering a custom label layout for the "Forgot Password" link. 
-                        // So I will NOT pass the label prop to Input, and keep my custom label above.
+                            className="mt-0"
+                            error={errors.password}
                         />
                     </div>
 
+                    {error && (
+                        <div className="text-sm text-red-500 bg-red-500/10 p-3 rounded-md text-center">
+                            {error}
+                        </div>
+                    )}
+
                     <button
                         type="submit"
-                        className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-md transition-colors mt-6"
+                        disabled={loading}
+                        className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-md transition-all mt-6 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                        Sign In
+                        {loading ? (
+                            <span className="flex items-center">
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Signing In...
+                            </span>
+                        ) : (
+                            "Sign In"
+                        )}
                     </button>
                 </form>
 

@@ -19,6 +19,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label className="text-sm font-medium text-muted-foreground ml-1">
             {label}
+            {error && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         <input

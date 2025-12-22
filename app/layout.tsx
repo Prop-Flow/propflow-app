@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
+const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
 
 export const metadata: Metadata = {
     title: "Propflow AI - Property Management Automation",
     description: "AI-powered tenant communication and compliance tracking for property managers",
 };
+
+import { NotificationProvider } from '@/context/NotificationContext';
 
 export default function RootLayout({
     children,
@@ -15,8 +18,12 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
-            <body className={inter.className}>{children}</body>
+        <html lang="en" suppressHydrationWarning>
+            <body className={`${inter.className} ${outfit.variable}`} suppressHydrationWarning>
+                <NotificationProvider>
+                    {children}
+                </NotificationProvider>
+            </body>
         </html>
     );
 }

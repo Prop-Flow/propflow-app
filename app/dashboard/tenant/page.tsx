@@ -1,7 +1,9 @@
 'use client';
 import React from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
+import { useAuth } from '@/hooks/useAuth';
 
+import Link from 'next/link';
 import { FileText } from 'lucide-react';
 
 export default function TenantDashboard() {
@@ -25,9 +27,9 @@ export default function TenantDashboard() {
                             <p className="text-xs text-orange-200/70 mt-1">
                                 Please upload your signed lease agreement to complete your tenant profile.
                             </p>
-                            <button className="mt-3 text-xs bg-orange-500 text-white px-3 py-1.5 rounded-md hover:bg-orange-600 transition-colors font-medium">
+                            <Link href="/dashboard/tenant/documents" className="mt-3 block w-fit text-xs bg-orange-500 text-white px-3 py-1.5 rounded-md hover:bg-orange-600 transition-colors font-medium">
                                 Upload Lease
-                            </button>
+                            </Link>
                         </div>
                     </div>
 
@@ -49,27 +51,30 @@ export default function TenantDashboard() {
                                 <span className="h-2 w-2 rounded-full bg-green-500" />
                                 <span className="text-sm text-green-400 font-medium">Payment Current</span>
                             </div>
-                            <button className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors">
+                            <Link href="/dashboard/tenant/payments" className="px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors">
                                 Pay Rent
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </div>
 
                 <div className="space-y-6">
+                    {/* Manager Contact Widget (New) */}
+                    <ManagerContactWidget />
+
                     {/* Quick Actions */}
                     <div className="bg-card rounded-xl p-6 border border-white/5">
                         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Quick Actions</h3>
                         <div className="space-y-3">
-                            <button className="w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium">
+                            <Link href="/dashboard/tenant/maintenance" className="block w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium">
                                 Request Maintenance
-                            </button>
-                            <button className="w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium">
+                            </Link>
+                            <Link href="/dashboard/tenant/documents" className="block w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium">
                                 View Documents
-                            </button>
-                            <button className="w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium">
+                            </Link>
+                            <Link href="/communications" className="block w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium">
                                 Contact Property Manager
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -77,3 +82,53 @@ export default function TenantDashboard() {
         </DashboardShell>
     );
 }
+
+function ManagerContactWidget() {
+    const { user } = useAuth();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [manager, setManager] = React.useState<any>(null);
+
+    React.useEffect(() => {
+        if (user?.email) {
+            fetch(`/api/tenants/me/managers?email=${user.email}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.managers && data.managers.length > 0) {
+                        setManager(data.managers[0]);
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+    }, [user?.email]);
+
+    if (!manager) return null;
+
+    return (
+        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-6 text-white shadow-lg">
+            <h3 className="text-sm font-semibold text-indigo-100 uppercase tracking-wider mb-4">Property Manager</h3>
+            <div className="flex items-center space-x-4 mb-4">
+                <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center text-lg font-bold">
+                    {manager.firstName?.[0]}{manager.lastName?.[0]}
+                </div>
+                <div>
+                    <p className="font-bold text-lg">{manager.firstName} {manager.lastName}</p>
+                    <p className="text-sm text-indigo-100">Property Manager</p>
+                </div>
+            </div>
+            <div className="space-y-2 text-sm">
+                <p className="flex items-center gap-2">
+                    <span className="opacity-70">Email:</span> {manager.email}
+                </p>
+                {manager.phone && (
+                    <p className="flex items-center gap-2">
+                        <span className="opacity-70">Phone:</span> {manager.phone}
+                    </p>
+                )}
+            </div>
+            <Link href="/communications" className="block w-full mt-4 text-center py-2 bg-white text-indigo-600 rounded-lg font-bold hover:bg-indigo-50 transition-colors">
+                Message Now
+            </Link>
+        </div>
+    );
+}
+

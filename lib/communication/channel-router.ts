@@ -25,8 +25,7 @@ export async function routeMessage(
     try {
         // Determine channel if not specified
         const channel = preferredChannel || await determineNextChannel(
-            request.tenantId,
-            request.attemptNumber || 1
+            request.tenantId
         );
 
         // Send via appropriate channel
@@ -108,7 +107,7 @@ export async function sendWithFallback(
     request: CommunicationRequest
 ): Promise<{ success: boolean; channel: Channel; messageId?: string; error?: string }> {
     // Try primary channel
-    const primaryChannel = await determineNextChannel(request.tenantId, request.attemptNumber || 1);
+    const primaryChannel = await determineNextChannel(request.tenantId);
     const primaryResult = await routeMessage(request, primaryChannel);
 
     if (primaryResult.success) {

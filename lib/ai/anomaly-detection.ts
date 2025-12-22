@@ -24,6 +24,7 @@ export interface PropertyData {
 export interface DetectionResult {
     property_id: string;
     property_name: string;
+    utility_type: 'Water' | 'Electric' | 'Gas';
     anomaly_detected: boolean;
     baseline_average: number;
     baseline_std_dev: number;
@@ -32,6 +33,7 @@ export interface DetectionResult {
     severity: 'low' | 'medium' | 'high' | null;
     cost_impact_monthly: number;
     alert_message: string;
+    rubs_link?: string;
 }
 
 export interface AnalysisResult {
@@ -50,83 +52,97 @@ export interface AnalysisResult {
  * Perform anomaly detection logic
  */
 export function analyzeProperties(dataset: PropertyData[]): AnalysisResult {
-    const results: DetectionResult[] = dataset.map(property => {
-        const baselineData = property.usage_history.slice(0, BASELINE_MONTHS_COUNT);
-        const recentData = property.usage_history.slice(BASELINE_MONTHS_COUNT);
+    const results: DetectionResult[] = [];
 
-        const baselineUsages = baselineData.map(d => d.usage);
-        const average = baselineUsages.reduce((a, b) => a + b, 0) / BASELINE_MONTHS_COUNT;
+    dataset.forEach(property => {
+        // Simulate multiple utility types for each property
+        const utilityTypes: ('Water' | 'Electric' | 'Gas')[] = ['Water', 'Electric', 'Gas'];
 
-        const variance = baselineUsages.reduce((a, b) => a + Math.pow(b - average, 2), 0) / BASELINE_MONTHS_COUNT;
-        const stdDev = Math.sqrt(variance);
+        utilityTypes.forEach(type => {
+            // Clone and slightly randomize usage history to simulate different utilities
+            // In a real app, this data would come from the database per utility meter
+            const varianceFactor = type === 'Electric' ? 1.5 : type === 'Gas' ? 0.8 : 1.0;
+            const costPerUnit = type === 'Electric' ? 0.15 : type === 'Gas' ? 1.2 : COST_PER_GALLON;
 
-        const threshold = average + (STD_DEV_MULTIPLIER * stdDev);
+            const usageHistory = property.usage_history.map(m => ({
+                ...m,
+                usage: Math.round(m.usage * varianceFactor * (0.9 + Math.random() * 0.2))
+            }));
 
-        let anomaly_detected = false;
-        let highestAnomalyMonth: MonthlyUsage | null = null;
+            const baselineData = usageHistory.slice(0, BASELINE_MONTHS_COUNT);
+            const recentData = usageHistory.slice(BASELINE_MONTHS_COUNT);
 
-        const analyzedRecentMonths = recentData.map(m => {
-            const exceeds = m.usage > threshold;
-            if (exceeds) {
-                anomaly_detected = true;
-                if (!highestAnomalyMonth || m.usage > highestAnomalyMonth.usage) {
-                    highestAnomalyMonth = m;
+            const baselineUsages = baselineData.map(d => d.usage);
+            const average = baselineUsages.reduce((a, b) => a + b, 0) / BASELINE_MONTHS_COUNT;
+
+            const variance = baselineUsages.reduce((a, b) => a + Math.pow(b - average, 2), 0) / BASELINE_MONTHS_COUNT;
+            const stdDev = Math.sqrt(variance);
+
+            const threshold = average + (STD_DEV_MULTIPLIER * stdDev);
+
+            let anomaly_detected = false;
+            let highestAnomalyMonth: MonthlyUsage | null = null;
+
+            const analyzedRecentMonths = recentData.map(m => {
+                const exceeds = m.usage > threshold;
+                if (exceeds) {
+                    anomaly_detected = true;
+                    if (!highestAnomalyMonth || m.usage > highestAnomalyMonth.usage) {
+                        highestAnomalyMonth = m;
+                    }
                 }
+                return { ...m, exceeds_threshold: exceeds } as MonthlyUsage & { exceeds_threshold: boolean };
+            });
+
+            let severity: 'low' | 'medium' | 'high' | null = null;
+            let costImpact = 0;
+            let alertMessage = `No ${type.toLowerCase()} anomaly detected. Usage remains within normal range.`;
+
+            if (anomaly_detected && highestAnomalyMonth) {
+                const currentHighest: MonthlyUsage = highestAnomalyMonth;
+                const ratio = currentHighest.usage / (average || 1);
+
+                if (ratio >= 2.8) severity = 'high';
+                else if (ratio >= 1.8) severity = 'medium';
+                else if (ratio >= 1.4) severity = 'low';
+
+                costImpact = (currentHighest.usage - average) * costPerUnit;
+
+                const unit = type === 'Water' ? 'gal' : type === 'Electric' ? 'kWh' : 'therms';
+                alertMessage = `${type} anomaly detected. Usage hit ${currentHighest.usage.toLocaleString()} ${unit} (avg ${Math.round(average).toLocaleString()}). +$${costImpact.toFixed(2)} impact.`;
             }
-            return { ...m, exceeds_threshold: exceeds } as MonthlyUsage & { exceeds_threshold: boolean };
+
+            const rubsLink = anomaly_detected ? `/billing?propertyId=${property.property_id}` : undefined;
+
+            results.push({
+                property_id: property.property_id,
+                property_name: property.property_name,
+                utility_type: type,
+                anomaly_detected,
+                baseline_average: Math.round(average),
+                baseline_std_dev: Math.round(stdDev),
+                anomaly_threshold: Math.round(threshold),
+                recent_months: analyzedRecentMonths,
+                severity,
+                cost_impact_monthly: parseFloat(costImpact.toFixed(2)),
+                alert_message: alertMessage,
+                rubs_link: rubsLink
+            });
         });
-
-        let severity: 'low' | 'medium' | 'high' | null = null;
-        let costImpact = 0;
-        let alertMessage = "No anomaly detected. Usage remains within normal range.";
-
-        if (anomaly_detected && highestAnomalyMonth) {
-            const currentHighest: MonthlyUsage = highestAnomalyMonth;
-            const ratio = currentHighest.usage / average;
-            const increasePercent = Math.round((ratio - 1) * 100);
-
-            if (ratio >= 2.8) {
-                severity = 'high';
-            } else if (ratio >= 1.8) {
-                severity = 'medium';
-            } else if (ratio >= 1.4) {
-                severity = 'low';
-            }
-
-            costImpact = (currentHighest.usage - average) * COST_PER_GALLON;
-
-            const cause = severity === 'high' ? "Major leak or burst pipe" :
-                severity === 'medium' ? "Running toilet or significant leak" :
-                    "Small leak or dripping faucet";
-
-            alertMessage = `${cause} detected. Water usage increased ${increasePercent}% in ${currentHighest.month} (${currentHighest.usage.toLocaleString()} gal vs. normal ${Math.round(average).toLocaleString()} gal). Estimated monthly cost impact: $${costImpact.toFixed(2)}. ${severity === 'high' ? 'Immediate investigation recommended.' : 'Investigation recommended.'}`;
-        }
-
-        return {
-            property_id: property.property_id,
-            property_name: property.property_name,
-            anomaly_detected,
-            baseline_average: Math.round(average),
-            baseline_std_dev: Math.round(stdDev),
-            anomaly_threshold: Math.round(threshold),
-            recent_months: analyzedRecentMonths,
-            severity,
-            cost_impact_monthly: parseFloat(costImpact.toFixed(2)),
-            alert_message: alertMessage
-        };
     });
 
     const totalImpact = results.reduce((sum, r) => sum + r.cost_impact_monthly, 0);
-    const anomaliesCount = results.filter(r => r.anomaly_detected).length;
+    // Count properties with at least one anomaly
+    const propertiesWithAnomalies = new Set(results.filter(r => r.anomaly_detected).map(r => r.property_id)).size;
 
     return {
         analysis_timestamp: new Date().toISOString().split('T')[0],
         analysis_id: "ANALYSIS-BATCH-001",
         detection_results: results,
         summary: {
-            total_properties_analyzed: results.length,
-            properties_with_anomalies: anomaliesCount,
-            anomaly_detection_rate: (anomaliesCount / results.length) * 100,
+            total_properties_analyzed: dataset.length,
+            properties_with_anomalies: propertiesWithAnomalies,
+            anomaly_detection_rate: (propertiesWithAnomalies / dataset.length) * 100,
             total_cost_impact: parseFloat(totalImpact.toFixed(2))
         }
     };

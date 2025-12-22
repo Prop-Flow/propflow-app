@@ -1,4 +1,6 @@
 import OpenAI from 'openai';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdf = require('pdf-parse');
 import { buildExtractionPrompt, DOCUMENT_CLASSIFICATION_PROMPT } from './extraction-prompts';
 import { formatPhoneNumber } from '@/lib/utils/formatters';
 
@@ -60,9 +62,30 @@ export interface ExtractedPropertyData {
     };
 }
 
+export interface RentRollData {
+    propertyAddress?: string;
+    units: {
+        unitNumber: string;
+        tenantName: string;
+        marketRent?: number;
+        currentRent?: number;
+        leaseStartDate?: string;
+        leaseEndDate?: string;
+        deposit?: number;
+        balance?: number;
+    }[];
+    totals: {
+        totalMonthlyRent?: number;
+        totalDeposits?: number;
+    };
+    confidence: {
+        [key: string]: number;
+    };
+}
+
 export interface ParsedDocument {
-    documentType: 'lease' | 'application' | 'id' | 'w9' | 'property' | 'unknown';
-    extractedData: ExtractedTenantData | ExtractedPropertyData;
+    documentType: 'lease' | 'application' | 'id' | 'w9' | 'property' | 'rent_roll' | 'unknown';
+    extractedData: ExtractedTenantData | ExtractedPropertyData | RentRollData;
     overallConfidence: number;
     rawText?: string;
 }
@@ -127,9 +150,82 @@ export async function parseDocument(
             extractedText = extractionResponse.choices[0]?.message?.content || '{}';
 
         } else if (isPDF) {
-            // Placeholder for PDF parsing logic
-            extractedText = '{"name": null, "confidence": {}}';
-            documentType = 'lease';
+            // Extract text from PDF
+            const pdfData = await pdf(fileBuffer);
+            const rawText = pdfData.text.substring(0, 20000); // Truncate to avoid token limits
+
+            // 1. Classify the document based on text
+            const classificationResponse = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                    {
+                        role: 'user',
+                        content: `${DOCUMENT_CLASSIFICATION_PROMPT}\n\nDocument Text:\n${rawText}`
+                    }
+                ],
+                max_tokens: 50,
+            });
+
+            documentType = (classificationResponse.choices[0]?.message?.content?.trim().toLowerCase() || 'unknown') as ParsedDocument['documentType'];
+
+            // 2. Extract data based on classified type
+            const extractionPrompt = buildExtractionPrompt(documentType);
+
+            const extractionResponse = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                    {
+                        role: 'user',
+                        content: `${extractionPrompt}\n\nDocument Text:\n${rawText}`
+                    }
+                ],
+                response_format: { type: 'json_object' },
+                max_tokens: 1000,
+            });
+
+            extractedText = extractionResponse.choices[0]?.message?.content || '{}';
+
+        } else if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || mimeType === 'text/csv' || mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
+            // Handle Spreadsheets (Excel/CSV)
+            // Dynamic import to avoid issues if not installed or server-side only
+            const XLSX = await import('xlsx');
+            const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+
+            // Convert first sheet to CSV text
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const rawText = XLSX.utils.sheet_to_csv(worksheet).substring(0, 20000);
+
+            // 1. Classify (likely rent_roll, but let AI confirm)
+            const classificationResponse = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                    {
+                        role: 'user',
+                        content: `${DOCUMENT_CLASSIFICATION_PROMPT}\n\nDocument Content (Spreadsheet):\n${rawText}`
+                    }
+                ],
+                max_tokens: 50,
+            });
+
+            documentType = (classificationResponse.choices[0]?.message?.content?.trim().toLowerCase() || 'unknown') as ParsedDocument['documentType'];
+
+            // 2. Extract data
+            const extractionPrompt = buildExtractionPrompt(documentType);
+
+            const extractionResponse = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                    {
+                        role: 'user',
+                        content: `${extractionPrompt}\n\nDocument Content (Spreadsheet):\n${rawText}`
+                    }
+                ],
+                response_format: { type: 'json_object' },
+                max_tokens: 1000,
+            });
+
+            extractedText = extractionResponse.choices[0]?.message?.content || '{}';
         }
 
         // Parse the extracted JSON

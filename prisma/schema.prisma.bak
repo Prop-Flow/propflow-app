@@ -1,0 +1,486 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  city        String?
+  state       String?
+  zipCode     String?
+  country     String   @default("USA")
+  
+  propertyType String? // SINGLE_FAMILY, MULTI_FAMILY, COMMERCIAL, etc.
+  units       Int?     @default(1)
+  squareFeet  Int?
+  yearBuilt   Int?
+  
+  buildingCode String?  @unique // Unique code for tenant self-onboarding
+  
+  // Financial tracking
+  purchasePrice Float?
+  purchaseDate  DateTime?
+  
+  // Relationships
+  ownerUserId String?
+  owner       User?    @relation("PropertyOwner", fields: [ownerUserId], references: [id])
+  managers    User[]   @relation("PropertyManagers")
+
+  tenants         Tenant[]
+  complianceItems ComplianceItem[]
+  
+  // Financial data
+  financials      PropertyFinancials?
+  valuations      PropertyValuation[]
+  projection      PropertyProjection?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerUserId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  role          String    @default("TENANT") // OWNER, PROPERTY_MANAGER, TENANT
+  firstName     String?
+  lastName      String?
+  phone         String?
+  passwordHash  String?   // For simple auth if needed
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Detailed relations
+  ownedProperties   Property[] @relation("PropertyOwner")
+  managedProperties Property[] @relation("PropertyManagers")
+  
+  // Link to tenant profile if this user is a tenant
+  tenantProfile     Tenant?
+
+  notifications     Notification[]
+}
+
+model Invitation {
+  id          String   @id @default(cuid())
+  email       String
+  role        String   // PROPERTY_MANAGER, TENANT, OWNER
+  propertyId  String?  // Optional context
+  token       String   @unique
+  status      String   @default("pending") // pending, accepted, expired
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Tenant {
+  id              String   @id @default(cuid())
+  propertyId      String
+  name            String
+  email           String?
+  userId          String?  @unique // Link to the User account
+  user            User?    @relation(fields: [userId], references: [id])
+  phone           String?
+  leaseStartDate  DateTime?
+  leaseEndDate    DateTime?
+  rentAmount      Float?
+  status          String   @default("active") // active, inactive, pending
+  
+  // R.U.B.S Billing Fields
+  apartmentNumber String?
+  squareFootage   Float?
+  numberOfOccupants Int    @default(1)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  property            Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  documents           Document[]
+  communicationLogs   CommunicationLog[]
+  complianceItems     ComplianceItem[]
+  utilityCharges      TenantUtilityCharge[]
+
+  @@index([propertyId])
+  @@index([status])
+}
+
+model Document {
+  id              String   @id @default(cuid())
+  tenantId        String
+  type            String   // w9, insurance, lease, etc.
+  name            String
+  status          String   @default("pending") // pending, submitted, approved, expired
+  fileUrl         String?
+  expirationDate  DateTime?
+  uploadedAt      DateTime?
+  extractedData   String?  // AI-extracted tenant info as JSON
+  confidence      Float?   // Overall confidence score
+  processingStatus String  @default("pending") // pending, processing, completed, failed
+  thumbnailUrl    String?  // Preview image
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([type])
+}
+
+model ComplianceItem {
+  id              String   @id @default(cuid())
+  propertyId      String?
+  tenantId        String?
+  type            String   // lease_renewal, inspection, insurance_renewal, etc.
+  title           String
+  description     String?
+  dueDate         DateTime
+  status          String   @default("pending") // pending, completed, overdue
+  priority        String   @default("medium") // low, medium, high
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant   Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model CommunicationLog {
+  id              String   @id @default(cuid())
+  tenantId        String
+  channel         String   // sms, email, voice
+  direction       String   // outbound, inbound
+  message         String
+  status          String   // sent, delivered, failed, received
+  metadata        Json?    // additional data like Twilio SID, delivery status, etc.
+  createdAt       DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([channel])
+  @@index([createdAt])
+}
+
+model WorkflowExecution {
+  id              String   @id @default(cuid())
+  workflowType    String   // tenant_followup, document_collection, compliance_check
+  tenantId        String?
+  propertyId      String?
+  status          String   // running, completed, failed
+  attemptCount    Int      @default(0)
+  lastAttemptAt   DateTime?
+  nextAttemptAt   DateTime?
+  metadata        Json?    // workflow-specific data
+  result          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([workflowType])
+  @@index([status])
+  @@index([tenantId])
+  @@index([nextAttemptAt])
+}
+
+model UtilityBill {
+  id              String   @id @default(cuid())
+  propertyId      String
+  billingPeriod   String   // e.g., "2025-01" for January 2025
+  utilityType     String   @default("total") // total, water, electric, gas
+  totalCost       Float    // Total utility cost for the property
+  startDate       DateTime
+  endDate         DateTime
+  status          String   @default("pending") // pending, calculated, paid
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenantCharges   TenantUtilityCharge[]
+
+  @@index([propertyId])
+  @@index([billingPeriod])
+  @@index([status])
+}
+
+model TenantUtilityCharge {
+  id                    String   @id @default(cuid())
+  utilityBillId         String
+  tenantId              String
+  
+  // Calculation breakdown
+  chargeAmount          Float    // Final charge for this tenant
+  squareFootageRatio    Float    // Percentage based on sqft
+  occupancyRatio        Float    // Percentage based on occupants
+  squareFootageCost     Float    // Cost attributed to sqft
+  occupancyCost         Float    // Cost attributed to occupancy
+  
+  // Tenant data at time of calculation (for audit trail)
+  tenantSquareFootage   Float
+  tenantOccupants       Int
+  
+  createdAt             DateTime @default(now())
+
+  utilityBill           UtilityBill @relation(fields: [utilityBillId], references: [id], onDelete: Cascade)
+  tenant                Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([utilityBillId])
+  @@index([tenantId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info") // info, success, warning, error
+  read      Boolean  @default(false)
+  link      String?  // Optional navigation link
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+}
+
+// Financial Management Models
+
+model PropertyFinancials {
+  id                String   @id @default(cuid())
+  propertyId        String   @unique
+  
+  // Operating Reserves
+  currentReserves   Float    @default(0)
+  recommendedReserves Float  @default(0)
+  reserveCalculationDate DateTime?
+  
+  // Vacancy Loss
+  vacancyRate       Float    @default(0) // Percentage (e.g., 5.0 for 5%)
+  estimatedVacancyLoss Float @default(0)
+  
+  // Calculated Fields
+  totalMonthlyIncome    Float @default(0)
+  totalMonthlyExpenses  Float @default(0)
+  monthlyNetIncome      Float @default(0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  operatingReserve  OperatingReserve?
+  expenses          PropertyExpense[]
+  debts             PropertyDebt[]
+  income            PropertyIncome[]
+  
+  @@index([propertyId])
+}
+
+model OperatingReserve {
+  id                    String   @id @default(cuid())
+  propertyFinancialsId  String   @unique
+  
+  currentAmount         Float    @default(0)
+  recommendedAmount     Float
+  
+  // Calculation Metadata
+  calculationReasoning  String   // JSON string with breakdown
+  baseMonthsExpenses    Float    // 3-6 months
+  ageAdjustment         Float    @default(0)
+  unitCountAdjustment   Float    @default(0)
+  minimumReserve        Float    @default(5000)
+  
+  lastCalculated        DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  propertyFinancials    PropertyFinancials @relation(fields: [propertyFinancialsId], references: [id], onDelete: Cascade)
+  
+  @@index([propertyFinancialsId])
+}
+
+model PropertyExpense {
+  id                    String   @id @default(cuid())
+  propertyFinancialsId  String
+  
+  category              String   // property_tax, insurance, water, sewer, gas, electric, trash, maintenance, landscaping, management_fees, capital_reserve, custom
+  customCategoryName    String?  // For custom categories
+  
+  amount                Float
+  frequency             String   @default("monthly") // monthly, annual, one_time
+  description           String?
+  dueDate               DateTime?
+  isPaid                Boolean  @default(false)
+  paidDate              DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  propertyFinancials    PropertyFinancials @relation(fields: [propertyFinancialsId], references: [id], onDelete: Cascade)
+  
+  @@index([propertyFinancialsId])
+  @@index([category])
+  @@index([dueDate])
+}
+
+model PropertyDebt {
+  id                    String   @id @default(cuid())
+  propertyFinancialsId  String
+  
+  loanName              String   // e.g., "Primary Mortgage", "HELOC"
+  principalBalance      Float
+  interestRate          Float    // Annual percentage (e.g., 4.5 for 4.5%)
+  termLengthMonths      Int
+  monthlyPayment        Float
+  
+  originationDate       DateTime
+  maturityDate          DateTime
+  nextPaymentDue        DateTime?
+  
+  lender                String?
+  loanType              String?  // conventional, fha, va, commercial, etc.
+  
+  // Refinancing Tracking
+  shouldMonitorRefinancing Boolean @default(true)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  propertyFinancials    PropertyFinancials @relation(fields: [propertyFinancialsId], references: [id], onDelete: Cascade)
+  refinancingAlerts     RefinancingAlert[]
+  
+  @@index([propertyFinancialsId])
+  @@index([nextPaymentDue])
+}
+
+model RefinancingAlert {
+  id                    String   @id @default(cuid())
+  propertyDebtId        String
+  
+  currentRate           Float    // Current loan rate
+  marketRate            Float    // Current market rate
+  potentialSavings      Float    // Monthly savings
+  breakEvenMonths       Int?     // Months to break even on closing costs
+  
+  alertDate             DateTime @default(now())
+  isActive              Boolean  @default(true)
+  isDismissed           Boolean  @default(false)
+  
+  createdAt             DateTime @default(now())
+  
+  propertyDebt          PropertyDebt @relation(fields: [propertyDebtId], references: [id], onDelete: Cascade)
+  
+  @@index([propertyDebtId])
+  @@index([isActive])
+}
+
+model PropertyIncome {
+  id                    String   @id @default(cuid())
+  propertyFinancialsId  String
+  
+  source                String   // rent, laundry, parking, storage, rubs_utility, custom
+  customSourceName      String?  // For custom income sources
+  
+  amount                Float
+  frequency             String   @default("monthly") // monthly, annual, one_time
+  description           String?
+  
+  isRecurring           Boolean  @default(true)
+  startDate             DateTime?
+  endDate               DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  propertyFinancials    PropertyFinancials @relation(fields: [propertyFinancialsId], references: [id], onDelete: Cascade)
+  
+  @@index([propertyFinancialsId])
+  @@index([source])
+}
+model RefinancingAlert {
+  id                String   @id @default(cuid())
+  propertyDebtId    String
+  propertyDebt      PropertyDebt @relation(fields: [propertyDebtId], references: [id], onDelete: Cascade)
+  
+  currentRate       Float
+  marketRate        Float
+  potentialSavings  Float
+  breakEvenMonths   Int
+  
+  isActive          Boolean  @default(true)
+  isDismissed       Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
+  
+  @@index([propertyDebtId])
+  @@index([isActive])
+}
+
+model PropertyValuation {
+  id                String   @id @default(cuid())
+  propertyId        String
+  property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  // Current Valuation
+  estimatedValue    Float    // Calculated from NOI / Cap Rate
+  purchasePrice     Float?   // Original purchase price
+  
+  // Appreciation Tracking
+  totalAppreciation Float    // $ amount
+  appreciationRate  Float    // % annual rate
+  
+  // Cap Rate
+  marketCapRate     Float    // User input or calculated
+  impliedCapRate    Float?   // Calculated from purchase (NOI / Purchase Price)
+  
+  // Valuation Method
+  methodology       String   @default("INCOME_APPROACH") // INCOME_APPROACH, COST_BASIS, MANUAL
+  
+  // Monthly Snapshot
+  monthlyNOI        Float
+  annualNOI         Float
+  
+  // Confidence & Notes
+  confidence        String?  // HIGH, MEDIUM, LOW
+  notes             String?
+  
+  createdAt         DateTime @default(now())
+  
+  @@index([propertyId, createdAt])
+}
+
+model PropertyProjection {
+  id                  String   @id @default(cuid())
+  propertyId          String   @unique
+  property            Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  // Projection Parameters
+  projectionYears     Int      @default(5)
+  assumedAppreciation Float    @default(3.0) // % annual
+  assumedIncomeGrowth Float    @default(2.0) // % annual
+  assumedExpenseGrowth Float   @default(3.0) // % annual
+  
+  // Projected Values (JSON array of yearly projections)
+  yearlyProjections   Json     // [{year: 1, value: X, noi: Y, cashFlow: Z}, ...]
+  
+  // Sale Scenarios
+  projectedSaleValue  Float?
+  projectedEquity     Float?
+  projectedROI        Float?
+  
+  lastCalculated      DateTime @default(now())
+  
+  @@index([propertyId])
+}
