@@ -82,7 +82,7 @@ export async function registerUser(prevState: RegisterState, formData: FormData)
     } catch (error) {
         console.error('Registration error details:', error);
         return {
-            message: 'Database Error: Failed to Register.',
+            message: `Database Error: Failed to Register. Details: ${(error as Error).message}`,
         };
     }
 }

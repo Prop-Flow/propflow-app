@@ -201,7 +201,7 @@ export default function ManagerDashboard() {
                                         <p className="text-sm text-white font-medium hover:text-indigo-400 cursor-pointer transition-colors">Lease Renewal - Unit 4B</p>
                                         <p className="text-xs text-muted-foreground">Expires in 3 days</p>
                                         <div className="mt-2 flex space-x-2">
-                                            <button className="text-[10px] bg-white/10 hover:bg-white/20 px-2 py-1 rounded text-white transition-colors">Prepare renewal</button>
+                                            <Link href="/documents" className="text-[10px] bg-white/10 hover:bg-white/20 px-2 py-1 rounded text-white transition-colors">Prepare renewal</Link>
                                         </div>
                                     </div>
                                 </li>
@@ -247,9 +247,9 @@ export default function ManagerDashboard() {
                                     <p className="text-xs text-muted-foreground mt-1">Direct deposit reconciliation is now live.</p>
                                 </div>
                             </div>
-                            <button className="w-full mt-4 py-2 text-xs text-center text-indigo-300 hover:text-white transition-colors">
+                            <Link href="/settings" className="block w-full mt-4 py-2 text-xs text-center text-indigo-300 hover:text-white transition-colors">
                                 View Changelog
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </div>

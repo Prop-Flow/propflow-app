@@ -28,29 +28,36 @@ export function PhoneInput({
 }: PhoneInputProps) {
     // Default to US
     const [country, setCountry] = useState<Country>('US');
-    const [displayValue, setDisplayValue] = useState('');
 
-    // Sync external value to internal display state
+    // Internal state for the input display
+    const [inputValue, setInputValue] = useState('');
+
+    // Initialize/Sync from props
     useEffect(() => {
+        // If the prop value is empty, clear input
         if (!value) {
-            setDisplayValue('');
+            if (inputValue) setInputValue('');
             return;
         }
 
-        // Value comes in as +1xxxxxxxxxx (E.164-ish)
-        // We want to strip the calling code +1 for the input field if it matches current country
-        const code = getCountryCallingCode(country);
-        const prefix = `+${code}`;
+        // If the prop value matches what we expect based on current input, don't clobber it
+        // This prevents cursor jumping and "fighting"
+        const currentDigits = inputValue.replace(/\D/g, '');
+        const PropDigits = value.replace(/\D/g, '');
 
-        if (value.startsWith(prefix)) {
-            const national = value.slice(prefix.length);
-            // Re-format just the national part
-            const { formatted } = formatPhoneNumber(national);
-            setDisplayValue(formatted);
-        } else {
-            // Fallback
-            setDisplayValue(value);
+        // If digits match (ignoring country code prefix differences for a moment), skip update
+        // Current input: 555123 -> +1555123
+        // Prop value: +1555123
+        const callingCode = getCountryCallingCode(country);
+        const bareProp = value.startsWith(`+${callingCode}`) ? value.slice(callingCode.length + 1) : value;
+
+        if (bareProp.replace(/\D/g, '') === currentDigits) {
+            return;
         }
+
+        // Otherwise, it's a true external change (or initial load)
+        const formatted = formatPhoneNumber(bareProp).formatted;
+        setInputValue(formatted);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value, country]);
 
@@ -76,55 +83,27 @@ export function PhoneInput({
         return { formatted, digits: limited };
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        // Allow deleting separators naturally
-        if (e.key === 'Backspace') {
-            // Get cursor position from ref if we had one, but strict React input is tricky.
-            // Simpler heuristic: If the value ends with a separator, or we just want to ensure it feels right:
-            // The standard 'change' event will trigger.
-            // BUT: if cursor is after a separator, standard backspace might not delete the char before it unless we force it.
-            // Actually, simplest 'deletable' feel: if the user hits backspace and the regex-stripped digits result is same length
-            // as previous, it means they hit a separator. We should proactively slice a digit off.
-        }
-    };
-
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
-        const inputType = (e.nativeEvent as InputEvent).inputType; // 'deleteContentBackward' etc.
+        const inputType = (e.nativeEvent as InputEvent).inputType;
+        let newRaw = val;
 
-        let newDigits = val.replace(/\D/g, '');
-
-        // Smart Delete Handling:
-        // If the user effectively deleted a separator (digits didn't change count but length reduced or cursor moved),
-        // we normally "resist" in strict mode.
-        // To allow "deleting" the dash, we check if operation was a delete and digits count resembles no change?
-        // Actually, easiest way is: If the input was a delete event, and the raw digits are same as before, 
-        // it implies they deleted a formatting char. We should remove the last digit (or digit at cursor).
-        // Since cursor tracking is hard without a ref, we'll try a simpler approach often used:
-        // Just let it re-format.
-        // Wait, user says "dashes and parenthesis should be deletable". 
-        // If I have `(555) 555-5555` and backspace `-`, `val` becomes `(555) 5555555`. 
-        // `digits` is `5555555555`. Reformat is `(555) 555-5555`. 
-        // Result: Dash comes back.
-
-        // FIX: If we detect a delete on a separator position, we remove the digit before it.
-        // We'll track previous value.
-
-        const prevDigits = (displayValue || '').replace(/\D/g, '');
+        // Smart delete handling for separators
+        const prevDigits = inputValue.replace(/\D/g, '');
+        const newDigits = val.replace(/\D/g, '');
         const isDelete = inputType?.includes('delete');
 
         if (isDelete && newDigits.length === prevDigits.length) {
-            // User deleted a non-digit. Remove the last digit to make it "feel" like progress?
-            // Or better: remove the digit immediately preceding the deleted char? 
-            // Without cursor position, removing the LAST digit is the safest fallback for "end of line" editing.
-            newDigits = newDigits.slice(0, -1);
+            // User deleted a separator, remove the digit before it
+            newRaw = newRaw.slice(0, -1);
         }
 
-        const { formatted, digits } = formatPhoneNumber(newDigits);
+        const { formatted, digits } = formatPhoneNumber(newRaw);
 
-        setDisplayValue(formatted);
+        // Update local state immediately
+        setInputValue(formatted);
 
-        // Emit full E.164 with calling code
+        // Propagate to parent
         if (digits.length > 0) {
             const callingCode = getCountryCallingCode(country);
             onChange(`+${callingCode}${digits}`);
@@ -135,15 +114,13 @@ export function PhoneInput({
 
     const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setCountry(e.target.value as Country);
-        // Clear input on country change to avoid confusion
         onChange('');
-        setDisplayValue('');
+        setInputValue('');
     };
 
     const callingCode = getCountryCallingCode(country);
 
-    // Create country options from supported countries list
-    // This avoids "Unknown country" errors from codes in locale json that aren't supported
+    // Create country options
     const countryOptions = getCountries().map((code) => ({
         code,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -176,10 +153,8 @@ export function PhoneInput({
                         ))}
                     </select>
 
-                    {/* Visual Mock of Select */}
                     <div className="flex items-center gap-2 pointer-events-none">
                         <span className="text-lg leading-none">
-                            {/* Flag logic could go here, for now just code is fine or use a map */}
                             {country === 'US' ? '🇺🇸' : country}
                         </span>
                         <span className="text-muted-foreground text-sm font-medium">
@@ -191,7 +166,7 @@ export function PhoneInput({
 
                 <input
                     type="tel"
-                    value={displayValue}
+                    value={inputValue}
                     onChange={handlePhoneChange}
                     placeholder={placeholder}
                     className="bg-transparent border-none w-full h-full focus:outline-none placeholder:text-muted-foreground text-foreground flex-1 tracking-wide font-medium"
