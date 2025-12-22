@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import ReactiveBackground from '@/components/ui/ReactiveBackground';
 
 export default function AuthLayout({
@@ -44,15 +45,13 @@ export default function AuthLayout({
             <div className="absolute top-0 right-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-primary/10 blur-3xl opacity-50 pointer-events-none" />
             <div className="absolute bottom-0 left-0 -mb-20 -ml-20 h-96 w-96 rounded-full bg-purple-500/10 blur-3xl opacity-50 pointer-events-none" />
 
-            {/* Developer Access Button (Hidden in plain sight) */}
-            <button
-                onClick={() => {
-                    window.location.href = "/dev-login";
-                }}
+            {/* Developer Access Link (Hidden in plain sight) */}
+            <Link
+                href="/dev-login"
                 className="absolute bottom-4 right-4 p-2 opacity-10 hover:opacity-100 transition-opacity bg-white/10 rounded-lg text-[10px] text-white/50 font-bold uppercase tracking-widest z-[100]"
             >
                 Dev Access
-            </button>
+            </Link>
         </div>
     );
 }
