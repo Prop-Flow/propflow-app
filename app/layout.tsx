@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 };
 
 import { NotificationProvider } from '@/context/NotificationContext';
+import DeveloperToolbar from '@/components/dev/DeveloperToolbar';
 
 export default function RootLayout({
     children,
@@ -22,6 +23,7 @@ export default function RootLayout({
             <body className={`${inter.className} ${outfit.variable}`} suppressHydrationWarning>
                 <NotificationProvider>
                     {children}
+                    <DeveloperToolbar />
                 </NotificationProvider>
             </body>
         </html>

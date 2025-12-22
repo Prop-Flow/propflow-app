@@ -20,7 +20,22 @@ export interface SessionUser {
  * Uses Auth.js server-side session retrieval
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function getSession(_request: NextRequest): Promise<{ user: SessionUser } | null> {
+export async function getSession(request: NextRequest): Promise<{ user: SessionUser } | null> {
+    // 1. Check for Developer Mode bypass (Cookie-based)
+    const devMode = request.cookies.get('propflow_dev_mode')?.value === 'true';
+    if (devMode) {
+        const devRole = request.cookies.get('propflow_dev_role')?.value || 'owner';
+        return {
+            user: {
+                id: 'dev-user-id',
+                email: 'dev@propflow.ai',
+                role: (devRole === 'manager' ? 'property_manager' : devRole) as SessionUser['role'],
+                firstName: 'Developer',
+                lastName: '(Mode)'
+            }
+        };
+    }
+
     const session = await auth();
 
     if (!session?.user) return null;
