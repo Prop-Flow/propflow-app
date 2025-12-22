@@ -24,74 +24,87 @@ type CommunicationLogWithDetails = CommunicationLog & {
 };
 
 async function getDashboardStats() {
-    const [properties, tenants, complianceItems, recentLogs] = await Promise.all([
-        prisma.property.count(),
-        prisma.tenant.count({ where: { status: 'active' } }),
-        prisma.complianceItem.findMany({
-            where: {
-                status: {
-                    in: ['pending', 'overdue'],
-                },
-            },
-            include: {
-                tenant: true,
-                property: true,
-            },
-            orderBy: {
-                dueDate: 'asc',
-            },
-            take: 10,
-        }),
-        prisma.communicationLog.findMany({
-            include: {
-                tenant: {
-                    include: {
-                        property: true,
+    try {
+        const [properties, tenants, complianceItems, recentLogs] = await Promise.all([
+            prisma.property.count().catch(() => 0),
+            prisma.tenant.count({ where: { status: 'active' } }).catch(() => 0),
+            prisma.complianceItem.findMany({
+                where: {
+                    status: {
+                        in: ['pending', 'overdue'],
                     },
                 },
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-            take: 10,
-        }),
-    ]);
+                include: {
+                    tenant: true,
+                    property: true,
+                },
+                orderBy: {
+                    dueDate: 'asc',
+                },
+                take: 10,
+            }).catch(() => []),
+            prisma.communicationLog.findMany({
+                include: {
+                    tenant: {
+                        include: {
+                            property: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    createdAt: 'desc',
+                },
+                take: 10,
+            }).catch(() => []),
+        ]);
 
-    // Anomaly Detection Analysis
-    let anomalyData = null;
-    try {
-        const dataPath = path.join(process.cwd(), 'lib/ai/demo-dataset.json');
-        if (fs.existsSync(dataPath)) {
-            const rawData = fs.readFileSync(dataPath, 'utf8');
-            const demoData = JSON.parse(rawData);
-            const dataset: PropertyData[] = demoData.properties.map((p: { property_id: string; property_name: string; monthly_usage: { month: string; usage: number }[] }) => ({
-                property_id: p.property_id,
-                property_name: p.property_name,
-                usage_history: p.monthly_usage
-            }));
-            anomalyData = analyzeProperties(dataset);
+        // Anomaly Detection Analysis
+        let anomalyData = null;
+        try {
+            const dataPath = path.join(process.cwd(), 'lib/ai/demo-dataset.json');
+            if (fs.existsSync(dataPath)) {
+                const rawData = fs.readFileSync(dataPath, 'utf8');
+                const demoData = JSON.parse(rawData);
+                const dataset: PropertyData[] = demoData.properties.map((p: { property_id: string; property_name: string; monthly_usage: { month: string; usage: number }[] }) => ({
+                    property_id: p.property_id,
+                    property_name: p.property_name,
+                    usage_history: p.monthly_usage
+                }));
+                anomalyData = analyzeProperties(dataset);
+            }
+        } catch (e) {
+            console.error("Failed to load anomaly data", e);
         }
-    } catch (e) {
-        console.error("Failed to load anomaly data", e);
+
+        const overdueCount = Array.isArray(complianceItems) ? complianceItems.filter(item =>
+            getComplianceStatus(item.dueDate) === 'overdue'
+        ).length : 0;
+
+        const urgentCount = Array.isArray(complianceItems) ? complianceItems.filter(item =>
+            getComplianceStatus(item.dueDate) === 'urgent'
+        ).length : 0;
+
+        return {
+            properties: properties || 0,
+            tenants: tenants || 0,
+            overdueCount,
+            urgentCount,
+            complianceItems: complianceItems || [],
+            recentLogs: recentLogs || [],
+            anomalyData
+        };
+    } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        return {
+            properties: 0,
+            tenants: 0,
+            overdueCount: 0,
+            urgentCount: 0,
+            complianceItems: [],
+            recentLogs: [],
+            anomalyData: null
+        };
     }
-
-    const overdueCount = complianceItems.filter(item =>
-        getComplianceStatus(item.dueDate) === 'overdue'
-    ).length;
-
-    const urgentCount = complianceItems.filter(item =>
-        getComplianceStatus(item.dueDate) === 'urgent'
-    ).length;
-
-    return {
-        properties,
-        tenants,
-        overdueCount,
-        urgentCount,
-        complianceItems,
-        recentLogs,
-        anomalyData
-    };
 }
 
 export default async function DashboardPage() {
