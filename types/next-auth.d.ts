@@ -16,3 +16,9 @@ declare module "next-auth" {
         role: 'tenant' | 'owner' | 'property_manager'
     }
 }
+
+declare module "@auth/core/adapters" {
+    interface AdapterUser {
+        role: 'tenant' | 'owner' | 'property_manager'
+    }
+}
