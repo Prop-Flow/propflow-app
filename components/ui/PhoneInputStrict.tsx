@@ -43,7 +43,7 @@ export function PhoneInput({
         // If the prop value matches what we expect based on current input, don't clobber it
         // This prevents cursor jumping and "fighting"
         const currentDigits = inputValue.replace(/\D/g, '');
-        const PropDigits = value.replace(/\D/g, '');
+        // const PropDigits = (value?.replace(/\D/g, '') || ''); // Removed unused var
 
         // If digits match (ignoring country code prefix differences for a moment), skip update
         // Current input: 555123 -> +1555123

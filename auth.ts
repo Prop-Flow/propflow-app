@@ -19,14 +19,35 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
                 if (parsedCredentials.success) {
                     const { email, password } = parsedCredentials.data;
-                    const user = await prisma.user.findUnique({ where: { email } });
-                    if (!user || !user.passwordHash) return null; // Updated to match schema
+                    console.log(`[Auth] Attempting login for: ${email}`);
 
+                    const user = await prisma.user.findUnique({ where: { email } });
+                    if (!user) {
+                        console.log('[Auth] User not found');
+                        return null;
+                    }
+
+                    if (!user.passwordHash) {
+                        console.log('[Auth] No password hash for user');
+                        return null;
+                    }
+
+                    console.log(`[Auth] User found, verifying password... (Hash: ${user.passwordHash.substring(0, 10)}...)`);
                     const passwordsMatch = await bcrypt.compare(password, user.passwordHash);
-                    if (passwordsMatch) return user;
+
+                    if (passwordsMatch) {
+                        console.log('[Auth] Password verified successfully');
+                        return user;
+                    }
+
+
+
+                    console.log('[Auth] Password mismatch');
+                } else {
+                    console.log('[Auth] Zod validation failed');
                 }
 
-                console.log('Invalid credentials');
+                console.log('[Auth] returning null');
                 return null;
             },
         }),

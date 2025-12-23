@@ -44,8 +44,8 @@ export default function LoginPage() {
 
         try {
             const result = await signIn('credentials', {
-                email,
-                password,
+                email: email.trim(),
+                password: password.trim(),
                 redirect: false,
             });
 
@@ -139,7 +139,11 @@ export default function LoginPage() {
                         Sign up
                     </Link>
                 </div>
+
+
             </div>
-        </AuthLayout>
+
+
+        </AuthLayout >
     );
 }

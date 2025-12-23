@@ -3,6 +3,7 @@ import React from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import { RubsCalculator } from '@/components/billing/RubsCalculator';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic';
 
 export default async function BillingPage() {
     const properties = await prisma.property.findMany({

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Check, X, Building2, MapPin, User, DollarSign } from 'lucide-react';
+import { Check, X, Building2, MapPin, User, DollarSign, AlertCircle } from 'lucide-react';
 import { ExtractedPropertyData } from '@/lib/ai/document-parser';
 
 interface PropertyReviewModalProps {
@@ -67,6 +67,24 @@ export default function PropertyReviewModal({ isOpen, onClose, onSave, data }: P
                     <TabButton active={activeTab === 'owner'} onClick={() => setActiveTab('owner')} icon={User} label="Owner" />
                     <TabButton active={activeTab === 'financials'} onClick={() => setActiveTab('financials')} icon={DollarSign} label="Financials" />
                 </div>
+
+                {/* Validation Banner */}
+                {!canSave && (
+                    <div className="bg-orange-50 border-b border-orange-100 px-6 py-3 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-medium text-orange-800">Missing Required Information</p>
+                            <p className="text-xs text-orange-600 mt-1">
+                                To proceed, please verify:
+                                {!verifiedFields.has('property.address') && <span className="font-bold ml-1">• Property Address</span>}
+                                {!verifiedFields.has('owner.legalName1') && <span className="font-bold ml-1">• Owner Legal Name</span>}
+                            </p>
+                            <p className="text-xs text-orange-600/80 mt-1 italic">
+                                * These are essential for generating accurate legal documents.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* Content */}
                 <div className="p-6 overflow-y-auto flex-1 bg-slate-50/30">

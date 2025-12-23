@@ -13,7 +13,6 @@ interface DashboardShellProps {
     role?: 'tenant' | 'owner' | 'manager'; // to customize sidebar links
 }
 
-import Image from 'next/image';
 import BrandLogo from '@/components/ui/BrandLogo';
 import ReactiveBackground from '@/components/ui/ReactiveBackground';
 import { useAuth } from '@/hooks/useAuth';

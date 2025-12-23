@@ -27,6 +27,7 @@ export default function PropertyUploader({ onAnalysisComplete }: PropertyUploade
     // UI state
     const [isReviewOpen, setIsReviewOpen] = useState(false);
     const [isRentRollReviewOpen, setIsRentRollReviewOpen] = useState(false);
+    const [showSkipWarning, setShowSkipWarning] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleDrag = useCallback((e: React.DragEvent) => {
@@ -367,11 +368,41 @@ export default function PropertyUploader({ onAnalysisComplete }: PropertyUploade
                     <FileText className="w-8 h-8 text-muted-foreground" />
                 )}
                 <button
-                    onClick={() => handleFinalSubmit()}
+                    onClick={() => setShowSkipWarning(true)}
                     className="w-full mt-4 py-2 text-sm text-muted-foreground hover:text-foreground"
                 >
                     Skip this step
                 </button>
+
+                {showSkipWarning && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+                        <div className="bg-card p-6 rounded-xl shadow-2xl max-w-md w-full border border-white/10">
+                            <div className="flex items-center gap-3 mb-4 text-orange-400">
+                                <AlertCircle className="w-6 h-6" />
+                                <h3 className="text-lg font-bold">Heads up!</h3>
+                            </div>
+                            <p className="text-muted-foreground mb-6">
+                                Skipping the lease upload means we cannot <strong>automatically create tenant accounts</strong> or <strong>set up rent collection</strong>.
+                                <br /><br />
+                                You will need to manually invite tenants and configure payments later in the Tenant Portal.
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowSkipWarning(false)}
+                                    className="px-4 py-2 text-sm font-medium text-foreground hover:bg-white/5 rounded-lg transition-colors"
+                                >
+                                    Go Back
+                                </button>
+                                <button
+                                    onClick={() => handleFinalSubmit()}
+                                    className="px-4 py-2 text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors shadow-sm"
+                                >
+                                    Skip Anyway
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
