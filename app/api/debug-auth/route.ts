@@ -26,10 +26,10 @@ export async function GET(request: Request) {
 
             const ownerUser = await prisma.user.create({
                 data: {
-                    email: 'owner@propflow.ai',
+                    email: 'joel@propflow.ai',
                     role: 'OWNER',
-                    firstName: 'Alex',
-                    lastName: 'Owner',
+                    firstName: 'Joel',
+                    lastName: 'Torres',
                     phone: '555-0100',
                     passwordHash
                 }
@@ -162,7 +162,7 @@ export async function GET(request: Request) {
         }
 
         // Default Debug View with HTML Button
-        const email = 'owner@propflow.ai';
+        const email = 'joel@propflow.ai';
         const user = await prisma.user.findUnique({ where: { email } });
         const userStatus = user ? '✅ User Found (Database is Ready)' : '❌ User Missing (Database needs Seeding)';
         const color = user ? 'green' : 'red';
@@ -180,6 +180,10 @@ export async function GET(request: Request) {
                     <br/>
                     <small id="netlify-url" data-url="${process.env.NETLIFY_DATABASE_URL || ''}">
                         Netlify URL: ${process.env.NETLIFY_DATABASE_URL ? 'FOUND' : 'MISSING'}
+                    </small>
+                    <br/>
+                    <small style="color: ${process.env.AUTH_SECRET ? 'green' : 'red'};">
+                        AUTH_SECRET: ${process.env.AUTH_SECRET ? '✅ CONFIGURED' : '❌ MISSING'}
                     </small>
                 </div>
                 
