@@ -2,58 +2,78 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 
 export interface User {
     id: string;
-    role: 'tenant' | 'owner' | 'property_manager';
+    role: string;
     firstName: string;
     lastName: string;
     email: string;
+    name?: string;
 }
 
 export function useAuth(requireRole?: 'tenant' | 'owner' | 'manager') {
     const router = useRouter();
+    const { data: session, status } = useSession();
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Run on client only
-        const stored = localStorage.getItem('propflow_user');
-        if (stored) {
-            try {
-                const parsedUser = JSON.parse(stored);
-                setUser(parsedUser);
+        async function fetchUser() {
+            if (status === 'loading') {
+                return;
+            }
 
+            if (status === 'unauthenticated') {
                 if (requireRole) {
-                    const mappedRole = requireRole === 'manager' ? 'property_manager' : requireRole;
-
-                    if (parsedUser.role !== mappedRole) {
-                        // Redirect to their correct dashboard if accessing wrong area
-                        let target = '/dashboard/owner';
-                        if (parsedUser.role === 'tenant') target = '/dashboard/tenant';
-                        else if (parsedUser.role === 'property_manager') target = '/dashboard/manager';
-
-                        router.replace(target);
-                    }
+                    router.replace('/login');
                 }
-            } catch (e) {
-                console.error("Failed to parse user", e);
-                localStorage.removeItem('propflow_user');
-                setUser(null);
+                setLoading(false);
+                return;
             }
-        } else {
-            // No user found
-            if (requireRole) {
-                router.replace('/signup'); // redirect to login/signup
-            }
-        }
-        setLoading(false);
-    }, [requireRole, router]);
 
-    const logout = () => {
-        localStorage.removeItem('propflow_user');
+            if (session?.user) {
+                try {
+                    // Fetch full user data including role
+                    const response = await fetch('/api/user/me');
+                    if (response.ok) {
+                        const userData = await response.json();
+                        setUser(userData);
+
+                        // Check role-based access
+                        if (requireRole) {
+                            const mappedRole = requireRole === 'manager' ? 'PROPERTY_MANAGER' : requireRole.toUpperCase();
+
+                            if (userData.role !== mappedRole) {
+                                // Redirect to their correct dashboard
+                                let target = '/dashboard/owner';
+                                if (userData.role === 'TENANT') target = '/dashboard/tenant';
+                                else if (userData.role === 'PROPERTY_MANAGER') target = '/dashboard/manager';
+
+                                router.replace(target);
+                            }
+                        }
+                    } else {
+                        console.error('Failed to fetch user data');
+                        setUser(null);
+                    }
+                } catch (error) {
+                    console.error('Error fetching user:', error);
+                    setUser(null);
+                }
+            }
+
+            setLoading(false);
+        }
+
+        fetchUser();
+    }, [session, status, requireRole, router]);
+
+    const logout = async () => {
+        await signOut({ redirect: false });
         setUser(null);
-        router.push('/signup');
+        router.push('/login');
     };
 
     return { user, loading, logout };

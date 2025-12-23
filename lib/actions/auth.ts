@@ -28,6 +28,15 @@ export type RegisterState = {
 };
 
 export async function registerUser(prevState: RegisterState, formData: FormData): Promise<RegisterState> {
+    console.log('🔵 registerUser called');
+    console.log('🔵 Form data:', {
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        email: formData.get('email'),
+        role: formData.get('role'),
+        phone: formData.get('phone'),
+    });
+
     const validatedFields = registerSchema.safeParse({
         firstName: formData.get('firstName'),
         lastName: formData.get('lastName'),
@@ -37,24 +46,17 @@ export async function registerUser(prevState: RegisterState, formData: FormData)
         phone: formData.get('phone'),
     });
 
-    console.log('Register Payload:', {
-        firstName: formData.get('firstName'),
-        lastName: formData.get('lastName'),
-        email: formData.get('email'),
-        role: formData.get('role'),
-        phone: formData.get('phone'),
-        // Don't log password
-    });
-
     if (!validatedFields.success) {
         console.error('Validation failed:', JSON.stringify(validatedFields.error.flatten(), null, 2));
         return {
+            success: false,
             errors: validatedFields.error.flatten().fieldErrors,
             message: 'Missing Fields. Failed to Register.',
         };
     }
 
     const { firstName, lastName, email, password, role, phone } = validatedFields.data;
+    console.log('🟢 Validation passed. Role:', role);
 
     try {
         const existingUser = await prisma.user.findUnique({
@@ -62,15 +64,29 @@ export async function registerUser(prevState: RegisterState, formData: FormData)
         });
 
         if (existingUser) {
+            console.log('🔴 User already exists:', email);
             return {
+                success: false,
                 errors: {
                     email: ['Email already exists'],
                 },
-                message: 'Failed to Register.',
+                message: 'Email already exists. Please use a different email or try logging in.',
             };
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Map role to database format (uppercase)
+        let dbRole: string;
+        if (role === 'manager') {
+            dbRole = 'PROPERTY_MANAGER';
+        } else if (role === 'owner') {
+            dbRole = 'OWNER';
+        } else {
+            dbRole = 'TENANT';
+        }
+
+        console.log('🟢 Creating user with role:', dbRole);
 
         await prisma.user.create({
             data: {
@@ -78,20 +94,22 @@ export async function registerUser(prevState: RegisterState, formData: FormData)
                 lastName,
                 email,
                 passwordHash: hashedPassword,
-                role: role === 'manager' ? 'property_manager' : role, // Map 'manager' to 'property_manager'
+                role: dbRole,
                 phone,
                 name: `${firstName} ${lastName}`,
             },
         });
 
+        console.log('🟢 User created successfully');
         return {
             success: true,
             message: 'User registered successfully',
         };
 
     } catch (error) {
-        console.error('Registration error details:', error);
+        console.error('🔴 Registration error details:', error);
         return {
+            success: false,
             message: `Database Error: Failed to Register. Details: ${(error as Error).message}`,
         };
     }

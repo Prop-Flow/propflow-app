@@ -25,9 +25,14 @@ export default function UserDropdown() {
 
     if (!user) return null; // Don't show if not logged in
 
-    const initials = `${user.firstName[0] || ''}${user.lastName[0] || ''}`.toUpperCase();
-    const fullName = `${user.firstName} ${user.lastName}`;
-    const roleCapitalized = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || user.email;
+
+    // Map database role to display name
+    let roleDisplay = 'User';
+    if (user.role === 'OWNER') roleDisplay = 'Owner';
+    else if (user.role === 'PROPERTY_MANAGER') roleDisplay = 'Property Manager';
+    else if (user.role === 'TENANT') roleDisplay = 'Tenant';
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -42,7 +47,7 @@ export default function UserDropdown() {
 
                 <div className="hidden md:flex flex-col text-left">
                     <span className="text-sm font-medium text-white">{fullName}</span>
-                    <span className="text-xs text-muted-foreground">{roleCapitalized}</span>
+                    <span className="text-xs text-muted-foreground">{roleDisplay}</span>
                 </div>
 
                 <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />

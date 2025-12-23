@@ -53,13 +53,22 @@ export default function LoginPage() {
                 setError('Invalid credentials');
                 setLoading(false);
             } else {
-                // Successful login
-                if (email.includes('owner')) {
+                // Successful login - fetch user role to determine redirect
+                try {
+                    const response = await fetch('/api/user/me');
+                    const userData = await response.json();
+
+                    if (userData.role === 'OWNER') {
+                        router.push('/dashboard/owner');
+                    } else if (userData.role === 'PROPERTY_MANAGER') {
+                        router.push('/dashboard/manager');
+                    } else {
+                        router.push('/dashboard/tenant/maintenance');
+                    }
+                } catch (err) {
+                    console.error('Error fetching user role:', err);
+                    // Fallback to owner dashboard
                     router.push('/dashboard/owner');
-                } else if (email.includes('manager')) {
-                    router.push('/dashboard/manager');
-                } else {
-                    router.push('/dashboard/tenant/maintenance'); // Default tenant view
                 }
             }
         } catch (err) {
