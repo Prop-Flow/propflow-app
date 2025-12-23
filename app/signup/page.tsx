@@ -28,6 +28,15 @@ export default function SignupPage() {
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
+    // Clear any potential Developer Mode artifacts on mount
+    React.useEffect(() => {
+        // Clear cookies
+        document.cookie = "propflow_dev_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie = "propflow_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        // Clear localStorage
+        localStorage.removeItem('propflow_user');
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!role) return;

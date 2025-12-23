@@ -58,20 +58,16 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         async session({ session, token }) {
             if (session.user && token.sub) {
                 session.user.id = token.sub;
-
-                // Fetch fresh user data to get role
-                // In a high-scale app we might put role in the token to save a DB call
-                // For now, let's trust the token or fetch if needed. 
-                // Since this runs on every request in some configs, let's try to pass it through token.
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                session.user.role = token.role as any;
             }
-            // We need to type-cast or extend module types for 'role' to be valid on session.user
-            // For now, we return basic session. 
-            // We will fix type augmentation in a separate step if needed.
             return session;
         },
         async jwt({ token, user }) {
             if (user) {
                 token.sub = user.id;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                token.role = (user as any).role;
             }
             return token;
         }

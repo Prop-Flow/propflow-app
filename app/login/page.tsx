@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import AuthLayout from '@/components/auth/AuthLayout';
@@ -15,7 +15,17 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
     const router = useRouter();
+
+    // Clear any potential Developer Mode artifacts on mount
+    useEffect(() => {
+        // Clear cookies
+        document.cookie = "propflow_dev_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie = "propflow_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        // Clear localStorage
+        localStorage.removeItem('propflow_user');
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

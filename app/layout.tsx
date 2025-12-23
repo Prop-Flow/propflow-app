@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 import { NotificationProvider } from '@/context/NotificationContext';
 import DeveloperToolbar from '@/components/dev/DeveloperToolbar';
-import { SessionProvider } from 'next-auth/react';
+import SessionProvider from '@/components/providers/SessionProvider';
 
 export default function RootLayout({
     children,
