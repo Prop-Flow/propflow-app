@@ -6,8 +6,8 @@ const inter = Inter({ subsets: ["latin"] });
 const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
 
 export const metadata: Metadata = {
-    title: "Propflow AI - Property Management Automation",
-    description: "AI-powered tenant communication and compliance tracking for property managers",
+    title: "Propflow - Utility Intelligence for Multifamily Properties",
+    description: "Detect utility anomalies early and allocate shared utility bills fairly using R.U.B.S. No hardware required.",
 };
 
 import { NotificationProvider } from '@/context/NotificationContext';
