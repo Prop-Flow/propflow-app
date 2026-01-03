@@ -122,15 +122,23 @@ export function useAuth(requireRole?: 'tenant' | 'owner' | 'manager') {
     const logout = async () => {
         // ALWAYS clear dev artifacts on logout, regardless of current mode
         localStorage.removeItem('propflow_user');
-        document.cookie = "propflow_dev_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-        document.cookie = "propflow_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        sessionStorage.clear();
+
+        // Clear ALL cookies (including NextAuth session cookies)
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i];
+            const eqPos = cookie.indexOf("=");
+            const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+            document.cookie = name + "=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            document.cookie = name + "=; path=/; domain=" + window.location.hostname + "; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        }
 
         // Perform standard NextAuth signout
         await signOut({ redirect: false });
         setUser(null);
-        router.push('/login');
 
-        // Force refresh to ensure all states are reset
+        // Force hard refresh to ensure all states are reset
         if (typeof window !== 'undefined') {
             window.location.href = '/login';
         }
