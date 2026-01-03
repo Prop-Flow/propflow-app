@@ -4,8 +4,7 @@ const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
 };
 
-// Use DATABASE_URL or NETLIFY_DATABASE_URL (for Netlify/Neon integration)
-const connectionString = process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL;
+const connectionString = process.env.DATABASE_URL;
 
 export const prisma = globalForPrisma.prisma || new PrismaClient({
     datasources: {

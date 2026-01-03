@@ -178,8 +178,8 @@ export async function GET(request: Request) {
                     <br/>
                     <small>Database URL: ${process.env.DATABASE_URL}</small>
                     <br/>
-                    <small id="netlify-url" data-url="${process.env.NETLIFY_DATABASE_URL || ''}">
-                        Netlify URL: ${process.env.NETLIFY_DATABASE_URL ? 'FOUND' : 'MISSING'}
+                    <small id="db-url" data-url="${process.env.DATABASE_URL || ''}">
+                        DB URL: ${process.env.DATABASE_URL ? 'FOUND' : 'MISSING'}
                     </small>
                     <br/>
                     <small style="color: ${process.env.AUTH_SECRET ? 'green' : 'red'};">
