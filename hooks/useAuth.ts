@@ -51,6 +51,9 @@ export function useAuth(requireRole?: 'tenant' | 'owner' | 'manager') {
             }
 
             if (status === 'authenticated' && session?.user) {
+                // If we are officially authenticated, ALWAYS disable dev mode state locally
+                setIsDevMode(false);
+
                 try {
                     // Fetch full user data including role
                     const response = await fetch('/api/user/me');

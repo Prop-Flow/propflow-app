@@ -5,8 +5,8 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-    const email = 'owner@propflow.ai';
-    const password = 'password123';
+    const email = 'demov1@propflow.ai';
+    const password = 'sharktank101';
 
     console.log(`[Test] Checking credentials for ${email}...`);
 

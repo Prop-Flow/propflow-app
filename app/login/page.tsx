@@ -76,7 +76,6 @@ export default function LoginPage() {
                 setError(devMode ? 'Invalid security key' : 'Invalid credentials');
                 setLoading(false);
             } else {
-                // If in dev mode, set the necessary cookies and local storage for the toolbar
                 if (devMode) {
                     document.cookie = "propflow_dev_mode=true; path=/; max-age=31536000";
                     document.cookie = "propflow_dev_role=owner; path=/; max-age=31536000";
@@ -87,10 +86,12 @@ export default function LoginPage() {
                         role: 'OWNER',
                     }));
                 } else {
-                    // Standard login: Clear any leftover dev mode artifacts
+                    // Standard login: Clear ANY leftover dev mode artifacts
                     document.cookie = "propflow_dev_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
                     document.cookie = "propflow_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
                     localStorage.removeItem('propflow_user');
+                    // Also clear potential session cookies if they exist to force clean state
+                    sessionStorage.clear();
                 }
 
                 // Successful login - fetch user role to determine redirect
