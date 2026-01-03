@@ -19,9 +19,25 @@ export interface SessionUser {
  * Get session from request
  * Uses Auth.js server-side session retrieval
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function getSession(request: NextRequest): Promise<{ user: SessionUser } | null> {
-    // 1. Check for Developer Mode bypass (Cookie-based)
+    const session = await auth();
+
+    // 1. If we have a real authenticated session, use it!
+    if (session?.user) {
+        return {
+            user: {
+                id: session.user.id || '',
+                email: session.user.email || '',
+                // Default to tenant if role is missing in safe session types
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                role: (session.user as any).role || 'tenant',
+                firstName: session.user.name?.split(' ')[0],
+                lastName: session.user.name?.split(' ').slice(1).join(' ')
+            } as SessionUser
+        };
+    }
+
+    // 2. Check for Developer Mode bypass (Cookie-based) only if no real session
     const devMode = request.cookies.get('propflow_dev_mode')?.value === 'true';
     if (devMode) {
         const devRole = request.cookies.get('propflow_dev_role')?.value || 'owner';
@@ -36,25 +52,7 @@ export async function getSession(request: NextRequest): Promise<{ user: SessionU
         };
     }
 
-    const session = await auth();
-
-    if (!session?.user) return null;
-
-    // Transform Auth.js session user to our internal SessionUser type
-    // We assume the database has the correct role, or we fetch it if needed.
-    // For now, simpler is better: cast and return.
-    return {
-        user: {
-            id: session.user.id || '',
-            email: session.user.email || '',
-            // Default to tenant if role is missing in safe session types
-            // In production, we'd ensure role is in the session callback
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            role: (session.user as any).role || 'tenant',
-            firstName: session.user.name?.split(' ')[0],
-            lastName: session.user.name?.split(' ').slice(1).join(' ')
-        } as SessionUser
-    };
+    return null;
 }
 
 /**

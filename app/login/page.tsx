@@ -81,6 +81,11 @@ export default function LoginPage() {
                         name: 'Developer Mode',
                         role: 'OWNER',
                     }));
+                } else {
+                    // Standard login: Clear any leftover dev mode artifacts
+                    document.cookie = "propflow_dev_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                    document.cookie = "propflow_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                    localStorage.removeItem('propflow_user');
                 }
 
                 // Successful login - fetch user role to determine redirect

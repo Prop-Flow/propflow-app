@@ -7,6 +7,7 @@ import UserDropdown from './UserDropdown';
 import { LayoutDashboard, Building2, Users, FileText, Settings, MessageSquare, AlertCircle, Receipt, Activity, Hammer } from 'lucide-react';
 import { cn } from '@/lib/utils'; // Assuming standard Shadcn utils location.
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
+import DevRoleSwitcher from '@/components/dev/DevRoleSwitcher';
 
 interface DashboardShellProps {
     children: React.ReactNode;
@@ -16,13 +17,10 @@ interface DashboardShellProps {
 import BrandLogo from '@/components/ui/BrandLogo';
 import ReactiveBackground from '@/components/ui/ReactiveBackground';
 import { useAuth } from '@/hooks/useAuth';
-// ... other imports
 
 export default function DashboardShell({ children, role = 'owner' }: DashboardShellProps) {
     const pathname = usePathname();
     const { user, loading } = useAuth(role);
-
-    if (loading || !user) return null;
 
     if (loading || !user) return null;
 
@@ -62,6 +60,9 @@ export default function DashboardShell({ children, role = 'owner' }: DashboardSh
     return (
         <div className="min-h-screen bg-background flex text-foreground relative overflow-hidden">
             <ReactiveBackground />
+
+            <DevRoleSwitcher />
+
             {/* Sidebar */}
             <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 z-50 border-r border-white/5 bg-background/80 backdrop-blur-md">
                 <div className="relative flex flex-col items-center justify-center px-4 pt-8 pb-4 border-b border-white/5 gap-0">
