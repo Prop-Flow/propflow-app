@@ -22,7 +22,7 @@ export async function GET() {
             });
         }
 
-        const user = await prisma.user.findUnique({
+        let user = await prisma.user.findUnique({
             where: { id: session.user.id },
             select: {
                 id: true,
@@ -34,6 +34,27 @@ export async function GET() {
                 phone: true,
             },
         });
+
+        // Fallback: If ID search fails, try searching by email from session
+        if (!user && session.user.email) {
+            console.log(`[API/User/Me] ID search failed for ${session.user.id}, trying email fallback: ${session.user.email}`);
+            user = await prisma.user.findUnique({
+                where: { email: session.user.email },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    firstName: true,
+                    lastName: true,
+                    role: true,
+                    phone: true,
+                },
+            });
+
+            if (user) {
+                console.log(`[API/User/Me] Email fallback successful. User ID in DB: ${user.id}`);
+            }
+        }
 
         if (!user) {
             console.error(`[API/User/Me] User not found in database for ID: ${session.user.id}`);
