@@ -1,10 +1,8 @@
 
 import Link from 'next/link';
+import BrandLogo from '@/components/ui/BrandLogo';
 import {
-    Building2,
-    Zap,
     ArrowRight,
-    ChevronRight,
     CheckCircle2,
     LineChart,
     ShieldCheck,
@@ -13,9 +11,12 @@ import {
     Activity,
     History,
     FileText,
-    Target,
-    ZapOff,
-    ShieldAlert
+    ShieldAlert,
+    TrendingUp,
+    DollarSign,
+    Wallet,
+    PieChart,
+    BarChart3
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -31,10 +32,9 @@ export default function LandingPage() {
             <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#020617]/80 backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-                            <Building2 className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-xl font-bold tracking-tight text-white">Propflow <span className="text-blue-500">AI</span></span>
+                        <Link href="/">
+                            <BrandLogo variant="navbar" />
+                        </Link>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -55,17 +55,17 @@ export default function LandingPage() {
                 {/* Hero Section */}
                 <section className="max-w-7xl mx-auto px-6 pt-40 pb-24 text-center">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-xs font-bold tracking-widest uppercase mb-8 animate-fade-in">
-                        <Zap className="w-3 h-3 fill-current" />
-                        Software-Only Intelligence
+                        <TrendingUp className="w-3 h-3 fill-current" />
+                        Financial Optimization Engine
                     </div>
 
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 leading-[1.05] drop-shadow-sm text-white">
-                        Detect Utility Issues Early. <br className="hidden md:block" />
-                        Bill Utilities <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Fairly.</span>
+                        Where Financial <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Optimization</span> <br className="hidden md:block" />
+                        Meets <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Simplicity.</span>
                     </h1>
 
                     <p className="max-w-3xl mx-auto text-lg md:text-xl text-slate-400 mb-12 leading-relaxed">
-                        Software-only utility intelligence for multifamily properties with shared meters. Catch abnormal usage and allocate costs accurately — no hardware, no sensors, no enterprise systems.
+                        The financial optimization layer for modern multifamily operators. Recover utility costs, automate billing, and increase asset value without operational drag.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
@@ -73,7 +73,7 @@ export default function LandingPage() {
                             href="/signup"
                             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white text-lg font-bold px-10 py-4 rounded-2xl transition-all shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 group"
                         >
-                            Request Early Access
+                            Start Recovering Revenue
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </Link>
                     </div>
@@ -92,19 +92,28 @@ export default function LandingPage() {
                             </div>
                             <div className="flex-1 p-8 grid grid-cols-3 gap-6">
                                 <div className="col-span-2 space-y-6">
-                                    <div className="h-48 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex items-center justify-center">
-                                        <Activity className="w-12 h-12 text-blue-500/20" />
+                                    <div className="h-48 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex items-center justify-center relative overflow-hidden">
+                                        <div className="absolute inset-0 flex items-end">
+                                            <div className="w-full h-full bg-gradient-to-t from-blue-500/20 to-transparent opacity-50" />
+                                        </div>
+                                        <TrendingUp className="w-16 h-16 text-blue-500/40 relative z-10" />
                                     </div>
                                     <div className="grid grid-cols-2 gap-6">
-                                        <div className="h-32 bg-white/5 border border-white/5 rounded-2xl" />
-                                        <div className="h-32 bg-white/5 border border-white/5 rounded-2xl" />
+                                        <div className="h-32 bg-white/5 border border-white/5 rounded-2xl flex flex-col justify-center items-center gap-2">
+                                            <DollarSign className="w-8 h-8 text-green-400" />
+                                            <div className="h-2 w-16 bg-white/10 rounded-full" />
+                                        </div>
+                                        <div className="h-32 bg-white/5 border border-white/5 rounded-2xl flex flex-col justify-center items-center gap-2">
+                                            <Wallet className="w-8 h-8 text-purple-400" />
+                                            <div className="h-2 w-16 bg-white/10 rounded-full" />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="h-full bg-white/5 border border-white/5 rounded-2xl p-6 space-y-4 text-left">
                                     <div className="h-4 w-2/3 bg-white/10 rounded-full mb-4" />
                                     {[1, 2, 3, 4].map(i => (
                                         <div key={i} className="flex gap-2 items-center">
-                                            <div className="w-2 h-2 rounded-full bg-blue-500/40" />
+                                            <div className="w-2 h-2 rounded-full bg-green-500/40" />
                                             <div className="h-2 w-full bg-white/5 rounded-full" />
                                         </div>
                                     ))}
@@ -118,16 +127,16 @@ export default function LandingPage() {
                 <section className="max-w-7xl mx-auto px-6 py-24 border-t border-white/5 text-left">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                         <div>
-                            <h2 className="text-4xl md:text-5xl font-black mb-8 text-white leading-tight">Shared Utilities Create <br /> Hidden Risk</h2>
+                            <h2 className="text-4xl md:text-5xl font-black mb-8 text-white leading-tight">Hidden OpEx Kills <br /> Asset Value</h2>
                             <p className="text-slate-400 text-lg mb-8 leading-relaxed">
-                                Most operators don’t lack effort — they lack visibility. In shared-metered buildings, the building owner often pays for inefficiencies that go undetected.
+                                Utilities are often the largest controllable expense in multifamily. Every dollar of unrecovered spend directly reduces your Net Operating Income (NOI).
                             </p>
                             <ul className="space-y-6">
                                 {[
-                                    "Utility waste goes unnoticed until bills spike",
-                                    "Leaks and abnormal usage are discovered too late",
-                                    "R.U.B.S billing is manual, opaque, and dispute-prone",
-                                    "Existing solutions require hardware, consultants, or enterprise contracts"
+                                    "Unrecovered utility spend directly reduces NOI",
+                                    "Manual billing errors lead to lost revenue",
+                                    "Lack of real-time financial visibility delays decisions",
+                                    "Disconnected systems create reconciliation nightmares"
                                 ].map((item, i) => (
                                     <li key={i} className="flex items-start gap-4">
                                         <div className="w-6 h-6 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0 mt-1">
@@ -146,7 +155,12 @@ export default function LandingPage() {
                                         <div className="h-4 w-24 bg-white/10 rounded-full" />
                                         <div className="h-6 w-16 bg-red-500/20 rounded-full border border-red-500/30" />
                                     </div>
-                                    <div className="h-32 bg-gradient-to-b from-red-500/10 to-transparent rounded-2xl border-x border-t border-red-500/20" />
+                                    <div className="h-32 bg-gradient-to-b from-red-500/10 to-transparent rounded-2xl border-x border-t border-red-500/20 grid place-items-center">
+                                        <div className="text-center">
+                                            <span className="text-red-400 font-bold text-lg">-$4,200</span>
+                                            <p className="text-[10px] text-red-400/60 uppercase tracking-widest">Monthly Bleed</p>
+                                        </div>
+                                    </div>
                                     <div className="space-y-3">
                                         <div className="h-4 w-full bg-white/5 rounded-full" />
                                         <div className="h-4 w-full bg-white/5 rounded-full opacity-60" />
@@ -161,33 +175,33 @@ export default function LandingPage() {
                 {/* Solution Section */}
                 <section className="max-w-7xl mx-auto px-6 py-24 bg-white/5 rounded-[3rem] my-12 text-center">
                     <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-6xl font-black mb-6 text-white tracking-tight leading-tight">Utility Intelligence Built for <br /> Shared-Metered Properties</h2>
+                        <h2 className="text-4xl md:text-6xl font-black mb-6 text-white tracking-tight leading-tight">Financial Intelligence Built for <br /> Shared-Metered Properties</h2>
                         <p className="text-slate-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                            Propflow is a software-only utility intelligence layer designed specifically for R.U.B.S properties. No sensors. No installs. No platform replacement.
+                            Propflow turns utility data into defensible financial records. Automatically calculate entitlements, bill tenants, and recover 100% of eligible costs.
                         </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
                         {[
                             {
-                                icon: <Activity className="w-8 h-8 text-blue-500" />,
-                                title: "Detect Early",
-                                desc: "Find abnormal water, gas, or electric usage before the bill arrives."
+                                icon: <Wallet className="w-8 h-8 text-blue-500" />,
+                                title: "Automated Recovery",
+                                desc: "Automatically calculate and bill back shared utilities using RUBS, recovering 90%+ of costs."
                             },
                             {
-                                icon: <Users className="w-8 h-8 text-indigo-500" />,
-                                title: "Allocate Fairly",
-                                desc: "Allocate shared utility bills fairly and transparently using R.U.B.S."
+                                icon: <ShieldCheck className="w-8 h-8 text-indigo-500" />,
+                                title: "NOI Protection",
+                                desc: "Stop leakage. Every dollar of unrecovered utility spend is a dollar subtracted from your Net Operating Income."
                             },
                             {
-                                icon: <History className="w-8 h-8 text-emerald-500" />,
-                                title: "Defensible Records",
-                                desc: "Create a defensible billing record for every tenant, reducing disputes."
+                                icon: <FileText className="w-8 h-8 text-emerald-500" />,
+                                title: "Audit-Ready Financials",
+                                desc: "Generate defensible, transparent billing records that stand up to tenant or regulatory scrutiny."
                             },
                             {
-                                icon: <ShieldCheck className="w-8 h-8 text-amber-500" />,
-                                title: "Reduce Waste",
-                                desc: "Minimize surprise costs and wasted spend with pro-active monitoring."
+                                icon: <LineChart className="w-8 h-8 text-amber-500" />,
+                                title: "Portfolio Health",
+                                desc: "Real-time visibility into recovery rates, collection status, and utility efficiency across all properties."
                             }
                         ].map((item, i) => (
                             <div key={i} className="p-8 rounded-3xl bg-[#020617] border border-white/10 hover:border-blue-500/30 transition-all group">
@@ -202,7 +216,7 @@ export default function LandingPage() {
                 {/* Key Features */}
                 <section id="features" className="max-w-7xl mx-auto px-6 py-24 text-left">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-5xl font-black mb-4 text-white">Focused Utility Control</h2>
+                        <h2 className="text-3xl md:text-5xl font-black mb-4 text-white">Full Financial Control</h2>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
@@ -210,10 +224,10 @@ export default function LandingPage() {
                         <div className="md:col-span-2 group relative p-10 rounded-[2.5rem] bg-[#0a0f1e] border border-white/10 overflow-hidden hover:border-blue-500/30 transition-all h-full">
                             <div className="relative z-10 flex flex-col h-full">
                                 <div className="w-14 h-14 bg-blue-600/20 rounded-2xl mb-6 flex items-center justify-center">
-                                    <LineChart className="w-7 h-7 text-blue-500" />
+                                    <BarChart3 className="w-7 h-7 text-blue-500" />
                                 </div>
-                                <h3 className="text-2xl font-bold mb-4 text-white">Utility Anomaly Detection (Software-Only)</h3>
-                                <p className="text-slate-400 text-lg mb-8 max-w-md">Monitors utility data against historical baselines to flag unexpected spikes that may indicate leaks, system failures, or abnormal consumption.</p>
+                                <h3 className="text-2xl font-bold mb-4 text-white">Automated RUBS Engine</h3>
+                                <p className="text-slate-400 text-lg mb-8 max-w-md">Eliminate spreadsheet math. Our engine ingests bill data, applies your specific allocation formulas (SqFt, Occupancy), and generates tenant ledgers instantly.</p>
                             </div>
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                 <Activity className="w-48 h-48 text-blue-500" />
@@ -223,14 +237,15 @@ export default function LandingPage() {
                         {/* Feature 2 */}
                         <div className="group relative p-10 rounded-[2.5rem] bg-[#0a0f1e] border border-white/10 overflow-hidden hover:border-indigo-500/30 transition-all">
                             <div className="w-14 h-14 bg-indigo-600/20 rounded-2xl mb-6 flex items-center justify-center">
-                                <Users className="w-7 h-7 text-indigo-500" />
+                                <PieChart className="w-7 h-7 text-indigo-500" />
                             </div>
-                            <h3 className="text-2xl font-bold mb-4 text-white">Fair R.U.B.S Billing</h3>
-                            <p className="text-slate-400 mb-6">Mathematically sound allocation based on transparent ratios:</p>
+                            <h3 className="text-2xl font-bold mb-4 text-white">Expense Distribution</h3>
+                            <p className="text-slate-400 mb-6">Visualize exactly where your building&apos;s expenses are going:</p>
                             <ul className="space-y-3">
                                 {[
-                                    "Square footage weighting",
-                                    "Occupancy-based usage"
+                                    "Common Area Deductions",
+                                    "Unit-Level Allocation",
+                                    "Vacancy Impact"
                                 ].map((li, i) => (
                                     <li key={i} className="flex items-center gap-2 text-sm font-medium text-slate-300">
                                         <div className="w-1 h-4 bg-indigo-500 rounded-full" />
@@ -277,10 +292,10 @@ export default function LandingPage() {
                             <div className="absolute inset-0 bg-blue-500/5 blur-[80px] rounded-full" />
                             <div className="relative grid grid-cols-2 gap-4">
                                 {[
-                                    { icon: <ZapOff className="text-red-400" />, label: "No IoT Installs" },
-                                    { icon: <ShieldAlert className="text-amber-400" />, label: "No Sensor Failures" },
-                                    { icon: <Users className="text-blue-400" />, label: "No Consultants" },
-                                    { icon: <FileText className="text-emerald-400" />, label: "Fast Adoption" }
+                                    { icon: <TrendingUp className="text-blue-400" />, label: "Direct ROI" },
+                                    { icon: <ShieldAlert className="text-amber-400" />, label: "Leak Protection" },
+                                    { icon: <Users className="text-purple-400" />, label: "No Consultants" },
+                                    { icon: <FileText className="text-emerald-400" />, label: "Auto-Reports" }
                                 ].map((item, i) => (
                                     <div key={i} className="p-6 rounded-2xl bg-[#0a0f1e] border border-white/5 flex flex-col items-center text-center gap-3">
                                         {item.icon}
@@ -290,12 +305,12 @@ export default function LandingPage() {
                             </div>
                         </div>
                         <div className="order-1 lg:order-2">
-                            <h2 className="text-4xl md:text-5xl font-black mb-8 text-white leading-tight">Why Software-Only <br /> Matters</h2>
+                            <h2 className="text-4xl md:text-5xl font-black mb-8 text-white leading-tight">Why Financial <br /> Integration Matters</h2>
                             <p className="text-slate-400 text-lg mb-6 leading-relaxed">
-                                Many utility management solutions rely on IoT hardware installs, sensor networks, and consulting-heavy audits. These come with long contracts and high complexity.
+                                Utilities shouldn&apos;t be a maintenance issue—they are a financial one. Manual billing and disconnected usage data create a &quot;blind spot&quot; in your P&L.
                             </p>
                             <p className="text-slate-100 text-lg font-bold mb-8 italic">
-                                Propflow is different. We focus on fast adoption, clear ROI, and practical prevention — not infrastructure.
+                                Propflow unifies consumption data with financial recovery, ensuring your NOI is protected from utility inflation.
                             </p>
                         </div>
                     </div>
@@ -306,13 +321,13 @@ export default function LandingPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                         <div className="p-12 rounded-[3.5rem] bg-blue-600/10 border border-blue-500/20">
                             <span className="text-blue-400 font-bold uppercase tracking-widest text-xs mb-6 block">Built For</span>
-                            <h3 className="text-3xl font-black text-white mb-8">Clarity without complexity</h3>
+                            <h3 className="text-3xl font-black text-white mb-8">Asset Growth & Clarity</h3>
                             <ul className="space-y-5">
                                 {[
-                                    "Multifamily residential (20–200 units)",
-                                    "Buildings with shared utility meters",
-                                    "Owners and small property management firms",
-                                    "Operators who value practical over enterprise"
+                                    "Multifamily owners focused on NOI growth",
+                                    "Properties with shared utility meters",
+                                    "Operators who value automated financial flows",
+                                    "Teams tired of manual billing spreadsheets"
                                 ].map((item, i) => (
                                     <li key={i} className="flex items-center gap-4 text-slate-200">
                                         <CheckCircle2 className="w-5 h-5 text-blue-500 flex-shrink-0" />
@@ -323,13 +338,13 @@ export default function LandingPage() {
                         </div>
                         <div className="p-12 rounded-[3.5rem] bg-white/2 border border-white/5 grayscale">
                             <span className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-6 block">Not Built For</span>
-                            <h3 className="text-3xl font-black text-white/40 mb-8">Everyone Else</h3>
+                            <h3 className="text-3xl font-black text-white/40 mb-8">Operational Status Quo</h3>
                             <ul className="space-y-5">
                                 {[
-                                    "Hotels or short-term rentals",
-                                    "Single-family rental portfolios",
-                                    "Hardware-dependent monitoring systems",
-                                    "Large portfolios with custom systems"
+                                    "Operators indifferent to OPEX creep",
+                                    "Portfolios relying on manual estimation",
+                                    "Hardware-first monitoring approaches",
+                                    "Legacy systems with no API connectivity"
                                 ].map((item, i) => (
                                     <li key={i} className="flex items-center gap-4 opacity-40">
                                         <div className="w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center text-[8px] text-slate-700 font-bold flex-shrink-0">✕</div>
@@ -343,23 +358,23 @@ export default function LandingPage() {
 
                 {/* ROI Section */}
                 <section className="max-w-4xl mx-auto px-6 py-32 text-center">
-                    <h2 className="text-4xl md:text-6xl font-black mb-12 text-white">One Caught Issue Can Pay for the Product</h2>
+                    <h2 className="text-4xl md:text-6xl font-black mb-12 text-white">Instant Impact on Valuation</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
                         <div className="space-y-3">
-                            <div className="text-3xl font-black text-white">$100s</div>
-                            <div className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">Wasted per Leak Monthly</div>
-                        </div>
-                        <div className="space-y-3">
-                            <div className="text-3xl font-black text-white">0</div>
-                            <div className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">Opaque Calculation Errors</div>
+                            <div className="text-3xl font-black text-white">+15%</div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">Target NOI Increase</div>
                         </div>
                         <div className="space-y-3">
                             <div className="text-3xl font-black text-white">100%</div>
-                            <div className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">Recovered Utility Spend</div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">Automated Recovery</div>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="text-3xl font-black text-white">+$100k</div>
+                            <div className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">Asset Value Created</div>
                         </div>
                     </div>
                     <p className="text-slate-400 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto">
-                        A single leaking fixture can waste hundreds per month. Utility disputes cost time, trust, and credibility. Propflow helps you stay ahead of problems, not react to them.
+                        Recovering $500/month in previously absorbed utility costs increases output asset value by $100k+ at a 6% cap rate. Propflow pays for itself in asset appreciation alone.
                     </p>
                 </section>
 
@@ -367,15 +382,15 @@ export default function LandingPage() {
                 <section className="max-w-7xl mx-auto px-6 py-24 mb-12">
                     <div className="relative bg-gradient-to-br from-blue-700 to-indigo-900 rounded-[3.5rem] p-12 md:p-24 overflow-hidden text-center">
                         <div className="relative z-10">
-                            <h2 className="text-4xl md:text-7xl font-black text-white mb-8">Get Early Access</h2>
+                            <h2 className="text-4xl md:text-7xl font-black text-white mb-8">Secure Your Portfolio</h2>
                             <p className="text-white/80 text-lg md:text-xl mb-12 max-w-3xl mx-auto leading-relaxed">
-                                We’re onboarding a small group of multifamily operators to help shape the product. Early users receive direct founder support, pilot pricing, and priority feature input.
+                                Join the forward-thinking operators using Propflow to protect NOI and automate financial recovery. Limited pilot spots available for Q1.
                             </p>
                             <Link
                                 href="/signup"
                                 className="inline-flex bg-white text-blue-700 text-xl font-extrabold px-14 py-5 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-black/40"
                             >
-                                Request Early Access
+                                Get Started
                             </Link>
                         </div>
                         {/* Abstract Glow */}
@@ -388,10 +403,7 @@ export default function LandingPage() {
             <footer className="border-t border-white/5 py-24 bg-[#020617] text-center md:text-left">
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-12">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-                            <Building2 className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-2xl font-black text-white tracking-tight">Propflow <span className="text-blue-500 italic font-medium">Pilot</span></span>
+                        <BrandLogo variant="navbar" />
                     </div>
 
                     <p className="text-xs text-slate-600 font-medium">© 2026 Propflow. All rights reserved.</p>
