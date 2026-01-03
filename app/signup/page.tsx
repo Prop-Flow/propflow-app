@@ -92,6 +92,12 @@ export default function SignupPage() {
             const result = await registerUser({}, formDataPayload);
 
             if (result.success) {
+                // CRITICAL: Clear ALL developer mode artifacts before auto-login
+                document.cookie = "propflow_dev_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                document.cookie = "propflow_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                localStorage.removeItem('propflow_user');
+                sessionStorage.clear();
+
                 // Auto login after success
                 const loginResult = await signIn('credentials', {
                     email: formData.email,
