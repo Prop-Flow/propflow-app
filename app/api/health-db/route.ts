@@ -21,13 +21,14 @@ export async function GET() {
             },
             environment: process.env.NODE_ENV
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Database health check failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
         return NextResponse.json({
             status: 'unhealthy',
             database: {
                 connected: false,
-                error: error.message
+                error: errorMessage
             }
         }, { status: 500 });
     }
