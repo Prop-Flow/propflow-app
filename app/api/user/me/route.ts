@@ -26,14 +26,9 @@ export async function GET() {
             });
         }
 
-        // Constant-time lookup: check both ID and email in single query
-        const user = await prisma.user.findFirst({
-            where: {
-                OR: [
-                    { id: session.user.id },
-                    { email: session.user.email }
-                ]
-            },
+        // Lookup user by ID from session
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
             select: {
                 id: true,
                 email: true,

@@ -36,14 +36,18 @@ export const authConfig = {
         async session({ session, token }) {
             if (token.sub && session.user) {
                 session.user.id = token.sub;
+                // Ensure email is passed from token to session
+                if (token.email) {
+                    session.user.email = token.email as string;
+                }
             }
-            // Add other standard fields if available in token
             return session;
         },
         async jwt({ token, user }) {
             if (user) {
                 token.sub = user.id;
-                // Add role if we had it, for now verify basic id transmission
+                // Store email in JWT token for session lookup
+                token.email = user.email;
             }
             return token;
         }
