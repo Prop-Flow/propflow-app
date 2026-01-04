@@ -34,12 +34,37 @@ export default auth(async function middleware(req) {
     // 3. Global API Rate Limiting (Loose)
     // Only apply to /api routes
     if (path.startsWith('/api')) {
-        const rateLimit = checkRateLimit(ip); // Uses default config (100 req/min)
+        // Stricter rate limiting for authentication endpoints
+        let rateLimit;
+        if (path.includes('/api/auth/callback/credentials') || path.includes('/api/auth/signin')) {
+            // Auth endpoints: 5 attempts per 15 minutes
+            rateLimit = checkRateLimit(ip, {
+                limit: 5,
+                windowMs: 15 * 60 * 1000,
+                burst: 5
+            });
+        } else if (path.includes('/api/auth/signup') || path.includes('/register')) {
+            // Signup: 3 attempts per hour
+            rateLimit = checkRateLimit(ip, {
+                limit: 3,
+                windowMs: 60 * 60 * 1000,
+                burst: 3
+            });
+        } else {
+            // Default: 100 req/min
+            rateLimit = checkRateLimit(ip);
+        }
 
         const response = NextResponse.next();
 
+        // Inject security headers
+        response.headers.set('X-Content-Type-Options', 'nosniff');
+        response.headers.set('X-Frame-Options', 'DENY');
+        response.headers.set('X-XSS-Protection', '1; mode=block');
+        response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
         // Inject rate limit headers
-        response.headers.set('X-RateLimit-Limit', '100');
+        response.headers.set('X-RateLimit-Limit', rateLimit.limit?.toString() || '100');
         response.headers.set('X-RateLimit-Remaining', rateLimit.remaining.toString());
 
         if (!rateLimit.allowed) {
@@ -48,7 +73,7 @@ export default auth(async function middleware(req) {
             // Alert dev on rejection (indicates likely script/abuse)
             await sendSecurityAlert({
                 type: 'RATE_LIMIT_EXCEEDED',
-                description: `IP ${ip} exceeded global API rate limit requesting ${path}`,
+                description: `IP ${ip} exceeded API rate limit requesting ${path}`,
                 sourceIp: ip,
                 severity: 'WARNING'
             });

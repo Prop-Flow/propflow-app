@@ -65,6 +65,16 @@ export default function SignupPage() {
             newErrors.password = 'Password is required';
         } else if (formData.password.length < 8) {
             newErrors.password = 'Password must be at least 8 characters';
+        } else {
+            // Check password complexity
+            const hasUpperCase = /[A-Z]/.test(formData.password);
+            const hasLowerCase = /[a-z]/.test(formData.password);
+            const hasNumber = /\d/.test(formData.password);
+            const hasSpecialChar = /[@$!%*?&]/.test(formData.password);
+
+            if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
+                newErrors.password = 'Password must contain uppercase, lowercase, number, and special character (@$!%*?&)';
+            }
         }
 
         if (!formData.confirmPassword) {

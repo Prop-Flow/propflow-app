@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
     try {
         const session = await auth();
 
         if (!session?.user?.id) {
-            console.log('[API/User/Me] No user ID in session:', JSON.stringify(session));
-            return NextResponse.json({ error: 'Unauthorized', sessionExists: !!session }, { status: 401 });
+            logger.api('No user ID in session');
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        console.log(`[API/User/Me] Fetching for user ID: ${session.user.id}, Email: ${session.user.email}`);
+        logger.api(`Fetching user profile for ID: ${session.user.id}`);
 
         // Handle anonymous Developer Mode
         if (session.user.id === 'dev-mode-user') {
@@ -25,8 +26,14 @@ export async function GET() {
             });
         }
 
-        let user = await prisma.user.findUnique({
-            where: { id: session.user.id },
+        // Constant-time lookup: check both ID and email in single query
+        const user = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { id: session.user.id },
+                    { email: session.user.email }
+                ]
+            },
             select: {
                 id: true,
                 email: true,
@@ -38,41 +45,39 @@ export async function GET() {
             },
         });
 
-        // Fallback: If ID search fails, try searching by email from session
-        if (!user && session.user.email) {
-            console.log(`[API/User/Me] ID search failed, trying email fallback for: ${session.user.email}`);
-            user = await prisma.user.findUnique({
-                where: { email: session.user.email },
-                select: {
-                    id: true,
-                    email: true,
-                    name: true,
-                    firstName: true,
-                    lastName: true,
-                    role: true,
-                    phone: true,
-                },
-            });
-
-            if (user) {
-                console.log(`[API/User/Me] Email fallback successful. User ID in DB: ${user.id}`);
-            }
-        }
-
         if (!user) {
-            console.error(`[API/User/Me] User NOT found. Session ID: ${session.user.id}, Session Email: ${session.user.email}`);
+            logger.error(`User not found for session ID: ${session.user.id}`);
+
+            // Production: minimal error info
+            if (logger.isProduction) {
+                return NextResponse.json({
+                    error: 'User not found'
+                }, { status: 404 });
+            }
+
+            // Development: detailed debug info
             return NextResponse.json({
                 error: 'User not found',
-                requestedId: session.user.id,
-                requestedEmail: session.user.email,
-                sessionKeys: Object.keys(session.user),
-                message: `No user matches the session ID or email in the database.`
+                debug: {
+                    requestedId: session.user.id,
+                    requestedEmail: session.user.email,
+                    sessionKeys: Object.keys(session.user)
+                }
             }, { status: 404 });
         }
 
         return NextResponse.json(user);
     } catch (error) {
-        console.error('Error fetching user:', error);
+        logger.error('Error fetching user', error);
+
+        // Production: generic error
+        if (logger.isProduction) {
+            return NextResponse.json({
+                error: 'Internal server error'
+            }, { status: 500 });
+        }
+
+        // Development: detailed error
         return NextResponse.json({
             error: 'Internal server error',
             details: error instanceof Error ? error.message : String(error)

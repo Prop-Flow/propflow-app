@@ -5,11 +5,16 @@ import { authConfig } from './auth.config';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { logger } from '@/lib/logger';
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig,
     adapter: PrismaAdapter(prisma),
-    session: { strategy: 'jwt' },
+    session: {
+        strategy: 'jwt',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        updateAge: 24 * 60 * 60,   // 24 hours - refresh token daily
+    },
     providers: [
         Credentials({
             async authorize(credentials) {
@@ -20,11 +25,11 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                 if (parsedCredentials.success) {
                     const { email: rawEmail, password } = parsedCredentials.data;
                     const email = rawEmail.toLowerCase().trim();
-                    console.log(`[Auth] Attempting login for: ${email} (Raw: ${rawEmail})`);
+                    logger.auth(`Attempting login for: ${email}`);
 
                     // DEV MODE BYPASS (ANONYMOUS)
                     if (email === 'dev@propflow.ai' && password === 'sharktank101!') {
-                        console.log('[Auth] Dev Mode bypass triggered (Anonymous)');
+                        logger.auth('Dev Mode bypass triggered');
                         return {
                             id: 'dev-mode-user',
                             email: 'dev@propflow.ai',
@@ -35,36 +40,36 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
                     const user = await prisma.user.findUnique({ where: { email } });
                     if (!user) {
-                        console.log('[Auth] User not found');
+                        logger.auth('User not found');
                         return null;
                     }
 
                     if (!user.passwordHash) {
-                        console.log(`[Auth] No password hash for user: ${email}`);
+                        logger.auth(`No password hash for user: ${email}`);
                         return null;
                     }
 
-                    console.log(`[Auth] User found, verifying password for ${email}... (Hash: ${user.passwordHash.substring(0, 10)}...)`);
+                    logger.auth(`User found, verifying password for ${email}`);
                     const passwordsMatch = await bcrypt.compare(password, user.passwordHash);
 
                     if (passwordsMatch) {
-                        console.log(`[Auth] Password verified successfully for ${email}`);
+                        logger.auth(`Password verified successfully for ${email}`);
                         const returnUser = {
                             id: user.id,
                             email: user.email,
                             name: user.name,
                             role: user.role,
                         };
-                        console.log(`[Auth] Returning user object:`, JSON.stringify(returnUser));
+                        logger.debug('Returning user object', returnUser);
                         return returnUser;
                     }
 
-                    console.log(`[Auth] Password mismatch for ${email}. Checked against hash starting with: ${user.passwordHash.substring(0, 10)}`);
+                    logger.auth(`Password mismatch for ${email}`);
                 } else {
-                    console.log('[Auth] Zod validation failed for credentials:', JSON.stringify(parsedCredentials.error.format()));
+                    logger.auth('Credential validation failed');
                 }
 
-                console.log('[Auth] returning null');
+                logger.auth('Authentication failed');
                 return null;
             },
         }),
