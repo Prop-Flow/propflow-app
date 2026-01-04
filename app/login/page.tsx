@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
+import { Eye, EyeOff } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { Input } from '@/components/ui/Input';
 
@@ -15,6 +16,7 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+    const [showPassword, setShowPassword] = useState(false);
 
     const router = useRouter();
     const [devMode, setDevMode] = useState(false);
@@ -177,15 +179,25 @@ export default function LoginPage() {
                             </label>
                             {!devMode && <Link href="#" className="text-xs text-primary hover:underline">Forgot password?</Link>}
                         </div>
-                        <Input
-                            type="password"
-                            placeholder={devMode ? "••••••••" : "••••••••"}
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            required
-                            className={`mt-0 bg-white/5 border-white/10 ${devMode ? 'text-lg font-mono tracking-widest' : ''}`}
-                            error={errors.password}
-                        />
+                        <div className="relative">
+                            <Input
+                                type={showPassword ? "text" : "password"}
+                                placeholder={devMode ? "••••••••" : "••••••••"}
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                required
+                                className={`mt-0 bg-white/5 border-white/10 pr-10 ${devMode ? 'text-lg font-mono tracking-widest' : ''}`}
+                                error={errors.password}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                            >
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
                     </div>
 
                     {error && (
