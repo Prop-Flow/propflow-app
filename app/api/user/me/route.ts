@@ -14,17 +14,7 @@ export async function GET() {
 
         logger.api(`Fetching user profile for ID: ${session.user.id}`);
 
-        // Handle anonymous Developer Mode
-        if (process.env.NODE_ENV === 'development' && session.user.id === 'dev-mode-user') {
-            return NextResponse.json({
-                id: 'dev-mode-user',
-                email: 'dev@propflow.ai',
-                firstName: 'Developer',
-                lastName: '(Mode)',
-                name: 'Developer Mode',
-                role: 'OWNER',
-            });
-        }
+
 
         // Lookup user by ID from session
         const user = await prisma.user.findUnique({

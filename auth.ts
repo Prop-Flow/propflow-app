@@ -27,17 +27,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     const email = rawEmail.toLowerCase().trim();
                     logger.auth(`Attempting login for: ${email}`);
 
-                    // DEV MODE BYPASS (ANONYMOUS)
-                    if (email === 'dev@propflow.ai' && password === 'sharktank101!') {
-                        logger.auth('Dev Mode bypass triggered');
-                        return {
-                            id: 'dev-mode-user',
-                            email: 'dev@propflow.ai',
-                            name: 'Developer Mode',
-                            role: 'OWNER',
-                        } as any;
-                    }
-
                     const user = await prisma.user.findUnique({ where: { email } });
                     if (!user) {
                         logger.auth('User not found');

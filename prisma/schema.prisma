@@ -37,6 +37,21 @@ model Property {
   managers    User[]  @relation("PropertyManagers")
 
   tenants         Tenant[]
+  complianceItems ComplianceItem[]
+
+  // Financial data
+  financials PropertyFinancials?
+  valuations PropertyValuation[]
+  projection PropertyProjection?
+  expenses   PropertyExpense[]
+  debts      PropertyDebt[]
+  income     PropertyIncome[]
+  maintenanceRequests MaintenanceRequest[]
+  marketSnapshots     MarketSnapshot[]
+  leaseOptimizations  LeaseOptimization[]
+  utilityReadings     UtilityReading[]
+  anomalies           Anomaly[]
+  leases              LeaseAgreement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -133,6 +148,13 @@ model Tenant {
   updatedAt DateTime @updatedAt
 
   property          Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  documents         Document[]
+  communicationLogs CommunicationLog[]
+  complianceItems   ComplianceItem[]
+  utilityCharges    TenantUtilityCharge[]
+  maintenanceRequests MaintenanceRequest[]
+  leaseOptimizations  LeaseOptimization[]
+  leases              LeaseAgreement[]
 
   @@index([propertyId])
   @@index([status])
@@ -152,4 +174,445 @@ model Notification {
 
   @@index([userId])
   @@index([read])
+}
+
+// Financial Management Models
+
+model PropertyFinancials {
+  id         String @id @default(cuid())
+  propertyId String @unique
+
+  // Operating Reserves
+  currentReserves        Float     @default(0)
+  recommendedReserves    Float     @default(0)
+  reserveCalculationDate DateTime?
+
+  // Vacancy Loss
+  vacancyRate          Float @default(0) // Percentage (e.g., 5.0 for 5%)
+  estimatedVacancyLoss Float @default(0)
+
+  // Calculated Fields
+  totalMonthlyIncome   Float @default(0)
+  totalMonthlyExpenses Float @default(0)
+  monthlyNetIncome     Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  property         Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  operatingReserve OperatingReserve?
+  expenses         PropertyExpense[]
+  debts            PropertyDebt[]
+  income           PropertyIncome[]
+
+  @@index([propertyId])
+}
+
+model OperatingReserve {
+  id                   String @id @default(cuid())
+  propertyFinancialsId String @unique
+
+  currentAmount     Float @default(0)
+  recommendedAmount Float
+
+  // Calculation Metadata
+  calculationReasoning String? // JSON string with breakdown
+  baseMonthsExpenses   Float? 
+  ageAdjustment        Float?  
+  unitCountAdjustment  Float?  
+  minimumReserve       Float?  
+
+  reserveCalculationDate DateTime?
+  lastCalculated         DateTime?
+
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  propertyFinancials PropertyFinancials @relation(fields: [propertyFinancialsId], references: [id], onDelete: Cascade)
+  
+  @@index([propertyFinancialsId])
+}
+
+model MaintenanceRequest {
+  id          String   @id @default(cuid())
+  propertyId  String
+  tenantId    String?
+
+  title       String
+  description String
+  status      String   @default("pending") // pending, in_progress, resolved, closed
+  priority    String   @default("normal") // low, normal, high, emergency
+  category    String?  // plumbing, electrical, hvac, appliance, other
+  location    String?  // kitchen, bathroom, etc.
+  
+  ticketNumber String? // Friendly ID e.g., "REQ-1001"
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model PropertyExpense {
+  id                   String @id @default(cuid())
+  propertyFinancialsId String
+
+  category           String // property_tax, insurance, water, sewer, gas, electric, trash, maintenance, landscaping, management_fees, capital_reserve, custom
+  customCategoryName String? // For custom categories
+
+  amount      Float
+  frequency   String    @default("monthly") // monthly, annual, one_time
+  description String?
+  dueDate     DateTime?
+  isPaid      Boolean   @default(false)
+  paidDate    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  propertyFinancials PropertyFinancials @relation(fields: [propertyFinancialsId], references: [id], onDelete: Cascade)
+
+  propertyId String? // Optional direct link if needed, but via financials is cleaner
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyFinancialsId])
+  @@index([category])
+  @@index([dueDate])
+}
+
+model PropertyDebt {
+  id                   String @id @default(cuid())
+  propertyFinancialsId String
+
+  loanName         String // e.g., "Primary Mortgage", "HELOC"
+  principalBalance Float
+  interestRate     Float // Annual percentage (e.g., 4.5 for 4.5%)
+  termLengthMonths Int
+  monthlyPayment   Float
+
+  originationDate DateTime
+  maturityDate    DateTime
+  nextPaymentDue  DateTime?
+
+  lender   String?
+  loanType String? // conventional, fha, va, commercial, etc.
+
+  // Refinancing Tracking
+  shouldMonitorRefinancing Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  propertyFinancials PropertyFinancials @relation(fields: [propertyFinancialsId], references: [id], onDelete: Cascade)
+
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+
+  @@index([propertyFinancialsId])
+  @@index([nextPaymentDue])
+}
+
+model PropertyIncome {
+  id                   String @id @default(cuid())
+  propertyFinancialsId String
+
+  source           String // rent, laundry, parking, storage, rubs_utility, custom
+  customSourceName String? // For custom income sources
+
+  amount      Float
+  frequency   String  @default("monthly") // monthly, annual, one_time
+  description String?
+
+  isRecurring Boolean   @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  dateReceived DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  propertyFinancials PropertyFinancials @relation(fields: [propertyFinancialsId], references: [id], onDelete: Cascade)
+
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyFinancialsId])
+  @@index([source])
+}
+
+model PropertyValuation {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  // Current Valuation
+  estimatedValue Float // Calculated from NOI / Cap Rate
+  amount         Float? // Alias for estimatedValue basically
+  source         String?
+  purchasePrice  Float? // Original purchase price
+  valuationDate  DateTime @default(now())
+  confidenceScore Float?
+
+  // Appreciation Tracking
+  totalAppreciation Float? // $ amount
+  appreciationRate  Float? // % annual rate
+
+  // Cap Rate
+  marketCapRate  Float? // User input or calculated
+  impliedCapRate Float? // Calculated from purchase (NOI / Purchase Price)
+
+  // Valuation Method
+  methodology String @default("INCOME_APPROACH") // INCOME_APPROACH, COST_BASIS, MANUAL
+
+  // Monthly Snapshot
+  monthlyNOI Float?
+  annualNOI  Float?
+
+  // Confidence & Notes
+  confidence String? // HIGH, MEDIUM, LOW
+  notes      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([propertyId, createdAt])
+}
+
+model PropertyProjection {
+  id         String   @id @default(cuid())
+  propertyId String   @unique
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  // Projection Parameters
+  projectionYears      Int   @default(5)
+  assumedAppreciation  Float @default(3.0) // % annual
+  assumedIncomeGrowth  Float @default(2.0) // % annual
+  assumedExpenseGrowth Float @default(3.0) // % annual
+
+  // Projected Values (JSON array of yearly projections)
+  yearlyProjections Json? // [{year: 1, value: X, noi: Y, cashFlow: Z}, ...]
+
+  // Sale Scenarios
+  projectedSaleValue Float?
+  projectedEquity    Float?
+  projectedROI       Float?
+
+  lastCalculated DateTime @default(now())
+
+  @@index([propertyId])
+
+}
+
+model MarketSnapshot {
+  id                String   @id @default(cuid())
+  propertyId        String
+  property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  zipCode           String
+  currentMedianRent Float
+  growthVelocity    Float
+  vacancyRate       Float
+  daysOnMarket      Int
+  trends12Month     String   // JSON
+  comparables       String   // JSON
+  confidence        Float
+  dataSource        String   @default("RENTCAST")
+
+  createdAt         DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+model LeaseOptimization {
+  id          String   @id @default(cuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+
+  currentRent        Float
+  recommendedRent    Float
+  confidence         String // High, Medium, Low
+  reasoning          String // JSON or Text
+  insights           String // JSON
+  status             String @default("pending") // pending, approved, rejected, applied
+
+  // Metrics snapshot
+  occupancyRate      Float?
+  bedrooms           Int?
+  bathrooms          Float?
+  squareFeet         Int?
+  marketPosition     String?
+  changeAmount       Float?
+  changePercent      Float?
+
+  reviewedBy         String?
+  reviewedAt         DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  recommendations LeaseRecommendation[]
+
+  @@index([propertyId])
+  @@index([tenantId])
+}
+
+model LeaseRecommendation {
+  id                  String @id @default(cuid())
+  leaseOptimizationId String
+  optimization        LeaseOptimization @relation(fields: [leaseOptimizationId], references: [id], onDelete: Cascade)
+
+  type        String // increase, decrease, concession, renewal
+  amount      Float
+  description String
+  impact      Float // Projected revenue impact
+
+  createdAt   DateTime @default(now())
+}
+
+model UtilityReading {
+  id           String   @id @default(cuid())
+  propertyId   String
+  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  utilityType  String   // Water, Electric, Gas
+  readingDate  DateTime
+  value        Float    // Usage amount
+  unit         String   // gal, kWh, therms
+  
+  isAnomaly    Boolean  @default(false)
+  anomaly      Anomaly?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([readingDate])
+  @@index([utilityType])
+}
+
+model Anomaly {
+  id               String   @id @default(cuid())
+  propertyId       String
+  property         Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  readingId        String?  @unique
+  reading          UtilityReading? @relation(fields: [readingId], references: [id])
+  
+  utilityType      String
+  severity         String   // low, medium, high
+  message          String
+  
+  thresholdValue   Float
+  actualValue      Float
+  
+  isResolved       Boolean  @default(false)
+  resolvedAt       DateTime?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([createdAt])
+}
+
+model LeaseAgreement {
+  id          String   @id @default(cuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+
+  type        String   @default("RESIDENTIAL") // RESIDENTIAL, COMMERCIAL
+  status      String   @default("DRAFT")       // DRAFT, ACTIVE, TERMINATED, EXPIRED
+  
+  startDate   DateTime
+  endDate     DateTime
+  rentAmount  Float
+  securityDeposit Float?
+  
+  // Logic Storage
+  terms       Json?    // Stores specific clauses, escalation rules, maintenance responsibilities
+  
+  // Commercial Specifics
+  escalationType String? // FIXED_PERCENTAGE, CPI, FLAT_AMOUNT
+  escalationValue Float? // Value for the above type
+  leaseType      String? // GROSS, TRIPLE_NET, MODIFIED_GROSS
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([status])
+}
+
+// Missing Models below (Added to fix build)
+model Document {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  url       String
+  type      String   // lease, addendum, identification, other
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model CommunicationLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type      String   // email, phone, sms, in_person
+  subject   String?
+  notes     String
+  date      DateTime @default(now())
+  
+  @@index([tenantId])
+}
+
+model ComplianceItem {
+  id          String   @id @default(cuid())
+  propertyId  String?
+  property    Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenantId    String?
+  tenant      Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  name        String
+  status      String    // pending, compliant, non_compliant, expiring_soon
+  dueDate     DateTime?
+  completedAt DateTime?
+  
+  documents   String?   // JSON generic field for links? Or relation?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([tenantId])
+}
+
+model TenantUtilityCharge {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  amount    Float
+  type      String   // water, sewer, trash, electric, gas
+  periodStart DateTime
+  periodEnd   DateTime
+  isPaid    Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([tenantId])
 }
