@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, Mail, Phone, Building2, Calendar, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Building2, Calendar, Loader2 } from 'lucide-react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import TenantInviteButton from '@/components/tenants/TenantInviteButton';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,7 +18,6 @@ export default function TenantsClient() {
         phone?: string;
         status: string;
         leaseEndDate?: string;
-        missingDocsCount: number;
         property?: {
             name: string;
         };
@@ -159,17 +158,6 @@ export default function TenantsClient() {
                                         }`}>
                                         {tenant.status ? tenant.status.toUpperCase() : 'UNKNOWN'}
                                     </span>
-                                    {tenant.missingDocsCount > 0 ? (
-                                        <div className="flex items-center gap-1 text-xs font-medium text-orange-400 bg-orange-400/10 px-3 py-1 rounded-full border border-orange-400/20">
-                                            <AlertCircle className="w-3 h-3" />
-                                            <span>{tenant.missingDocsCount} docs missing</span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1 text-xs font-medium text-green-400 bg-green-400/10 px-3 py-1 rounded-full border border-green-400/20">
-                                            <CheckCircle className="w-3 h-3" />
-                                            <span>Compliant</span>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </Link>

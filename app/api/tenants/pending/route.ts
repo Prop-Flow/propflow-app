@@ -1,13 +1,31 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { pendingTenantSchema } from '@/lib/schemas/api-responses';
 import { z } from 'zod';
+import { getSessionUser } from '@/lib/auth/session';
 
-export async function GET() {
+const pendingTenantSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string().nullable(),
+    status: z.string(),
+    createdAt: z.date(),
+    property: z.object({
+        id: z.string(),
+        name: z.string(),
+        address: z.string(),
+    }),
+});
+
+export async function GET(request: NextRequest) {
     try {
+        const user = await getSessionUser(request);
+
         const tenants = await prisma.tenant.findMany({
             where: {
                 status: 'pending',
+                property: {
+                    ownerUserId: user.id
+                }
             },
             include: {
                 property: {

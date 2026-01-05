@@ -32,14 +32,9 @@ export function getPropertyFieldsForRole(role: string): Prisma.PropertySelect {
             purchaseDate: true,
             buildingCode: true,
             ownerUserId: true,
-            // Include financial data
-            financials: true,
-            valuations: true,
-            projection: true,
             _count: {
                 select: {
                     tenants: true,
-                    complianceItems: true,
                 },
             },
         };
@@ -88,13 +83,6 @@ export function getTenantFieldsForRole(role: string): Prisma.TenantSelect {
                     address: true,
                 },
             },
-            _count: {
-                select: {
-                    documents: true,
-                    communicationLogs: true,
-                    complianceItems: true,
-                },
-            },
         };
     }
 
@@ -118,36 +106,6 @@ export function getTenantFieldsForRole(role: string): Prisma.TenantSelect {
     }
 
     return baseFields;
-}
-
-/**
- * Get financial fields based on user role
- * Financial data is HIGHLY SENSITIVE
- */
-export function getFinancialFieldsForRole(role: string): Prisma.PropertyFinancialsSelect | null {
-    // Only owners and managers can access financial data
-    if (role === 'owner' || role === 'property_manager') {
-        return {
-            id: true,
-            propertyId: true,
-            currentReserves: true,
-            recommendedReserves: true,
-            vacancyRate: true,
-            estimatedVacancyLoss: true,
-            totalMonthlyIncome: true,
-            totalMonthlyExpenses: true,
-            monthlyNetIncome: true,
-            operatingReserve: true,
-            expenses: true,
-            debts: true,
-            income: true,
-            createdAt: true,
-            updatedAt: true,
-        };
-    }
-
-    // Tenants and others: NO ACCESS
-    return null;
 }
 
 /**

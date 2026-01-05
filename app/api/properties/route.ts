@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
                 _count: {
                     select: {
                         tenants: true,
-                        complianceItems: true,
                     },
                 },
             },
@@ -55,17 +54,12 @@ export async function POST(request: NextRequest) {
             ownerUserId: user.id,
         };
 
-        // Reuse validation logic if possible, or validate manually since structure changed
-        // const validatedData = propertySchema.parse(flatData); 
-        // Note: validation might need adjustment if flatData doesn't perfectly match expectations,
-        // but for now we construct it to match the Property model fields.
-
         interface TenantDataInput {
             name: string;
             email?: string | null;
             phone?: string | null;
             rentAmount: number;
-            leaseStartDate?: string | Date; // Depending on what comes from JSON
+            leaseStartDate?: string | Date;
             leaseEndDate?: string | Date;
         }
 
@@ -94,7 +88,7 @@ export async function POST(request: NextRequest) {
                 tenantsCreateInput = {
                     create: occupiedUnits.map((unit: RentRollUnit) => ({
                         name: unit.tenantName || 'Unknown',
-                        email: null, // Rent roll rarely has email
+                        email: null,
                         phone: null,
                         rentAmount: unit.currentRent || unit.marketRent || 0,
                         leaseEndDate: unit.leaseEndDate ? new Date(unit.leaseEndDate) : undefined,

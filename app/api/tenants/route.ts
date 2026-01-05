@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { tenantSchema } from '@/lib/utils/validation';
-import { createRequiredDocuments } from '@/lib/documents/tracker';
-import { getRequiredDocuments } from '@/lib/compliance/rules-engine';
+import { getSessionUser } from '@/lib/auth/session';
 
 export async function GET(request: NextRequest) {
     try {
+        const user = await getSessionUser(request);
         const searchParams = request.nextUrl.searchParams;
         const propertyId = searchParams.get('propertyId');
 
-        const where = propertyId ? { propertyId } : {};
+        // Filter by user's properties to ensure data isolation
+        const where: any = {
+            property: {
+                ownerUserId: user.id
+            }
+        };
+
+        if (propertyId) {
+            where.propertyId = propertyId;
+        }
 
         const tenants = await prisma.tenant.findMany({
             where,
@@ -17,9 +25,10 @@ export async function GET(request: NextRequest) {
                 property: true,
                 _count: {
                     select: {
-                        documents: true,
-                        communicationLogs: true,
-                        complianceItems: true,
+                        // All these were removed from schema
+                        // documents: true, 
+                        // communicationLogs: true, 
+                        // complianceItems: true, 
                     },
                 },
             },
@@ -40,36 +49,39 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        const user = await getSessionUser(request);
         const body = await request.json();
-        const validatedData = tenantSchema.parse(body);
 
-        // Get property to determine required documents
-        const property = await prisma.property.findUnique({
-            where: { id: validatedData.propertyId },
+        // Check if property exists and belongs to the user
+        const property = await prisma.property.findFirst({
+            where: {
+                id: body.propertyId,
+                ownerUserId: user.id
+            },
         });
 
         if (!property) {
             return NextResponse.json(
-                { error: 'Property not found' },
+                { error: 'Property not found or access denied' },
                 { status: 404 }
             );
         }
 
         const tenant = await prisma.tenant.create({
             data: {
-                ...validatedData,
-                leaseStartDate: validatedData.leaseStartDate
-                    ? new Date(validatedData.leaseStartDate)
-                    : null,
-                leaseEndDate: validatedData.leaseEndDate
-                    ? new Date(validatedData.leaseEndDate)
-                    : null,
+                propertyId: body.propertyId,
+                name: body.name,
+                email: body.email,
+                phone: body.phone,
+                leaseStartDate: body.leaseStartDate ? new Date(body.leaseStartDate) : undefined,
+                leaseEndDate: body.leaseEndDate ? new Date(body.leaseEndDate) : undefined,
+                rentAmount: body.rentAmount,
+                apartmentNumber: body.apartmentNumber,
+                squareFootage: body.squareFootage,
+                numberOfOccupants: body.numberOfOccupants || 1,
+                status: 'active'
             },
         });
-
-        // Create required documents based on property type
-        const requiredDocs = getRequiredDocuments(property.propertyType || 'residential');
-        await createRequiredDocuments(tenant.id, requiredDocs);
 
         return NextResponse.json({ tenant }, { status: 201 });
     } catch (error) {

@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { inviteManagerSchema } from '@/lib/validations/auth';
 import crypto from 'crypto';
+import { getSessionUser } from '@/lib/auth/session';
 
 export async function POST(req: NextRequest) {
     try {
+        const user = await getSessionUser(req);
         const body = await req.json();
 
         // Zod Validation
@@ -18,6 +20,18 @@ export async function POST(req: NextRequest) {
 
         const { email, propertyId } = result.data;
 
+        // SECURITY CHECK: Verify if the session user owns the property they are inviting a manager to
+        if (propertyId) {
+            const property = await prisma.property.findUnique({
+                where: { id: propertyId },
+                select: { ownerUserId: true }
+            });
+
+            if (!property || property.ownerUserId !== user.id) {
+                return NextResponse.json({ error: 'You do not have permission to invite managers to this property' }, { status: 403 });
+            }
+        }
+
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
             where: { email },
@@ -26,7 +40,6 @@ export async function POST(req: NextRequest) {
         if (existingUser) {
             // If user exists and propertyId is provided, grant them access immediately
             if (propertyId) {
-                // Check if already managing to avoid duplicates (though Prisma handles unique constraints usually, implicit m-n doesn't strictly duplicate easily without raw queries or specific checks, but connect is safe)
                 await prisma.property.update({
                     where: { id: propertyId },
                     data: {
@@ -57,7 +70,6 @@ export async function POST(req: NextRequest) {
         });
 
         // Mock Email Sending
-        // In a real app, use Resend/SendGrid here
         console.log(`[MOCK EMAIL] To: ${email}, Subject: You're invited to manage a property! Link: /auth/invite?token=${token}`);
 
         return NextResponse.json({ success: true, message: 'Invitation sent' });

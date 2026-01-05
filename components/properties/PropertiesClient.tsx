@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Building2, Users, MapPin, Plus, Activity, Loader2 } from 'lucide-react';
+import { Building2, Users, MapPin, Plus, Loader2 } from 'lucide-react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import PropertyUploader, { WizardData } from '@/components/properties/PropertyUploader';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,7 +15,6 @@ interface Property {
     address: string;
     _count: {
         tenants: number;
-        complianceItems: number;
     };
 }
 
@@ -195,32 +194,11 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
                                         {property._count.tenants} {property._count.tenants === 1 ? 'tenant' : 'tenants'}
                                     </span>
                                 </div>
-                                {property._count.complianceItems > 0 && (
-                                    <span className="text-xs font-medium text-orange-400 bg-orange-400/10 px-2 py-1 rounded">
-                                        {property._count.complianceItems} pending
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="mt-4 pt-4 border-t border-white/5 flex justify-end">
-                                <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        router.push(`/dashboard/owner/utilities?propertyId=${property.id}`);
-                                    }}
-                                    className="text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1 bg-transparent border-none cursor-pointer"
-                                >
-                                    <Activity className="w-3 h-3" />
-                                    View Utilities
-                                </button>
                             </div>
                         </Link>
                     ))}
                 </div>
             )}
-
-
         </DashboardShell>
     );
 }

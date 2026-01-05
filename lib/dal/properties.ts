@@ -133,28 +133,3 @@ export async function deleteProperty(propertyId: string, user: SessionUser) {
 
     return { success: true };
 }
-
-/**
- * Get property financials (owner/manager only)
- * Financial data is HIGHLY SENSITIVE
- */
-export async function getPropertyFinancials(propertyId: string, user: SessionUser) {
-    if (user.role === 'tenant') {
-        throw new ForbiddenError('Tenants cannot access financial data');
-    }
-
-    // Verify property access
-    await getPropertyForUser(propertyId, user);
-
-    const financials = await prisma.propertyFinancials.findUnique({
-        where: { propertyId },
-        include: {
-            operatingReserve: true,
-            expenses: true,
-            debts: true,
-            income: true,
-        },
-    });
-
-    return financials;
-}

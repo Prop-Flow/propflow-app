@@ -1,120 +1,66 @@
-
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import { Building2, Users, AlertCircle, AlertTriangle, Droplets } from 'lucide-react';
-import { getComplianceStatus } from '@/lib/utils/date-helpers';
+import { Building2, Users } from 'lucide-react';
 import DashboardShell from '@/components/layout/DashboardShell';
-import * as fs from 'fs';
-import * as path from 'path';
-import { analyzeProperties, PropertyData } from '@/lib/ai/anomaly-detection';
-
-import { Property, Tenant, ComplianceItem, CommunicationLog } from '@prisma/client';
+import { getSessionUser } from '@/lib/auth/session';
+import { headers } from 'next/headers';
+import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-type ComplianceItemWithDetails = ComplianceItem & {
-    tenant: Tenant | null;
-    property: Property | null;
-};
-
-type CommunicationLogWithDetails = CommunicationLog & {
-    tenant: Tenant & {
-        property: Property | null;
-    };
-};
-
-async function getDashboardStats() {
+async function getDashboardStats(userId: string) {
     try {
-        const [properties, tenants, complianceItems, recentLogs] = await Promise.all([
-            prisma.property.count().catch(() => 0),
-            prisma.tenant.count({ where: { status: 'active' } }).catch(() => 0),
-            prisma.complianceItem.findMany({
+        const [propertyCount, tenantCount] = await Promise.all([
+            prisma.property.count({
+                where: { ownerUserId: userId }
+            }),
+            prisma.tenant.count({
                 where: {
-                    status: {
-                        in: ['pending', 'overdue'],
-                    },
-                },
-                include: {
-                    tenant: true,
-                    property: true,
-                },
-                orderBy: {
-                    dueDate: 'asc',
-                },
-                take: 10,
-            }).catch(() => []),
-            prisma.communicationLog.findMany({
-                include: {
-                    tenant: {
-                        include: {
-                            property: true,
-                        },
-                    },
-                },
-                orderBy: {
-                    createdAt: 'desc',
-                },
-                take: 10,
-            }).catch(() => []),
+                    status: 'active',
+                    property: { ownerUserId: userId }
+                }
+            })
         ]);
 
-        // Anomaly Detection Analysis
-        let anomalyData = null;
-        try {
-            const dataPath = path.join(process.cwd(), 'lib/ai/demo-dataset.json');
-            if (fs.existsSync(dataPath)) {
-                const rawData = fs.readFileSync(dataPath, 'utf8');
-                const demoData = JSON.parse(rawData);
-                const dataset: PropertyData[] = demoData.properties.map((p: { property_id: string; property_name: string; monthly_usage: { month: string; usage: number }[] }) => ({
-                    property_id: p.property_id,
-                    property_name: p.property_name,
-                    usage_history: p.monthly_usage
-                }));
-                anomalyData = analyzeProperties(dataset);
-            }
-        } catch (e) {
-            console.error("Failed to load anomaly data", e);
-        }
-
-        const overdueCount = Array.isArray(complianceItems) ? complianceItems.filter(item =>
-            getComplianceStatus(item.dueDate) === 'overdue'
-        ).length : 0;
-
-        const urgentCount = Array.isArray(complianceItems) ? complianceItems.filter(item =>
-            getComplianceStatus(item.dueDate) === 'urgent'
-        ).length : 0;
-
         return {
-            properties: properties || 0,
-            tenants: tenants || 0,
-            overdueCount,
-            urgentCount,
-            complianceItems: complianceItems || [],
-            recentLogs: recentLogs || [],
-            anomalyData
+            properties: propertyCount,
+            tenants: tenantCount,
         };
     } catch (error) {
         console.error("Error fetching dashboard stats:", error);
         return {
             properties: 0,
             tenants: 0,
-            overdueCount: 0,
-            urgentCount: 0,
-            complianceItems: [],
-            recentLogs: [],
-            anomalyData: null
         };
     }
 }
 
 export default async function DashboardPage() {
-    const stats = await getDashboardStats();
+    // We need to pass a mock NextRequest or use the session directly if accessible
+    // In server components, better to use the underlying auth() check
+    // Since getSessionUser expects NextRequest, we'll try to get it from headers/cookies if possible
+    // or just use auth() directly from @/auth
+
+    const { auth } = await import('@/auth');
+    const session = await auth();
+
+    if (!session?.user?.id) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen">
+                <p>Please sign in to view your dashboard.</p>
+                <Link href="/login" className="text-blue-600 hover:underline mt-4">Sign In</Link>
+            </div>
+        );
+    }
+
+    const userId = session.user.id;
+    const stats = await getDashboardStats(userId);
 
     return (
         <DashboardShell role="owner">
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <Link href="/properties" className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-slate-600">Total Properties</p>
@@ -124,9 +70,9 @@ export default async function DashboardPage() {
                             <Building2 className="w-6 h-6 text-blue-600" />
                         </div>
                     </div>
-                </div>
+                </Link>
 
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+                <Link href="/tenants" className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-slate-600">Active Tenants</p>
@@ -136,141 +82,22 @@ export default async function DashboardPage() {
                             <Users className="w-6 h-6 text-green-600" />
                         </div>
                     </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-600">Overdue Items</p>
-                            <p className="text-3xl font-bold text-red-600 mt-2">{stats.overdueCount}</p>
-                        </div>
-                        <div className="bg-red-100 p-3 rounded-lg">
-                            <AlertCircle className="w-6 h-6 text-red-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-600">Utility Anomalies</p>
-                            <p className={`text-3xl font-bold mt-2 ${(stats.anomalyData?.summary.properties_with_anomalies || 0) > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
-                                {stats.anomalyData?.summary.properties_with_anomalies || 0}
-                            </p>
-                        </div>
-                        <div className={`${(stats.anomalyData?.summary.properties_with_anomalies || 0) > 0 ? 'bg-amber-100' : 'bg-slate-100'} p-3 rounded-lg`}>
-                            <Droplets className={`w-6 h-6 ${(stats.anomalyData?.summary.properties_with_anomalies || 0) > 0 ? 'text-amber-600' : 'text-slate-600'}`} />
-                        </div>
-                    </div>
-                </div>
+                </Link>
             </div>
 
-            {/* Anomalies Alert Bar */}
-            {(stats.anomalyData?.summary.properties_with_anomalies || 0) > 0 && stats.anomalyData && (
-                <div className="mb-8 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-4">
-                    <div className="bg-amber-100 p-2 rounded-lg">
-                        <AlertTriangle className="w-6 h-6 text-amber-600" />
-                    </div>
-                    <div className="flex-1">
-                        <p className="text-amber-900 font-semibold">Utility Consumption Anomalies Detected</p>
-                        <p className="text-amber-700 text-sm">AI has identified {stats.anomalyData.summary.properties_with_anomalies} properties with unusual water usage patterns.</p>
-                    </div>
-                    <button className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors">
-                        Investigate All
-                    </button>
-                </div>
-            )}
-
-            {/* Three Column Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Utility Anomalies - MOVED TO DASHBOARD */}
-                {/* 
-                   We used to show anomalies here, but now they live in /dashboard/owner/utilities 
-                   to keep the landing page clean.
-                */}
-
-                {/* Compliance Alerts */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-slate-900">Compliance Alerts</h2>
-                        <Link href="/compliance" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                            View All →
-                        </Link>
-                    </div>
-                    <div className="space-y-4">
-                        {stats.complianceItems.length === 0 ? (
-                            <p className="text-slate-500 text-center py-8">No pending compliance items</p>
-                        ) : (
-                            stats.complianceItems.map((item: ComplianceItemWithDetails) => {
-                                const status = getComplianceStatus(item.dueDate);
-                                const statusColors = {
-                                    overdue: 'bg-red-100 text-red-700 border-red-200',
-                                    urgent: 'bg-orange-100 text-orange-700 border-orange-200',
-                                    upcoming: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-                                    future: 'bg-blue-100 text-blue-700 border-blue-200',
-                                };
-
-                                return (
-                                    <div key={item.id} className="border border-slate-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <h3 className="font-semibold text-slate-900">{item.title}</h3>
-                                                <p className="text-sm text-slate-600 mt-1">
-                                                    {item.tenant?.name} • {item.property?.name}
-                                                </p>
-                                                <p className="text-xs text-slate-500 mt-1">
-                                                    Due: {item.dueDate.toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[status]}`}>
-                                                {status.toUpperCase()}
-                                            </span>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                </div>
-
-                {/* Recent Activity */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-slate-900">Recent Activity</h2>
-                        <Link href="/communications" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                            View All →
-                        </Link>
-                    </div>
-                    <div className="space-y-4">
-                        {stats.recentLogs.length === 0 ? (
-                            <p className="text-slate-500 text-center py-8">No recent activity</p>
-                        ) : (
-                            stats.recentLogs.map((log: CommunicationLogWithDetails) => {
-                                const channelColors = {
-                                    sms: 'bg-blue-100 text-blue-700',
-                                    email: 'bg-purple-100 text-purple-700',
-                                    voice: 'bg-green-100 text-green-700',
-                                };
-
-                                return (
-                                    <div key={log.id} className="border-l-4 border-blue-500 pl-4 py-2">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${channelColors[log.channel as keyof typeof channelColors]}`}>
-                                                {log.channel.toUpperCase()}
-                                            </span>
-                                            <span className="text-xs text-slate-500">
-                                                {log.direction === 'outbound' ? '→' : '←'} {log.tenant.name}
-                                            </span>
-                                        </div>
-                                        <p className="text-sm text-slate-700 line-clamp-2">{log.message}</p>
-                                        <p className="text-xs text-slate-500 mt-1">
-                                            {new Date(log.createdAt).toLocaleString()}
-                                        </p>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center">
+                <h2 className="text-2xl font-bold text-blue-900 mb-4">Welcome to your simplified dashboard</h2>
+                <p className="text-blue-700 max-w-2xl mx-auto">
+                    We&apos;ve cleaned up the extra features and are rebuilding the financial optimization engine step by step.
+                    You can currently manage your properties and tenants.
+                </p>
+                <div className="mt-8 flex justify-center gap-4">
+                    <Link href="/properties" className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-500 transition-colors">
+                        Manage Properties
+                    </Link>
+                    <Link href="/tenants" className="bg-white text-blue-600 border border-blue-600 px-6 py-3 rounded-lg font-bold hover:bg-blue-50 transition-colors">
+                        View Tenants
+                    </Link>
                 </div>
             </div>
         </DashboardShell>

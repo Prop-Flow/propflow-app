@@ -18,7 +18,6 @@ export default async function PropertiesPage() {
             _count: {
                 select: {
                     tenants: true,
-                    complianceItems: true,
                 },
             },
         },
@@ -31,9 +30,6 @@ export default async function PropertiesPage() {
         ...p,
         type: p.propertyType
     }));
-
-    // Transform properties to match the interface expected by PropertiesClient if needed
-    // The Prisma result should match Property interface in PropertiesClient mostly.
 
     return <PropertiesClient initialProperties={mappedProperties} />;
 }

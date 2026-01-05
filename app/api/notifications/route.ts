@@ -1,21 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-// import { getServerSession } from 'next-auth'; // Pending real auth integration
+import { getSessionUser } from '@/lib/auth/session';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
     try {
-        const { searchParams } = new URL(req.url);
-        // Mock auth for now - in real app, get userId from session
-        // const userId = session?.user?.id; 
-        const userId = searchParams.get('userId'); // Temp: pass via query for dev
-
-        if (!userId) {
-            // Fallback for dev/demo if no user passed, just fetch recent 10 for first user found or return empty
-            return NextResponse.json([]);
-        }
+        const user = await getSessionUser(req);
 
         const notifications = await prisma.notification.findMany({
-            where: { userId },
+            where: { userId: user.id },
             orderBy: { createdAt: 'desc' },
             take: 20
         });
@@ -27,14 +19,15 @@ export async function GET(req: Request) {
     }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
+        const user = await getSessionUser(req);
         const body = await req.json();
-        const { userId, title, message, type, link } = body;
+        const { title, message, type, link } = body;
 
         const notification = await prisma.notification.create({
             data: {
-                userId,
+                userId: user.id,
                 title,
                 message,
                 type: type || 'info',
