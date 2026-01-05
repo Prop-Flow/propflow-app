@@ -1,5 +1,4 @@
 import twilio from 'twilio';
-import { prisma } from '@/lib/prisma';
 import { formatPhoneNumber } from '@/lib/utils/formatters';
 
 const twilioClient = twilio(
@@ -23,10 +22,6 @@ export async function initiateCall(
 
         const formattedPhone = formatPhoneNumber(to);
 
-        // Create TwiML for the call
-        // Create TwiML for the call
-        // const twimlUrl = ... (unused)
-
         const call = await twilioClient.calls.create({
             twiml: generateCallTwiML(message),
             from: process.env.TWILIO_PHONE_NUMBER!,
@@ -35,20 +30,8 @@ export async function initiateCall(
             statusCallbackEvent: ['completed'],
         });
 
-        // Log the communication
-        await prisma.communicationLog.create({
-            data: {
-                tenantId,
-                channel: 'voice',
-                direction: 'outbound',
-                message,
-                status: 'sent',
-                metadata: {
-                    twilioSid: call.sid,
-                    to: formattedPhone,
-                },
-            },
-        });
+        // TODO: Re-implement logging with a new simplified model if needed
+        console.log(`Call initiated to ${to} for tenant ${tenantId}: ${message}`);
 
         return {
             success: true,
@@ -57,21 +40,6 @@ export async function initiateCall(
     } catch (error: unknown) {
         console.error('Error initiating call:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-        // Log failed attempt
-        await prisma.communicationLog.create({
-            data: {
-                tenantId,
-                channel: 'voice',
-                direction: 'outbound',
-                message,
-                status: 'failed',
-                metadata: {
-                    error: errorMessage,
-                    to,
-                },
-            },
-        });
 
         return {
             success: false,
@@ -110,34 +78,8 @@ export async function processIVRResponse(
             action = 'escalate';
         }
 
-        // Find the communication log by Twilio SID
-        const logs = await prisma.communicationLog.findMany({
-            where: {
-                channel: 'voice'
-            },
-            orderBy: {
-                createdAt: 'desc'
-            },
-            take: 50
-        });
-
-        const log = logs.find(l => {
-            const meta = l.metadata as Record<string, unknown>;
-            return meta && meta.twilioSid === callSid;
-        });
-
-        if (log) {
-            await prisma.communicationLog.update({
-                where: { id: log.id },
-                data: {
-                    metadata: {
-                        ...(log.metadata as object),
-                        ivrResponse: digits,
-                        action,
-                    },
-                },
-            });
-        }
+        // TODO: Re-implement logging with a new simplified model if needed
+        console.log(`IVR response for call ${callSid}: ${digits} (${action})`);
 
         return { action };
     } catch (error) {

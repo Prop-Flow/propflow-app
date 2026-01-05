@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Building2, Users, MapPin, Plus, Loader2 } from 'lucide-react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import PropertyUploader, { WizardData } from '@/components/properties/PropertyUploader';
@@ -23,7 +22,6 @@ interface PropertiesClientProps {
 }
 
 export default function PropertiesClient({ initialProperties }: PropertiesClientProps) {
-    const router = useRouter();
     const { user, loading: authLoading } = useAuth();
     const [properties, setProperties] = useState<Property[]>(initialProperties);
     const [loading, setLoading] = useState(initialProperties.length === 0);

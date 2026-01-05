@@ -1,7 +1,6 @@
 import OpenAI from 'openai';
 import { buildAgentPrompt } from './prompts';
 import { storeTenantInteraction } from './vector-store';
-import { prisma } from '@/lib/prisma';
 
 let openaiClient: OpenAI | null = null;
 
@@ -30,26 +29,13 @@ export interface AgentContext {
  */
 export async function generateAgentResponse(context: AgentContext): Promise<string> {
     try {
-        // Retrieve previous interactions from vector store
-        // Retrieve previous interactions from vector store
-        // const previousContext = await getTenantContext(context.tenantId, context.specificDetails, 3);
-
-        // Get recent communication logs from database
-        const recentLogs = await prisma.communicationLog.findMany({
-            where: { tenantId: context.tenantId },
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-        });
-
-        const previousMessages = recentLogs.map(log => log.message);
-
         // Build the prompt
         const prompt = buildAgentPrompt(context.scenario, {
             tenantName: context.tenantName,
             propertyAddress: context.propertyAddress,
             specificDetails: context.specificDetails,
             attemptNumber: context.attemptNumber,
-            previousMessages,
+            previousMessages: [], // Communication logs removed
         });
 
         // Generate response using OpenAI
@@ -89,33 +75,8 @@ export function shouldEscalate(attemptCount: number, maxAttempts: number = 5): b
 /**
  * Determine next communication channel based on attempt history
  */
-export async function determineNextChannel(
-    tenantId: string
-): Promise<'sms' | 'email' | 'voice'> {
-    // Get recent communication logs
-    const recentLogs = await prisma.communicationLog.findMany({
-        where: {
-            tenantId,
-            direction: 'outbound',
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-    });
-
-    // Strategy: SMS → Email → SMS → Voice → Email
-    const channelSequence: Array<'sms' | 'email' | 'voice'> = ['sms', 'email', 'sms', 'voice', 'email'];
-
-    // If we have recent logs, check what was used last
-    if (recentLogs.length > 0) {
-        const lastChannel = recentLogs[0].channel as 'sms' | 'email' | 'voice';
-
-        // Find next channel in sequence
-        const currentIndex = channelSequence.indexOf(lastChannel);
-        const nextIndex = (currentIndex + 1) % channelSequence.length;
-        return channelSequence[nextIndex];
-    }
-
-    // Default to SMS for first contact
+export async function determineNextChannel(): Promise<'sms' | 'email' | 'voice'> {
+    // Strategy: Default to SMS for now as history logic was removed
     return 'sms';
 }
 

@@ -20,9 +20,7 @@ export const tenantResponseSchema = z.object({
         address: z.string(),
     }).optional(),
     _count: z.object({
-        documents: z.number(),
-        communicationLogs: z.number(),
-        complianceItems: z.number(),
+        // Other relations removed
     }).optional(),
 });
 

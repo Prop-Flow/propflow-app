@@ -2,9 +2,6 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { Building2, Users } from 'lucide-react';
 import DashboardShell from '@/components/layout/DashboardShell';
-import { getSessionUser } from '@/lib/auth/session';
-import { headers } from 'next/headers';
-import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,11 +33,6 @@ async function getDashboardStats(userId: string) {
 }
 
 export default async function DashboardPage() {
-    // We need to pass a mock NextRequest or use the session directly if accessible
-    // In server components, better to use the underlying auth() check
-    // Since getSessionUser expects NextRequest, we'll try to get it from headers/cookies if possible
-    // or just use auth() directly from @/auth
-
     const { auth } = await import('@/auth');
     const session = await auth();
 

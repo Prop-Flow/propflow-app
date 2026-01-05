@@ -35,21 +35,8 @@ export async function sendEmail(
             html: html || generateEmailHTML(message),
         });
 
-        // Log the communication
-        await prisma.communicationLog.create({
-            data: {
-                tenantId,
-                channel: 'email',
-                direction: 'outbound',
-                message: `Subject: ${subject}\n\n${message}`,
-                status: 'sent',
-                metadata: {
-                    emailId: emailData.data?.id,
-                    to,
-                    subject,
-                },
-            },
-        });
+        // TODO: Re-implement logging with a new simplified model if needed
+        console.log(`Email sent to ${to} for tenant ${tenantId}: ${subject}`);
 
         return {
             success: true,
@@ -58,22 +45,6 @@ export async function sendEmail(
     } catch (error: unknown) {
         console.error('Error sending email:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-        // Log failed attempt
-        await prisma.communicationLog.create({
-            data: {
-                tenantId,
-                channel: 'email',
-                direction: 'outbound',
-                message: `Subject: ${subject}\n\n${message}`,
-                status: 'failed',
-                metadata: {
-                    error: errorMessage,
-                    to,
-                    subject,
-                },
-            },
-        });
 
         return {
             success: false,
@@ -150,20 +121,8 @@ export async function processIncomingEmail(
             };
         }
 
-        // Log the incoming message
-        await prisma.communicationLog.create({
-            data: {
-                tenantId: tenant.id,
-                channel: 'email',
-                direction: 'inbound',
-                message: `Subject: ${subject}\n\n${body}`,
-                status: 'received',
-                metadata: {
-                    from,
-                    subject,
-                },
-            },
-        });
+        // TODO: Re-implement logging with a new simplified model if needed
+        console.log(`Incoming email from ${from} for tenant ${tenant.id}: ${subject}`);
 
         return {
             tenantId: tenant.id,

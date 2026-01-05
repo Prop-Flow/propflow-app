@@ -54,25 +54,17 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'User already exists in the system.' });
         }
 
-        // Create Invitation for new user
+        // Invitations are temporarily disabled in the database
+        // We will just log the "invitation" to the console for now
         const token = crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-        // Create invitation record
-        await prisma.invitation.create({
-            data: {
-                email,
-                role: 'PROPERTY_MANAGER',
-                propertyId,
-                token,
-                expiresAt,
-            }
-        });
 
         // Mock Email Sending
-        console.log(`[MOCK EMAIL] To: ${email}, Subject: You're invited to manage a property! Link: /auth/invite?token=${token}`);
+        console.log(`[INVITATION MOCK] To: ${email}, Subject: You're invited to manage a property! Link: /auth/invite?token=${token}`);
 
-        return NextResponse.json({ success: true, message: 'Invitation sent' });
+        return NextResponse.json({
+            success: true,
+            message: 'Invitation process initiated (Legacy database record skipped)'
+        });
 
     } catch (error) {
         console.error('Error sending invitation:', error);

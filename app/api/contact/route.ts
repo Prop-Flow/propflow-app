@@ -25,18 +25,10 @@ export async function POST(req: NextRequest) {
         const json = await req.json();
         const body = contactSchema.parse(json);
 
-        const log = await prisma.communicationLog.create({
-            data: {
-                tenantId: tenant.id,
-                channel: "portal",
-                direction: "inbound",
-                // Format message to include topic/urgency
-                message: `[${body.topic}] [${body.urgency || 'Normal'}] ${body.message}`,
-                status: "received",
-            }
-        });
+        // TODO: Re-implement logging with a new simplified model if needed
+        console.log(`Contact message from tenant ${tenant.id}:`, body);
 
-        return NextResponse.json(log);
+        return NextResponse.json({ success: true, message: "Your message has been received." });
     } catch (error) {
         if (error instanceof z.ZodError) {
             return new NextResponse(JSON.stringify(error.issues), { status: 422 });

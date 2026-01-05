@@ -8,11 +8,6 @@ export async function seedDatabase() {
         console.log('[Server Action] Starting seeding process...');
 
         // 1. Clean data (Order matters for foreign keys)
-        await prisma.tenantUtilityCharge.deleteMany({});
-        await prisma.utilityBill.deleteMany({});
-        await prisma.communicationLog.deleteMany({});
-        await prisma.complianceItem.deleteMany({});
-        await prisma.document.deleteMany({});
         await prisma.tenant.deleteMany({});
         await prisma.property.deleteMany({});
         await prisma.user.deleteMany({});
@@ -42,7 +37,7 @@ export async function seedDatabase() {
             }
         });
 
-        await prisma.user.create({
+        const userAlice = await prisma.user.create({
             data: {
                 email: 'alice@example.com',
                 role: 'TENANT',
@@ -80,8 +75,6 @@ export async function seedDatabase() {
         });
 
         // 4. Create Tenant (Alice)
-        const userAlice = await prisma.user.findUnique({ where: { email: 'alice@example.com' } });
-
         await prisma.tenant.create({
             data: {
                 propertyId: sunsetApts.id,
@@ -95,30 +88,9 @@ export async function seedDatabase() {
                 apartmentNumber: '1A',
                 squareFootage: 800,
                 numberOfOccupants: 1,
-                userId: userAlice?.id
+                userId: userAlice.id
             }
         });
-
-        // 5. Create Utility Bills (Past 3 months)
-        const months = [
-            { period: '2024-10', cost: 450.00 },
-            { period: '2024-11', cost: 480.50 },
-            { period: '2024-12', cost: 520.25 },
-        ];
-
-        for (const m of months) {
-            await prisma.utilityBill.create({
-                data: {
-                    propertyId: sunsetApts.id,
-                    billingPeriod: m.period,
-                    utilityType: 'total',
-                    totalCost: m.cost,
-                    startDate: new Date(`${m.period}-01`),
-                    endDate: new Date(`${m.period}-28`),
-                    status: 'calculated',
-                }
-            });
-        }
 
         console.log('[Server Action] Seeding finished successfully.');
         return { success: true, message: 'Database seeded successfully! Try logging in now.' };

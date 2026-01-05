@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
-import { Users, Building, Activity, CheckCircle, Loader2 } from 'lucide-react';
+import { Users, Building, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function OwnerDashboard() {

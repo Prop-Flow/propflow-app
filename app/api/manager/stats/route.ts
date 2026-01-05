@@ -3,20 +3,17 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
     try {
-        // In a real app, filtering by the logged-in manager is required.
-        // For now, we return global stats or mock focused stats.
-
         const propertyCount = await prisma.property.count();
         const tenantCount = await prisma.tenant.count();
-        const messageCount = await prisma.communicationLog.count();
 
-        // Mocking "Active Requests" as 1/3 of tenants for demo purposes
+        // Mocking values for now since logic was removed
         const requestCount = Math.floor(tenantCount / 3);
+        const messageCount = 0;
 
         return NextResponse.json({
             properties: propertyCount,
             requests: requestCount,
-            inquiries: tenantCount, // Using tenant count as a proxy for inquiries for now
+            inquiries: tenantCount,
             messages: messageCount
         });
     } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth/session';
+import { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
     try {
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
         const propertyId = searchParams.get('propertyId');
 
         // Filter by user's properties to ensure data isolation
-        const where: any = {
+        const where: Prisma.TenantWhereInput = {
             property: {
                 ownerUserId: user.id
             }
@@ -23,14 +24,6 @@ export async function GET(request: NextRequest) {
             where,
             include: {
                 property: true,
-                _count: {
-                    select: {
-                        // All these were removed from schema
-                        // documents: true, 
-                        // communicationLogs: true, 
-                        // complianceItems: true, 
-                    },
-                },
             },
             orderBy: {
                 createdAt: 'desc',

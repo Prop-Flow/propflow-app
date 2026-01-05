@@ -29,20 +29,8 @@ export async function sendSMS(
             to: formattedPhone,
         });
 
-        // Log the communication
-        await prisma.communicationLog.create({
-            data: {
-                tenantId,
-                channel: 'sms',
-                direction: 'outbound',
-                message,
-                status: 'sent',
-                metadata: {
-                    twilioSid: twilioMessage.sid,
-                    to: formattedPhone,
-                },
-            },
-        });
+        // TODO: Re-implement logging with a new simplified model if needed
+        console.log(`SMS sent to ${to} for tenant ${tenantId}: ${message}`);
 
         return {
             success: true,
@@ -51,21 +39,6 @@ export async function sendSMS(
     } catch (error: unknown) {
         console.error('Error sending SMS:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-        // Log failed attempt
-        await prisma.communicationLog.create({
-            data: {
-                tenantId,
-                channel: 'sms',
-                direction: 'outbound',
-                message,
-                status: 'failed',
-                metadata: {
-                    error: errorMessage,
-                    to,
-                },
-            },
-        });
 
         return {
             success: false,
@@ -98,19 +71,8 @@ export async function processIncomingSMS(
             };
         }
 
-        // Log the incoming message
-        await prisma.communicationLog.create({
-            data: {
-                tenantId: tenant.id,
-                channel: 'sms',
-                direction: 'inbound',
-                message: body,
-                status: 'received',
-                metadata: {
-                    from,
-                },
-            },
-        });
+        // TODO: Re-implement logging with a new simplified model if needed
+        console.log(`Incoming SMS from ${from} for tenant ${tenant.id}: ${body}`);
 
         return {
             tenantId: tenant.id,
