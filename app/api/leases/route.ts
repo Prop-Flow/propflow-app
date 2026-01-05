@@ -19,13 +19,12 @@ const LeaseSchema = z.object({
     petsAllowed: z.boolean().optional(),
 });
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
     try {
         const session = await getSessionUser(request);
         if (!session) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-
 
         const searchParams = request.nextUrl.searchParams;
         const propertyId = searchParams.get('propertyId');
@@ -44,6 +43,60 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('Error fetching leases:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+export async function POST(request: NextRequest) {
+    try {
+        const session = await getSessionUser(request);
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const body = await request.json();
+
+        // Validation
+        const result = LeaseSchema.safeParse(body);
+        if (!result.success) {
+            return NextResponse.json({ error: 'Invalid input', details: result.error.format() }, { status: 400 });
+        }
+
+        const { propertyId, tenantId, ...data } = result.data;
+
+        // Verify property ownership
+        const property = await prisma.property.findUnique({
+            where: { id: propertyId, ownerUserId: session.id }
+        });
+
+        if (!property) {
+            return NextResponse.json({ error: 'Property not found or unauthorized' }, { status: 404 });
+        }
+
+        const newLease = await prisma.leaseAgreement.create({
+            data: {
+                propertyId,
+                tenantId: tenantId || null,
+                type: data.type,
+                startDate: new Date(data.startDate),
+                endDate: new Date(data.endDate),
+                rentAmount: data.rentAmount,
+                securityDeposit: data.securityDeposit,
+                leaseType: data.leaseType,
+                escalationType: data.escalationType,
+                escalationValue: data.escalationValue,
+                // Store misc fields in terms JSON if schema doesn't support them directly
+                // or if schema supports them:
+                // isFurnished: data.isFurnished,
+                // petsAllowed: data.petsAllowed,
+                status: 'DRAFT'
+            }
+        });
+
+        return NextResponse.json(newLease, { status: 201 });
+
+    } catch (error) {
+        console.error('Error creating lease:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

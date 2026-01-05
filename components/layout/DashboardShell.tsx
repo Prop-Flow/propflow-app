@@ -57,6 +57,9 @@ export default function DashboardShell({ children, role = 'owner' }: DashboardSh
 
     const links = role === 'manager' ? managerLinks : role === 'tenant' ? tenantLinks : ownerLinks;
 
+    // Normalize role for display logic
+    const displayRole = role.toLowerCase();
+
     return (
         <div className="min-h-screen bg-background flex text-foreground relative overflow-hidden">
             <ReactiveBackground />
@@ -97,7 +100,7 @@ export default function DashboardShell({ children, role = 'owner' }: DashboardSh
                 {/* Top Header */}
                 <header className="h-16 border-b border-white/5 bg-background/80 backdrop-blur-md sticky top-0 z-20 px-6 flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-foreground">
-                        {role === 'owner' ? 'Owner Dashboard' : role === 'manager' ? 'Manager Dashboard' : 'Tenant Portal'}
+                        {displayRole === 'owner' ? 'Owner Dashboard' : displayRole === 'manager' ? 'Manager Dashboard' : 'Tenant Portal'}
                     </h2>
 
                     <div className="flex items-center space-x-4">

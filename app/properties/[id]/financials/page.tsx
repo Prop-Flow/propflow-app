@@ -13,6 +13,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { LeaseBuilder } from '@/components/leases/LeaseBuilder';
 import RentRollTable from '@/components/reporting/RentRollTable';
 
+export const dynamic = 'force-dynamic';
+
 export default function PropertyFinancialsPage() {
     const params = useParams();
     const propertyId = params.id as string;
@@ -85,6 +87,7 @@ export default function PropertyFinancialsPage() {
     const [showAddIncome, setShowAddIncome] = useState(false);
     const [showLeaseBuilder, setShowLeaseBuilder] = useState(false);
     const [showRentRoll, setShowRentRoll] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [tenants, setTenants] = useState<any[]>([]);
     const [newIncome, setNewIncome] = useState({ source: 'rent', amount: 0, frequency: 'monthly', description: '', customSourceName: '' });
     const [newExpense, setNewExpense] = useState({ category: 'maintenance', amount: 0, frequency: 'monthly', description: '', customCategoryName: '' });
@@ -180,8 +183,8 @@ export default function PropertyFinancialsPage() {
             const res = await fetch(`/api/tenants?propertyId=${propertyId}`);
             const data = await res.json();
             setTenants(data);
-        } catch (error) {
-            console.error('Error fetching tenants:', error);
+        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+            console.error('Error fetching tenants:', err);
         }
     }, [propertyId]);
 

@@ -5,7 +5,7 @@ import { Loader2, FileText, CheckCircle, ChevronRight, ChevronLeft } from 'lucid
 
 interface LeaseBuilderProps {
     propertyId: string;
-    tenants: any[]; // Ideally typed
+    tenants: { id: string; name: string }[];
     onComplete?: () => void;
 }
 
@@ -58,7 +58,7 @@ export function LeaseBuilder({ propertyId, tenants, onComplete }: LeaseBuilderPr
 
             setStep(4); // Success
             if (onComplete) onComplete();
-        } catch (err: any) {
+        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             setError(err.message);
         } finally {
             setLoading(false);
@@ -207,6 +207,10 @@ export function LeaseBuilder({ propertyId, tenants, onComplete }: LeaseBuilderPr
                     ) : (
                         <div className="border-t border-white/5 pt-4 mt-4">
                             <h3 className="text-sm font-bold text-white mb-3">Residential Details</h3>
+                            <p className="text-gray-500 text-sm mb-4">
+                                Please confirm that you want to generate this lease agreement. This action cannot be undone,
+                                and the document will be legally binding once signed.
+                            </p>
                             <div className="flex space-x-6">
                                 <label className="flex items-center space-x-2 cursor-pointer">
                                     <input
@@ -291,7 +295,7 @@ export function LeaseBuilder({ propertyId, tenants, onComplete }: LeaseBuilderPr
                         <CheckCircle className="w-8 h-8" />
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">Lease Drafted Successfully!</h3>
-                    <p className="text-muted-foreground mb-6">The agreement has been saved to the tenant's profile.</p>
+                    <p className="text-muted-foreground mb-6">The agreement has been saved to the tenant&apos;s profile.</p>
                     <button
                         onClick={() => setStep(1)}
                         className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-white text-sm transition-colors"
