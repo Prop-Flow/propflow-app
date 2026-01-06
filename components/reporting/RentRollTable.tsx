@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Download, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Download, AlertTriangle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface RentRollItem {

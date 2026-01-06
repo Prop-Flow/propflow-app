@@ -258,7 +258,7 @@ export default function PropertyUploader({ onAnalysisComplete }: PropertyUploade
                             setStep('review-deed');
                             setIsReviewOpen(true);
                         }}
-                        className="text-sm font-medium text-slate-400 hover:text-white transition-colors border-b border-transparent hover:border-white/20 pb-0.5"
+                        className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors border-b border-transparent hover:border-emerald-500/50 pb-0.5"
                     >
                         Enter details manually
                     </button>

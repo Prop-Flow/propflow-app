@@ -48,21 +48,21 @@ export default function PropertyReviewModal({ isOpen, onClose, onSave, data }: P
     const canSave = requiredFields.every(f => verifiedFields.has(f));
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-slate-900 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white/10">
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-slate-900/50">
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900">Review Property Data</h2>
-                        <p className="text-sm text-slate-500">Verify extracted details from your document.</p>
+                        <h2 className="text-lg font-bold text-white">Review Property Data</h2>
+                        <p className="text-sm text-slate-400">Verify extracted details from your document.</p>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-slate-100">
+                <div className="flex border-b border-white/10">
                     <TabButton active={activeTab === 'property'} onClick={() => setActiveTab('property')} icon={Building2} label="Property" />
                     <TabButton active={activeTab === 'owner'} onClick={() => setActiveTab('owner')} icon={User} label="Owner" />
                     <TabButton active={activeTab === 'financials'} onClick={() => setActiveTab('financials')} icon={DollarSign} label="Financials" />
@@ -70,16 +70,16 @@ export default function PropertyReviewModal({ isOpen, onClose, onSave, data }: P
 
                 {/* Validation Banner */}
                 {!canSave && (
-                    <div className="bg-orange-50 border-b border-orange-100 px-6 py-3 flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+                    <div className="bg-orange-500/10 border-b border-orange-500/20 px-6 py-3 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
                         <div>
-                            <p className="text-sm font-medium text-orange-800">Missing Required Information</p>
-                            <p className="text-xs text-orange-600 mt-1">
+                            <p className="text-sm font-medium text-orange-200">Missing Required Information</p>
+                            <p className="text-xs text-orange-200/70 mt-1">
                                 To proceed, please verify:
-                                {!verifiedFields.has('property.address') && <span className="font-bold ml-1">• Property Address</span>}
-                                {!verifiedFields.has('owner.legalName1') && <span className="font-bold ml-1">• Owner Legal Name</span>}
+                                {!verifiedFields.has('property.address') && <span className="font-bold ml-1 text-orange-100">• Property Address</span>}
+                                {!verifiedFields.has('owner.legalName1') && <span className="font-bold ml-1 text-orange-100">• Owner Legal Name</span>}
                             </p>
-                            <p className="text-xs text-orange-600/80 mt-1 italic">
+                            <p className="text-xs text-orange-200/50 mt-1 italic">
                                 * These are essential for generating accurate legal documents.
                             </p>
                         </div>
@@ -87,7 +87,7 @@ export default function PropertyReviewModal({ isOpen, onClose, onSave, data }: P
                 )}
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto flex-1 bg-slate-50/30">
+                <div className="p-6 overflow-y-auto flex-1 bg-black/20">
                     {activeTab === 'property' && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                             <SectionHeader icon={Building2} title="Property Specification" />
@@ -248,14 +248,14 @@ export default function PropertyReviewModal({ isOpen, onClose, onSave, data }: P
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
-                    <div className="text-sm text-slate-500">
+                <div className="p-6 border-t border-white/10 bg-slate-900/50 flex justify-between items-center">
+                    <div className="text-sm text-slate-400">
                         {verifiedFields.size} fields verified
                     </div>
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                            className="px-4 py-2 text-sm font-medium text-slate-400 hover:bg-white/5 rounded-lg transition-colors"
                         >
                             Cancel
                         </button>
@@ -265,7 +265,7 @@ export default function PropertyReviewModal({ isOpen, onClose, onSave, data }: P
                             className={`px-6 py-2 text-sm font-bold text-white rounded-lg transition-all shadow-sm flex items-center gap-2
                                 ${canSave
                                     ? 'bg-blue-600 hover:bg-blue-700 translate-y-0'
-                                    : 'bg-slate-300 cursor-not-allowed'
+                                    : 'bg-slate-700 cursor-not-allowed text-slate-400'
                                 }`}
                         >
                             <Check className="w-4 h-4" />
@@ -280,8 +280,8 @@ export default function PropertyReviewModal({ isOpen, onClose, onSave, data }: P
 
 function SectionHeader({ icon: Icon, title }: { icon: any, title: string }) {
     return (
-        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-2 pb-2 mb-2 border-b border-slate-100">
-            <Icon className="w-4 h-4 text-blue-600" /> {title}
+        <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2 pb-2 mb-2 border-b border-white/10">
+            <Icon className="w-4 h-4 text-blue-400" /> {title}
         </h3>
     );
 }
@@ -291,11 +291,11 @@ function TabButton({ active, onClick, icon: Icon, label }: any) {
         <button
             onClick={onClick}
             className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-all relative
-                ${active ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                ${active ? 'text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
         >
-            <Icon className={`w-4 h-4 ${active ? 'text-blue-600' : 'text-slate-400'}`} />
+            <Icon className={`w-4 h-4 ${active ? 'text-blue-400' : 'text-slate-500'}`} />
             {label}
-            {active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />}
+            {active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />}
         </button>
     );
 }
@@ -316,8 +316,8 @@ interface ReviewFieldProps {
 function ReviewField({ label, value, isVerified, onVerify, onChange, type = 'text', placeholder, icon, required }: ReviewFieldProps) {
     return (
         <div className={`relative group transition-all duration-200`}>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5 ml-1">
-                {label} {required && <span className="text-red-500">*</span>}
+            <label className="block text-xs font-medium text-slate-400 mb-1.5 ml-1">
+                {label} {required && <span className="text-red-400">*</span>}
             </label>
             <div className="relative flex items-center">
                 <div className="relative flex-1">
@@ -331,10 +331,10 @@ function ReviewField({ label, value, isVerified, onVerify, onChange, type = 'tex
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
                         placeholder={placeholder}
-                        className={`w-full ${icon ? 'pl-10' : 'pl-4'} pr-4 py-2.5 bg-white border rounded-lg text-slate-900 text-sm transition-all focus:outline-none focus:ring-2
+                        className={`w-full ${icon ? 'pl-10' : 'pl-4'} pr-4 py-2.5 bg-slate-800/80 border rounded-lg text-white text-sm transition-all focus:outline-none focus:ring-2
                             ${isVerified
-                                ? 'border-green-200 bg-green-50/10 focus:border-green-500 focus:ring-green-500/20'
-                                : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500/20'
+                                ? 'border-green-500/50 bg-green-500/10 focus:border-green-500 focus:ring-green-500/20'
+                                : 'border-slate-700/50 focus:border-blue-500 focus:ring-blue-500/20'
                             }`}
                     />
                 </div>
@@ -343,8 +343,8 @@ function ReviewField({ label, value, isVerified, onVerify, onChange, type = 'tex
                     onClick={onVerify}
                     className={`ml-3 p-2 rounded-full border transition-all duration-200
                         ${isVerified
-                            ? 'bg-green-500 border-green-500 text-white shadow-sm scale-110'
-                            : 'bg-white border-slate-200 text-slate-300 hover:border-slate-300 hover:text-slate-400'
+                            ? 'bg-green-600 border-green-600 text-white shadow-sm scale-110'
+                            : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600 hover:text-white'
                         }`}
                     title={isVerified ? "Verified" : "Click to verify"}
                 >

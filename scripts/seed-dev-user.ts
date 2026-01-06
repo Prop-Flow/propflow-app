@@ -34,6 +34,33 @@ async function main() {
         });
     }
 
+    // Seed Manager
+    const managerEmail = 'manager@propflow.ai';
+    const existingManager = await prisma.user.findUnique({ where: { email: managerEmail } });
+
+    if (existingManager) {
+        console.log('Manager user already exists. Updating password...');
+        await prisma.user.update({
+            where: { email: managerEmail },
+            data: {
+                passwordHash: hashedPassword,
+                role: 'PROPERTY_MANAGER'
+            }
+        });
+    } else {
+        console.log('Creating manager user...');
+        await prisma.user.create({
+            data: {
+                email: managerEmail,
+                name: 'Manager Mode',
+                firstName: 'Property',
+                lastName: 'Manager',
+                role: 'PROPERTY_MANAGER',
+                passwordHash: hashedPassword
+            }
+        });
+    }
+
     console.log('✅ Dev user seeded successfully.');
 }
 

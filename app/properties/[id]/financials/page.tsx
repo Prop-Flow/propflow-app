@@ -182,9 +182,10 @@ export default function PropertyFinancialsPage() {
         try {
             const res = await fetch(`/api/tenants?propertyId=${propertyId}`);
             const data = await res.json();
-            setTenants(data);
+            setTenants(Array.isArray(data) ? data : []);
         } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error('Error fetching tenants:', err);
+            setTenants([]);
         }
     }, [propertyId]);
 

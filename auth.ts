@@ -47,7 +47,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                             id: user.id,
                             email: user.email,
                             name: user.name,
-                            role: user.role,
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            role: user.role as any,
                         };
                         logger.debug('Returning user object', returnUser);
                         return returnUser;

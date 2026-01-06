@@ -41,61 +41,61 @@ export default function RentRollReviewModal({ isOpen, onClose, onSave, data }: R
     const occupancyRate = (formData.units.filter(u => u.tenantName && u.tenantName.toLowerCase() !== 'vacant').length / formData.units.length) * 100;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-slate-900 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white/10">
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-slate-900/50">
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900">Review Rent Roll Data</h2>
-                        <p className="text-sm text-slate-500">
+                        <h2 className="text-lg font-bold text-white">Review Rent Roll Data</h2>
+                        <p className="text-sm text-slate-400">
                             {formData.propertyAddress ? `Property: ${formData.propertyAddress}` : 'Review properties and tenants'}
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Summary Bar */}
-                <div className="px-6 py-3 bg-blue-50/50 border-b border-blue-100 flex gap-6 text-sm">
+                <div className="px-6 py-3 bg-blue-500/10 border-b border-blue-500/10 flex gap-6 text-sm">
                     <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-blue-600" />
-                        <span className="text-slate-600">Units: <strong className="text-slate-900">{formData.units.length}</strong></span>
+                        <Users className="w-4 h-4 text-blue-400" />
+                        <span className="text-slate-400">Units: <strong className="text-white">{formData.units.length}</strong></span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-emerald-600" />
-                        <span className="text-slate-600">Total Rent: <strong className="text-slate-900">${calculatedTotalRent.toLocaleString()}</strong></span>
+                        <DollarSign className="w-4 h-4 text-emerald-400" />
+                        <span className="text-slate-400">Total Rent: <strong className="text-white">${calculatedTotalRent.toLocaleString()}</strong></span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-orange-600" />
-                        <span className="text-slate-600">Occupancy: <strong className="text-slate-900">{occupancyRate.toFixed(0)}%</strong></span>
+                        <AlertCircle className="w-4 h-4 text-orange-400" />
+                        <span className="text-slate-400">Occupancy: <strong className="text-white">{occupancyRate.toFixed(0)}%</strong></span>
                     </div>
                 </div>
 
                 {/* Content - Table */}
-                <div className="flex-1 overflow-auto bg-slate-50/30">
+                <div className="flex-1 overflow-auto bg-black/20">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-semibold tracking-wider">
+                        <thead className="bg-slate-900 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-semibold tracking-wider">
                             <tr>
-                                <th className="px-4 py-3 border-b border-slate-200 pl-6">Unit</th>
-                                <th className="px-4 py-3 border-b border-slate-200">Tenant Name</th>
-                                <th className="px-4 py-3 border-b border-slate-200">Current Rent</th>
-                                <th className="px-4 py-3 border-b border-slate-200">Deposit</th>
-                                <th className="px-4 py-3 border-b border-slate-200">Lease End</th>
-                                <th className="px-4 py-3 border-b border-slate-200 text-center">Verify</th>
+                                <th className="px-4 py-3 border-b border-white/5 pl-6">Unit</th>
+                                <th className="px-4 py-3 border-b border-white/5">Tenant Name</th>
+                                <th className="px-4 py-3 border-b border-white/5">Current Rent</th>
+                                <th className="px-4 py-3 border-b border-white/5">Deposit</th>
+                                <th className="px-4 py-3 border-b border-white/5">Lease End</th>
+                                <th className="px-4 py-3 border-b border-white/5 text-center">Verify</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
+                        <tbody className="divide-y divide-white/5 bg-slate-900/40">
                             {formData.units.map((unit, index) => {
                                 const isVerified = verifiedUnits.has(index);
                                 return (
-                                    <tr key={index} className={`hover:bg-slate-50 transition-colors ${isVerified ? 'bg-green-50/30' : ''}`}>
+                                    <tr key={index} className={`hover:bg-white/5 transition-colors ${isVerified ? 'bg-green-500/10' : ''}`}>
                                         <td className="px-4 py-2 pl-6">
                                             <input
                                                 type="text"
                                                 value={unit.unitNumber || ''}
                                                 onChange={(e) => handleUnitChange(index, 'unitNumber', e.target.value)}
-                                                className="w-16 bg-transparent border-none focus:ring-0 font-medium text-slate-900 text-sm"
+                                                className="w-16 bg-transparent border-none focus:ring-0 font-medium text-white text-sm"
                                                 placeholder="#"
                                             />
                                         </td>
@@ -104,40 +104,40 @@ export default function RentRollReviewModal({ isOpen, onClose, onSave, data }: R
                                                 type="text"
                                                 value={unit.tenantName || ''}
                                                 onChange={(e) => handleUnitChange(index, 'tenantName', e.target.value)}
-                                                className="w-full bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded px-2 py-1 text-sm text-slate-700 transition-all"
+                                                className="w-full bg-transparent border border-transparent hover:border-slate-700/50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded px-2 py-1 text-sm text-white transition-all"
                                                 placeholder="Tenant Name"
                                             />
                                         </td>
                                         <td className="px-4 py-2">
                                             <div className="relative">
-                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
+                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">$</span>
                                                 <input
                                                     type="number"
                                                     value={unit.currentRent || ''}
                                                     onChange={(e) => handleUnitChange(index, 'currentRent', Number(e.target.value))}
-                                                    className="w-24 pl-5 bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded py-1 text-sm text-slate-700 transition-all"
+                                                    className="w-24 pl-5 bg-transparent border border-transparent hover:border-slate-700/50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded py-1 text-sm text-white transition-all"
                                                 />
                                             </div>
                                         </td>
                                         <td className="px-4 py-2">
                                             <div className="relative">
-                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
+                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-xs">$</span>
                                                 <input
                                                     type="number"
                                                     value={unit.deposit || ''}
                                                     onChange={(e) => handleUnitChange(index, 'deposit', Number(e.target.value))}
-                                                    className="w-24 pl-5 bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded py-1 text-sm text-slate-700 transition-all"
+                                                    className="w-24 pl-5 bg-transparent border border-transparent hover:border-slate-700/50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded py-1 text-sm text-white transition-all"
                                                 />
                                             </div>
                                         </td>
                                         <td className="px-4 py-2">
                                             <div className="relative">
-                                                <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 w-3 h-3" />
+                                                <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 w-3 h-3" />
                                                 <input
                                                     type="date"
                                                     value={unit.leaseEndDate || ''}
                                                     onChange={(e) => handleUnitChange(index, 'leaseEndDate', e.target.value)}
-                                                    className="w-32 pl-7 bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded py-1 text-sm text-slate-700 transition-all"
+                                                    className="w-32 pl-7 bg-transparent border border-transparent hover:border-slate-700/50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded py-1 text-sm text-white transition-all"
                                                 />
                                             </div>
                                         </td>
@@ -145,8 +145,8 @@ export default function RentRollReviewModal({ isOpen, onClose, onSave, data }: R
                                             <button
                                                 onClick={() => handleVerifyStart(index)}
                                                 className={`p-1.5 rounded-full transition-all ${isVerified
-                                                    ? 'bg-green-500 text-white shadow-sm'
-                                                    : 'text-slate-300 hover:bg-slate-100 hover:text-slate-400'
+                                                    ? 'bg-green-600 text-white shadow-sm'
+                                                    : 'text-slate-500 hover:bg-white/10 hover:text-white'
                                                     }`}
                                             >
                                                 <Check className="w-4 h-4" />
@@ -160,14 +160,14 @@ export default function RentRollReviewModal({ isOpen, onClose, onSave, data }: R
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
-                    <div className="text-sm text-slate-500">
+                <div className="p-6 border-t border-white/10 bg-slate-900/50 flex justify-between items-center">
+                    <div className="text-sm text-slate-400">
                         {verifiedUnits.size} of {formData.units.length} units verified
                     </div>
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                            className="px-4 py-2 text-sm font-medium text-slate-400 hover:bg-white/5 rounded-lg transition-colors"
                         >
                             Cancel
                         </button>

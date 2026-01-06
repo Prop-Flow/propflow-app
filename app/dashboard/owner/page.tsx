@@ -62,13 +62,7 @@ export default function OwnerDashboard() {
                     </Link>
                 </div>
 
-                <div className="bg-blue-900/20 border border-blue-500/30 rounded-2xl p-8 text-center backdrop-blur-md">
-                    <h3 className="text-xl font-bold text-white mb-4">Under Reconstruction</h3>
-                    <p className="text-blue-200/80 max-w-xl mx-auto">
-                        We are currently rebuilding the utility monitoring and financial optimization features to ensure better data isolation and performance.
-                        Your core property and tenant data is safe and accessible.
-                    </p>
-                </div>
+
             </div>
         </DashboardShell>
     );

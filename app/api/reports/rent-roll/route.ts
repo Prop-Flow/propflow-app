@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth/session';
-import { differenceInDays, addDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 
 export async function GET(request: NextRequest) {
     try {
