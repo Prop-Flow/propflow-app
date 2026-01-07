@@ -1,19 +1,18 @@
-import OpenAI from 'openai';
+import { VertexAI } from '@google-cloud/vertexai';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdf = require('pdf-parse');
 import { buildExtractionPrompt, DOCUMENT_CLASSIFICATION_PROMPT } from './extraction-prompts';
 import { formatPhoneNumber } from '@/lib/utils/formatters';
 
-let openaiClient: OpenAI | null = null;
+// Initialize Vertex AI
+// Note: In Cloud Run, project and location are auto-detected or defaults can be used.
+// For local dev, GOOGLE_APPLICATION_CREDENTIALS must be set, or run `gcloud auth application-default login`
+const project = process.env.GOOGLE_CLOUD_PROJECT || 'propflow-ai-483621';
+const location = 'us-east5';
+const vertex_ai = new VertexAI({ project: project, location: location });
 
-function getOpenAIClient(): OpenAI {
-    if (!openaiClient) {
-        openaiClient = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || '',
-        });
-    }
-    return openaiClient;
-}
+// Specialized model for reasoning and extraction
+const model = "gemini-1.5-pro-001";
 
 export interface ExtractedTenantData {
     name?: string;
@@ -95,145 +94,112 @@ export interface ParsedDocument {
 }
 
 /**
- * Parse document using GPT-4 Vision for images or text extraction for PDFs
+ * Clean Markdown JSON block if present
+ */
+function cleanJsonOutput(text: string): string {
+    let clean = text.trim();
+    if (clean.startsWith('```json')) {
+        clean = clean.replace(/^```json/, '').replace(/```$/, '');
+    } else if (clean.startsWith('```')) {
+        clean = clean.replace(/^```/, '').replace(/```$/, '');
+    }
+    return clean;
+}
+
+/**
+ * Parse document using Vertex AI (Gemini)
  */
 export async function parseDocument(
     fileBuffer: Buffer,
     mimeType: string
 ): Promise<ParsedDocument> {
     try {
-        const openai = getOpenAIClient();
+        const generativeModel = vertex_ai.preview.getGenerativeModel({
+            model: model,
+            generationConfig: {
+                'maxOutputTokens': 8192,
+                'temperature': 0.1, // Low temp for extraction consistency
+                'topP': 0.95,
+            },
+        });
 
-        // Determine if it's an image or PDF
-        const isImage = mimeType.startsWith('image/');
-        const isPDF = mimeType === 'application/pdf';
-
-        let extractedText = '';
+        // Prepare content part based on mime type
+        let contentPart: any;
         let documentType: ParsedDocument['documentType'] = 'unknown';
+        let rawContentForLog = '';
 
-        if (isImage) {
-            // Use GPT-4 Vision for images
-            const base64Image = fileBuffer.toString('base64');
-            const dataUrl = `data:${mimeType};base64,${base64Image}`;
-
-            // First, classify the document type
-            const classificationResponse = await openai.chat.completions.create({
-                model: 'gpt-4o',
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            { type: 'text', text: DOCUMENT_CLASSIFICATION_PROMPT },
-                            { type: 'image_url', image_url: { url: dataUrl } },
-                        ],
-                    },
-                ],
-                max_tokens: 50,
-            });
-
-            documentType = (classificationResponse.choices[0]?.message?.content?.trim().toLowerCase() || 'unknown') as ParsedDocument['documentType'];
-
-            // Then extract data based on document type
-            const extractionPrompt = buildExtractionPrompt(documentType);
-
-            const extractionResponse = await openai.chat.completions.create({
-                model: 'gpt-4o',
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            { type: 'text', text: extractionPrompt },
-                            { type: 'image_url', image_url: { url: dataUrl } },
-                        ],
-                    },
-                ],
-                response_format: { type: 'json_object' },
-                max_tokens: 1000,
-            });
-
-            extractedText = extractionResponse.choices[0]?.message?.content || '{}';
-
-        } else if (isPDF) {
-            // Extract text from PDF
-            const pdfData = await pdf(fileBuffer);
-            const rawText = pdfData.text.substring(0, 20000); // Truncate to avoid token limits
-
-            // 1. Classify the document based on text
-            const classificationResponse = await openai.chat.completions.create({
-                model: 'gpt-4o',
-                messages: [
-                    {
-                        role: 'user',
-                        content: `${DOCUMENT_CLASSIFICATION_PROMPT}\n\nDocument Text:\n${rawText}`
-                    }
-                ],
-                max_tokens: 50,
-            });
-
-            documentType = (classificationResponse.choices[0]?.message?.content?.trim().toLowerCase() || 'unknown') as ParsedDocument['documentType'];
-
-            // 2. Extract data based on classified type
-            const extractionPrompt = buildExtractionPrompt(documentType);
-
-            const extractionResponse = await openai.chat.completions.create({
-                model: 'gpt-4o',
-                messages: [
-                    {
-                        role: 'user',
-                        content: `${extractionPrompt}\n\nDocument Text:\n${rawText}`
-                    }
-                ],
-                response_format: { type: 'json_object' },
-                max_tokens: 1000,
-            });
-
-            extractedText = extractionResponse.choices[0]?.message?.content || '{}';
-
-        } else if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || mimeType === 'text/csv' || mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
-            // Handle Spreadsheets (Excel/CSV)
-            // Dynamic import to avoid issues if not installed or server-side only
-            const XLSX = await import('xlsx');
-            const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
-
-            // Convert first sheet to CSV text
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const rawText = XLSX.utils.sheet_to_csv(worksheet).substring(0, 20000);
-
-            // 1. Classify (likely rent_roll, but let AI confirm)
-            const classificationResponse = await openai.chat.completions.create({
-                model: 'gpt-4o',
-                messages: [
-                    {
-                        role: 'user',
-                        content: `${DOCUMENT_CLASSIFICATION_PROMPT}\n\nDocument Content (Spreadsheet):\n${rawText}`
-                    }
-                ],
-                max_tokens: 50,
-            });
-
-            documentType = (classificationResponse.choices[0]?.message?.content?.trim().toLowerCase() || 'unknown') as ParsedDocument['documentType'];
-
-            // 2. Extract data
-            const extractionPrompt = buildExtractionPrompt(documentType);
-
-            const extractionResponse = await openai.chat.completions.create({
-                model: 'gpt-4o',
-                messages: [
-                    {
-                        role: 'user',
-                        content: `${extractionPrompt}\n\nDocument Content (Spreadsheet):\n${rawText}`
-                    }
-                ],
-                response_format: { type: 'json_object' },
-                max_tokens: 1000,
-            });
-
-            extractedText = extractionResponse.choices[0]?.message?.content || '{}';
+        if (mimeType.startsWith('image/')) {
+            contentPart = {
+                inlineData: {
+                    data: fileBuffer.toString('base64'),
+                    mimeType: mimeType
+                }
+            };
+        } else if (mimeType === 'application/pdf') {
+            // Extract text for efficiency if PDF, or pass as base64 if needed for visual structure. 
+            // Gemini 1.5 Pro can handle PDFs directly via API, but Node SDK might prefer base64 data part.
+            // We will stick to the previous hybrid approach: extract text if mostly text, but using Vision would be better for complex docs.
+            // For consistency with Gemini Upgrade: pass as PDF blob. 
+            contentPart = {
+                inlineData: {
+                    data: fileBuffer.toString('base64'),
+                    mimeType: mimeType
+                }
+            };
+        } else if (mimeType === 'text/plain' || mimeType === 'text/markdown' || mimeType === 'text/csv' || mimeType.includes('spreadsheet') || mimeType.includes('excel')) {
+            // For text/spreadsheets, we extract content first
+            let rawText = '';
+            if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) {
+                const XLSX = await import('xlsx');
+                const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                rawText = XLSX.utils.sheet_to_csv(worksheet).substring(0, 30000); // 30k char limit safe for Gemini
+            } else {
+                rawText = fileBuffer.toString('utf-8').substring(0, 30000);
+            }
+            contentPart = { text: rawText };
+            rawContentForLog = rawText.substring(0, 100) + '...';
+        } else {
+            // Default fall back
+            contentPart = {
+                inlineData: {
+                    data: fileBuffer.toString('base64'),
+                    mimeType: mimeType
+                }
+            };
         }
 
-        // Parse the extracted JSON
-        const parsedData = JSON.parse(extractedText);
+        // 1. Classify Document
+        const classificationReq = {
+            contents: [{ role: 'user', parts: [{ text: DOCUMENT_CLASSIFICATION_PROMPT }, contentPart] }]
+        };
+
+        const classResult = await generativeModel.generateContent(classificationReq);
+        const classResponse = await classResult.response;
+        const classText = classResponse.candidates?.[0].content.parts[0].text;
+
+        documentType = (cleanJsonOutput(classText || '').trim().toLowerCase() || 'unknown') as ParsedDocument['documentType'];
+        console.log(`[VertexAI] Classified as: ${documentType}`);
+
+        // 2. Extract Data
+        const extractionPrompt = buildExtractionPrompt(documentType);
+
+        const extractReq = {
+            contents: [{
+                role: 'user', parts: [
+                    { text: extractionPrompt + "\n\nIMPORTANT: Return ONLY valid JSON." },
+                    contentPart
+                ]
+            }]
+        };
+
+        const extractResult = await generativeModel.generateContent(extractReq);
+        const extractResponse = await extractResult.response;
+        const extractText = extractResponse.candidates?.[0].content.parts[0].text || '{}';
+
+        const cleanedJson = cleanJsonOutput(extractText);
+        const parsedData = JSON.parse(cleanedJson);
 
         // Normalize phone numbers if present
         if ('phone' in parsedData && parsedData.phone) {
@@ -250,11 +216,11 @@ export async function parseDocument(
             documentType,
             extractedData: parsedData,
             overallConfidence,
-            rawText: extractedText,
+            rawText: rawContentForLog || 'Binary Content Processed',
         };
 
     } catch (error) {
-        console.error('Error parsing document:', error);
+        console.error('Error parsing document with Vertex AI:', error);
         throw new Error('Failed to parse document with AI');
     }
 }

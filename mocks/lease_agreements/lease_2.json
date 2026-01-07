@@ -1,0 +1,10 @@
+{
+  "fileName": "lease_2.md",
+  "landlord": "Swift and Sons",
+  "tenant": "Rachael Effertz",
+  "address": "9931 Aufderhar Cove Suite 796, Lake Darian, NM 22297-1120",
+  "startDate": "2/8/2026",
+  "endDate": "2/8/2027",
+  "rent": 4601.12,
+  "securityDeposit": 4601.12
+}
