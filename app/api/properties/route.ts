@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
             marketRent?: number;
             leaseEndDate?: string | Date;
             unitNumber?: string | number;
+            email?: string | null;
+            phone?: string | null;
         }
 
         const tenantData = (body as { tenant?: TenantDataInput }).tenant;
@@ -88,8 +90,8 @@ export async function POST(request: NextRequest) {
                 tenantsCreateInput = {
                     create: occupiedUnits.map((unit: RentRollUnit) => ({
                         name: unit.tenantName || 'Unknown',
-                        email: null,
-                        phone: null,
+                        email: unit.email || null,
+                        phone: unit.phone || null,
                         rentAmount: unit.currentRent || unit.marketRent || 0,
                         leaseEndDate: unit.leaseEndDate ? new Date(unit.leaseEndDate) : undefined,
                         apartmentNumber: unit.unitNumber?.toString(),
