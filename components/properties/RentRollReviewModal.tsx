@@ -41,7 +41,7 @@ export default function RentRollReviewModal({ isOpen, onClose, onSave, data }: R
     const occupancyRate = (formData.units.filter(u => u.tenantName && u.tenantName.toLowerCase() !== 'vacant').length / formData.units.length) * 100;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-slate-900 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white/10">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-slate-900/50">
@@ -77,11 +77,11 @@ export default function RentRollReviewModal({ isOpen, onClose, onSave, data }: R
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-slate-900 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-semibold tracking-wider">
                             <tr>
-                                <th className="px-4 py-3 border-b border-white/5 pl-6">Unit</th>
+                                <th className="px-4 py-3 border-b border-white/5 pl-6">Unit #</th>
                                 <th className="px-4 py-3 border-b border-white/5">Tenant Name</th>
-                                <th className="px-4 py-3 border-b border-white/5">Current Rent</th>
-                                <th className="px-4 py-3 border-b border-white/5">Deposit</th>
-                                <th className="px-4 py-3 border-b border-white/5">Lease End</th>
+                                <th className="px-4 py-3 border-b border-white/5">Monthly Rent</th>
+                                <th className="px-4 py-3 border-b border-white/5">Deposit Held</th>
+                                <th className="px-4 py-3 border-b border-white/5">Lease End Date</th>
                                 <th className="px-4 py-3 border-b border-white/5 text-center">Verify</th>
                             </tr>
                         </thead>

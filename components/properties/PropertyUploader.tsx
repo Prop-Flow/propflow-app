@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { FileText, CheckCircle, Loader2, BookOpen, User, AlertCircle } from 'lucide-react';
+import { FileText, CheckCircle, Loader2, BookOpen, User, AlertCircle, X } from 'lucide-react';
 import { ExtractedPropertyData, ExtractedTenantData, RentRollData } from '@/lib/ai/document-parser';
 import PropertyReviewModal from './PropertyReviewModal';
 import RentRollReviewModal from './RentRollReviewModal';
@@ -49,6 +49,30 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep = 'up
     const [isRentRollReviewOpen, setIsRentRollReviewOpen] = useState(initialStep === 'review-rent-roll');
     const [showSkipWarning, setShowSkipWarning] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showManualInput, setShowManualInput] = useState(false);
+
+    const handleCreateManualRentRoll = (count: number) => {
+        const blankUnits = Array(count).fill(null).map((_, i) => ({
+            unitNumber: (i + 1).toString(),
+            tenantName: '',
+            currentRent: 0,
+            deposit: 0,
+            leaseEndDate: '',
+            status: 'vacant'
+        }));
+
+        setRentRollData({
+            units: blankUnits,
+            totals: {
+                totalMonthlyRent: 0,
+                totalDeposits: 0
+            },
+            propertyAddress: '',
+            confidence: { overall: 1.0 }
+        });
+        setStep('review-rent-roll');
+        setIsRentRollReviewOpen(true);
+    };
 
     const handleDrag = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -267,34 +291,52 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep = 'up
                 </div>
 
                 <div className="mt-6 text-center space-y-3">
-                    <button
-                        onClick={() => {
-                            // Create blank rent roll template
-                            const blankUnits = Array(10).fill(null).map((_, i) => ({
-                                unitNumber: '',
-                                tenantName: '',
-                                currentRent: 0,
-                                deposit: 0,
-                                leaseEndDate: '',
-                                status: 'vacant'
-                            }));
-
-                            setRentRollData({
-                                units: blankUnits,
-                                totals: {
-                                    totalMonthlyRent: 0,
-                                    totalDeposits: 0
-                                },
-                                propertyAddress: '',
-                                confidence: { overall: 1.0 }
-                            });
-                            setStep('review-rent-roll');
-                            setIsRentRollReviewOpen(true);
-                        }}
-                        className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors border-b border-transparent hover:border-emerald-500/50 pb-0.5"
-                    >
-                        Create Rent Roll from Scratch
-                    </button>
+                    <div className="flex flex-col items-center gap-3">
+                        {!showManualInput ? (
+                            <button
+                                onClick={() => setShowManualInput(true)}
+                                className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors border-b border-transparent hover:border-emerald-500/50 pb-0.5"
+                            >
+                                Create Rent Roll from Scratch
+                            </button>
+                        ) : (
+                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                                <label className="text-sm text-slate-300">How many units?</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-white"
+                                    placeholder="#"
+                                    // We need a ref or state here, let's use a local variable approach or better yet, simple state
+                                    // Since this is inside render, let's add state to component above
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            const val = parseInt((e.target as HTMLInputElement).value);
+                                            if (val > 0) handleCreateManualRentRoll(val);
+                                        }
+                                    }}
+                                    id="manual-unit-count"
+                                />
+                                <button
+                                    onClick={() => {
+                                        const input = document.getElementById('manual-unit-count') as HTMLInputElement;
+                                        const val = parseInt(input.value);
+                                        if (val > 0) handleCreateManualRentRoll(val);
+                                    }}
+                                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded"
+                                >
+                                    Go
+                                </button>
+                                <button
+                                    onClick={() => setShowManualInput(false)}
+                                    className="p-1 hover:bg-white/10 rounded"
+                                >
+                                    <X className="w-4 h-4 text-slate-400" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     <div className="text-xs text-slate-500">or</div>
 

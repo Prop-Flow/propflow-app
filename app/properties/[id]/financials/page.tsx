@@ -396,9 +396,8 @@ export default function PropertyFinancialsPage() {
                         </div>
                     )}
 
-                    {/* Rent Roll Modal */}
                     {showRentRoll && (
-                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowRentRoll(false)}>
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={() => setShowRentRoll(false)}>
                             <div className="bg-slate-900 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 p-6" onClick={e => e.stopPropagation()}>
                                 <div className="flex justify-between items-center mb-4">
                                     <h2 className="text-xl font-bold text-white">Property Rent Roll</h2>
