@@ -25,8 +25,18 @@ export async function POST(req: NextRequest) {
         const json = await req.json();
         const body = contactSchema.parse(json);
 
-        // TODO: Re-implement logging with a new simplified model if needed
-        console.log(`Contact message from tenant ${tenant.id}:`, body);
+        // Log communication to database
+        await prisma.communicationLog.create({
+            data: {
+                tenantId: tenant.id,
+                type: 'in_app',
+                direction: 'INBOUND',
+                subject: body.topic,
+                content: body.message,
+                metadata: { urgency: body.urgency },
+                status: 'RECEIVED'
+            }
+        });
 
         return NextResponse.json({ success: true, message: "Your message has been received." });
     } catch (error) {
