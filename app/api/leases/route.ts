@@ -73,13 +73,20 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Property not found or unauthorized' }, { status: 404 });
         }
 
+        const startDate = new Date(data.startDate);
+        const endDate = new Date(data.endDate);
+
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            return NextResponse.json({ error: 'Invalid start or end date' }, { status: 400 });
+        }
+
         const newLease = await prisma.leaseAgreement.create({
             data: {
                 propertyId,
                 tenantId: tenantId || null,
                 type: data.type,
-                startDate: new Date(data.startDate),
-                endDate: new Date(data.endDate),
+                startDate,
+                endDate,
                 rentAmount: data.rentAmount,
                 securityDeposit: data.securityDeposit,
                 leaseType: data.leaseType,

@@ -56,7 +56,7 @@ export default function LandingPage() {
                 <section className="max-w-7xl mx-auto px-6 pt-40 pb-24 text-center">
                     <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-xs font-bold tracking-widest uppercase mb-8 animate-fade-in">
                         <TrendingUp className="w-3 h-3 fill-current" />
-                        Financial Optimization Engine
+                        AI-Powered Financial Engine
                     </div>
 
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 leading-[1.05] drop-shadow-sm text-white">
@@ -65,7 +65,7 @@ export default function LandingPage() {
                     </h1>
 
                     <p className="max-w-3xl mx-auto text-lg md:text-xl text-slate-400 mb-12 leading-relaxed">
-                        The financial optimization layer for modern multifamily operators. Recover utility costs, automate billing, and increase asset value without operational drag.
+                        The AI-driven financial layer for modern multifamily operators. Automate tenant communication, maximize utility recovery, and unlock hidden asset value with industry-leading intelligence.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
@@ -134,9 +134,9 @@ export default function LandingPage() {
                             <ul className="space-y-6">
                                 {[
                                     "Unrecovered utility spend directly reduces NOI",
-                                    "Manual billing errors lead to lost revenue",
+                                    "Fragmented communication leads to tenant disputes",
                                     "Lack of real-time financial visibility delays decisions",
-                                    "Disconnected systems create reconciliation nightmares"
+                                    "Manual errors lead to lost revenue and compliance risk"
                                 ].map((item, i) => (
                                     <li key={i} className="flex items-start gap-4">
                                         <div className="w-6 h-6 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0 mt-1">
@@ -185,13 +185,13 @@ export default function LandingPage() {
                         {[
                             {
                                 icon: <Wallet className="w-8 h-8 text-blue-500" />,
-                                title: "Automated Recovery",
-                                desc: "Automatically calculate and bill back shared utilities using RUBS, recovering 90%+ of costs."
+                                title: "AI-Driven Recovery",
+                                desc: "Smart algorithms automatically calculate and bill back shared utilities using RUBS, optimizing for 90%+ recovery rates."
                             },
                             {
                                 icon: <ShieldCheck className="w-8 h-8 text-indigo-500" />,
-                                title: "NOI Protection",
-                                desc: "Stop leakage. Every dollar of unrecovered utility spend is a dollar subtracted from your Net Operating Income."
+                                title: "Financial Optimization",
+                                desc: "Stop leakage. Our industry-leading financial model ensures every eligible dollar is recovered, protecting your Net Operating Income."
                             },
                             {
                                 icon: <FileText className="w-8 h-8 text-emerald-500" />,
@@ -199,9 +199,9 @@ export default function LandingPage() {
                                 desc: "Generate defensible, transparent billing records that stand up to tenant or regulatory scrutiny."
                             },
                             {
-                                icon: <LineChart className="w-8 h-8 text-amber-500" />,
-                                title: "Portfolio Health",
-                                desc: "Real-time visibility into recovery rates, collection status, and utility efficiency across all properties."
+                                icon: <Users className="w-8 h-8 text-amber-500" />, // Changed icon to Users for communication focus
+                                title: "Intelligent Communications",
+                                desc: "Automate tenant inquiries and billing notifications with our AI communication layer. Resolve disputes before they start."
                             }
                         ].map((item, i) => (
                             <div key={i} className="p-8 rounded-3xl bg-[#020617] border border-white/10 hover:border-blue-500/30 transition-all group">
@@ -226,8 +226,8 @@ export default function LandingPage() {
                                 <div className="w-14 h-14 bg-blue-600/20 rounded-2xl mb-6 flex items-center justify-center">
                                     <BarChart3 className="w-7 h-7 text-blue-500" />
                                 </div>
-                                <h3 className="text-2xl font-bold mb-4 text-white">Automated RUBS Engine</h3>
-                                <p className="text-slate-400 text-lg mb-8 max-w-md">Eliminate spreadsheet math. Our engine ingests bill data, applies your specific allocation formulas (SqFt, Occupancy), and generates tenant ledgers instantly.</p>
+                                <h3 className="text-2xl font-bold mb-4 text-white">Smart Automated RUBS Engine</h3>
+                                <p className="text-slate-400 text-lg mb-8 max-w-md">Eliminate spreadsheet math. Our AI engine ingests bill data, applies your specific allocation formulas (SqFt, Occupancy), and generates tenant ledgers instantly.</p>
                             </div>
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                                 <Activity className="w-48 h-48 text-blue-500" />
@@ -310,7 +310,7 @@ export default function LandingPage() {
                                 Utilities shouldn&apos;t be a maintenance issue—they are a financial one. Manual billing and disconnected usage data create a &quot;blind spot&quot; in your P&L.
                             </p>
                             <p className="text-slate-100 text-lg font-bold mb-8 italic">
-                                Propflow unifies consumption data with financial recovery, ensuring your NOI is protected from utility inflation.
+                                Propflow combines AI-driven communication with deep financial recovery, ensuring your NOI is protected from utility inflation and tenant friction.
                             </p>
                         </div>
                     </div>

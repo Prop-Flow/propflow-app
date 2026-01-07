@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Loader2, FileText, CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
+import { LeaseDocument } from './LeaseDocument';
 
 interface LeaseBuilderProps {
     propertyId: string;
@@ -32,7 +33,28 @@ export function LeaseBuilder({ propertyId, tenants, onComplete }: LeaseBuilderPr
         maintenanceResponsibility: 'LANDLORD', // LANDLORD | TENANT | SHARED
     });
 
-    const nextStep = () => setStep(s => s + 1);
+    const validateStep = (currentStep: number) => {
+        if (currentStep === 1) {
+            if (!formData.startDate || !formData.endDate) return false;
+            // Tenant is optional (can draft without tenant)
+        }
+        if (currentStep === 2) {
+            if (!formData.rentAmount) return false;
+            if (formData.type === 'COMMERCIAL') {
+                if (!formData.leaseType || !formData.escalationType) return false;
+            }
+        }
+        return true;
+    };
+
+    const nextStep = () => {
+        if (validateStep(step)) {
+            setStep(s => s + 1);
+        } else {
+            setError('Please fill in all required fields');
+            setTimeout(() => setError(null), 3000);
+        }
+    };
     const prevStep = () => setStep(s => s - 1);
 
     const handleSubmit = async () => {
@@ -296,14 +318,34 @@ export function LeaseBuilder({ propertyId, tenants, onComplete }: LeaseBuilderPr
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">Lease Drafted Successfully!</h3>
                     <p className="text-muted-foreground mb-6">The agreement has been saved to the tenant&apos;s profile.</p>
-                    <button
-                        onClick={() => setStep(1)}
-                        className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-white text-sm transition-colors"
-                    >
-                        Create Another
-                    </button>
+
+                    <div className="flex justify-center gap-4">
+                        <button
+                            onClick={() => window.print()}
+                            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm font-bold transition-all flex items-center shadow-lg shadow-indigo-500/20"
+                        >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Print / Download PDF
+                        </button>
+                        <button
+                            onClick={() => setStep(1)}
+                            className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-white text-sm transition-colors"
+                        >
+                            Create Another
+                        </button>
+                    </div>
                 </div>
             )}
+
+            {/* Printable Document (Hidden in Screen, Visible in Print) */}
+            <div className="fixed inset-0 pointer-events-none opacity-0 print:opacity-100 print:pointer-events-auto print:static print:block hidden print:bg-white print:text-black z-[9999]">
+                <LeaseDocument
+                    data={{
+                        ...formData,
+                        tenantName: tenants.find(t => t.id === formData.tenantId)?.name,
+                    }}
+                />
+            </div>
         </div>
     );
 }

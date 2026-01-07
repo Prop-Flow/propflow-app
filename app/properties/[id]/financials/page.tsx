@@ -265,31 +265,33 @@ export default function PropertyFinancialsPage() {
         <DashboardShell role={currentRole}>
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Header */}
-                <div>
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <DollarSign className="w-8 h-8 text-emerald-400" />
-                        Property Financials
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                        Track valuation, income, expenses, and tax depreciation
-                    </p>
-                </div>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+                            <DollarSign className="w-8 h-8 text-emerald-400" />
+                            Property Financials
+                        </h1>
+                        <p className="text-muted-foreground mt-1">
+                            Track valuation, income, expenses, and tax depreciation
+                        </p>
+                    </div>
 
-                <div className="absolute top-8 right-8 flex gap-3">
-                    <button
-                        onClick={() => setShowRentRoll(true)}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium flex items-center transition-colors shadow-lg shadow-emerald-500/20"
-                    >
-                        <FileText className="w-4 h-4 mr-2" />
-                        Rent Roll
-                    </button>
-                    <button
-                        onClick={() => setShowLeaseBuilder(true)}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium flex items-center transition-colors shadow-lg shadow-indigo-500/20"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Lease
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setShowRentRoll(true)}
+                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg font-medium flex items-center transition-all hover:shadow-lg hover:border-slate-600"
+                        >
+                            <FileText className="w-4 h-4 mr-2 text-emerald-400" />
+                            Rent Roll
+                        </button>
+                        <button
+                            onClick={() => setShowLeaseBuilder(true)}
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium flex items-center transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            New Lease
+                        </button>
+                    </div>
                 </div>
 
                 {/* Net Income Summary Cards */}

@@ -57,6 +57,31 @@
   }
 }
 
+@media print {
+
+  /* Hides sidebar, header, and other UI elements */
+  aside,
+  nav,
+  header,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensures backgrounds are printed */
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Resets main content padding */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

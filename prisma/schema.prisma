@@ -572,11 +572,17 @@ model CommunicationLog {
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   type      String   // email, phone, sms, in_person
+  direction String   @default("OUTBOUND") // INBOUND, OUTBOUND
+  status    String   @default("SENT")     // SENT, DELIVERED, FAILED, RECEIVED
+  messageId String?  // ID from external provider (Twilio/Resend)
   subject   String?
-  notes     String
+  content   String   // Renamed from notes for clarity, or keep notes as alias? Let's use content for the actual message body
+  metadata  Json?    // For extra data like cost, error details, etc.
   date      DateTime @default(now())
   
   @@index([tenantId])
+  @@index([date])
+  @@index([messageId])
 }
 
 model ComplianceItem {

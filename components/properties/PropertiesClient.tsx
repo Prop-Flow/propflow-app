@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Building2, Users, MapPin, Plus, Loader2 } from 'lucide-react';
+import { Building2, Users, MapPin, Plus, Loader2, FileText } from 'lucide-react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import PropertyUploader, { WizardData } from '@/components/properties/PropertyUploader';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,7 +25,7 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
     const { user, loading: authLoading } = useAuth();
     const [properties, setProperties] = useState<Property[]>(initialProperties);
     const [loading, setLoading] = useState(initialProperties.length === 0);
-    const [isUploadMode, setUploadMode] = useState(false);
+    const [isUploadMode, setUploadMode] = useState<boolean | 'rent_roll' | 'property'>(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -110,27 +110,14 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
 
     return (
         <DashboardShell role={currentRole}>
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-bold text-foreground">
-                    {currentRole === 'manager' ? 'Managed Properties' : 'All Properties'}
-                </h1>
-                {!isUploadMode && (
-                    <button
-                        onClick={() => setUploadMode(true)}
-                        className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center gap-2"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Add Property
-                    </button>
-                )}
-            </div>
-
             {/* Smart Ingestion Flow */}
             {isUploadMode && (
                 <div className="mb-8 animate-in slide-in-from-top-4 duration-500">
                     <div className="bg-card/50 backdrop-blur-sm rounded-xl border border-white/10 p-8">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-foreground">Add New Property</h2>
+                            <h2 className="text-xl font-bold text-foreground">
+                                {isUploadMode === 'rent_roll' ? 'Create Rent Roll' : 'Add New Property'}
+                            </h2>
                             <button
                                 onClick={() => setUploadMode(false)}
                                 className="text-muted-foreground hover:text-foreground text-sm transition-colors"
@@ -141,10 +128,35 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
 
                         <PropertyUploader
                             onAnalysisComplete={handleSave}
+                            initialStep={isUploadMode === 'rent_roll' ? 'review-rent-roll' : 'upload-property-doc'}
                         />
                     </div>
                 </div>
             )}
+
+            <div className="flex items-center justify-between mb-8">
+                <h1 className="text-3xl font-bold text-foreground">
+                    {currentRole === 'manager' ? 'Managed Properties' : 'All Properties'}
+                </h1>
+                {!isUploadMode && (
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setUploadMode('rent_roll')}
+                            className="bg-slate-800 text-slate-200 border border-slate-700 px-4 py-3 rounded-lg font-medium hover:bg-slate-700 transition-all flex items-center gap-2"
+                        >
+                            <FileText className="w-5 h-5 text-emerald-400" />
+                            Create Rent Roll
+                        </button>
+                        <button
+                            onClick={() => setUploadMode('property')}
+                            className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center gap-2"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Add Property
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {/* Property List */}
             {properties.length === 0 && !isUploadMode ? (
@@ -152,12 +164,22 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
                     <Building2 className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-foreground mb-2">No properties yet</h3>
                     <p className="text-muted-foreground mb-6">Get started by adding your first property</p>
-                    <button
-                        onClick={() => setUploadMode(true)}
-                        className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all"
-                    >
-                        Add Your First Property
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button
+                            onClick={() => setUploadMode('rent_roll')}
+                            className="bg-slate-800 text-slate-200 border border-slate-700 px-6 py-3 rounded-lg font-medium hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+                        >
+                            <FileText className="w-5 h-5 text-emerald-400" />
+                            Create Rent Roll
+                        </button>
+                        <button
+                            onClick={() => setUploadMode('property')}
+                            className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Add Your First Property
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

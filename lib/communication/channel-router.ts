@@ -2,6 +2,7 @@ import { sendSMS } from './sms-service';
 import { sendEmail } from './email-service';
 import { initiateCall } from './voice-service';
 import { determineNextChannel } from '@/lib/ai/agent-engine';
+import { prisma } from '@/lib/prisma';
 
 export type Channel = 'sms' | 'email' | 'voice';
 
@@ -37,6 +38,18 @@ export async function routeMessage(
                     };
                 }
                 const smsResult = await sendSMS(request.phone, request.message, request.tenantId);
+
+                await logCommunication(
+                    request.tenantId,
+                    'sms',
+                    request.message,
+                    'OUTBOUND',
+                    smsResult.success ? 'SENT' : 'FAILED',
+                    smsResult.messageId,
+                    undefined,
+                    smsResult.error
+                );
+
                 return {
                     success: smsResult.success,
                     channel: 'sms',
@@ -58,6 +71,18 @@ export async function routeMessage(
                     request.message,
                     request.tenantId
                 );
+
+                await logCommunication(
+                    request.tenantId,
+                    'email',
+                    request.message,
+                    'OUTBOUND',
+                    emailResult.success ? 'SENT' : 'FAILED',
+                    emailResult.messageId,
+                    request.subject,
+                    emailResult.error
+                );
+
                 return {
                     success: emailResult.success,
                     channel: 'email',
@@ -74,6 +99,18 @@ export async function routeMessage(
                     };
                 }
                 const voiceResult = await initiateCall(request.phone, request.message, request.tenantId);
+
+                await logCommunication(
+                    request.tenantId,
+                    'voice',
+                    request.message,
+                    'OUTBOUND',
+                    voiceResult.success ? 'SENT' : 'FAILED',
+                    voiceResult.callId,
+                    undefined,
+                    voiceResult.error
+                );
+
                 return {
                     success: voiceResult.success,
                     channel: 'voice',
@@ -95,6 +132,35 @@ export async function routeMessage(
             channel: preferredChannel || 'sms',
             error: error instanceof Error ? error.message : 'Unknown error',
         };
+    }
+}
+
+// Helper to log communication
+async function logCommunication(
+    tenantId: string,
+    type: string,
+    content: string,
+    direction: 'INBOUND' | 'OUTBOUND',
+    status: 'SENT' | 'DELIVERED' | 'FAILED' | 'RECEIVED',
+    messageId?: string,
+    subject?: string,
+    error?: string
+) {
+    try {
+        await prisma.communicationLog.create({
+            data: {
+                tenantId,
+                type,
+                direction,
+                status,
+                messageId,
+                content,
+                subject,
+                metadata: error ? { error } : undefined,
+            },
+        });
+    } catch (e) {
+        console.error('Failed to log communication:', e);
     }
 }
 

@@ -11,22 +11,42 @@ export interface WizardData extends ExtractedPropertyData {
 
 interface PropertyUploaderProps {
     onAnalysisComplete: (data: WizardData) => void;
+    initialStep?: Step;
 }
 
 type Step = 'upload-property-doc' | 'analyzing-doc' | 'review-deed' | 'analyzing-rent-roll' | 'review-rent-roll' | 'occupancy-check' | 'upload-lease' | 'analyzing-lease' | 'review-lease';
 
-export default function PropertyUploader({ onAnalysisComplete }: PropertyUploaderProps) {
-    const [step, setStep] = useState<Step>('upload-property-doc');
+export default function PropertyUploader({ onAnalysisComplete, initialStep = 'upload-property-doc' }: PropertyUploaderProps) {
+    const [step, setStep] = useState<Step>(initialStep);
     const [dragActive, setDragActive] = useState(false);
 
     // Data state
     const [propertyData, setPropertyData] = useState<ExtractedPropertyData>({ confidence: {} } as ExtractedPropertyData);
     const [tenantData, setTenantData] = useState<ExtractedTenantData>({ confidence: {} } as ExtractedTenantData);
-    const [rentRollData, setRentRollData] = useState<RentRollData | null>(null);
+
+    // Initialize rent roll if starting in review mode
+    const [rentRollData, setRentRollData] = useState<RentRollData | null>(() => {
+        if (initialStep === 'review-rent-roll') {
+            return {
+                units: Array(10).fill(null).map(() => ({
+                    unitNumber: '',
+                    tenantName: '',
+                    currentRent: 0,
+                    deposit: 0,
+                    leaseEndDate: '',
+                    status: 'vacant'
+                })),
+                totals: { totalMonthlyRent: 0, totalDeposits: 0 },
+                propertyAddress: '',
+                confidence: { overall: 1.0 }
+            } as RentRollData;
+        }
+        return null;
+    });
 
     // UI state
     const [isReviewOpen, setIsReviewOpen] = useState(false);
-    const [isRentRollReviewOpen, setIsRentRollReviewOpen] = useState(false);
+    const [isRentRollReviewOpen, setIsRentRollReviewOpen] = useState(initialStep === 'review-rent-roll');
     const [showSkipWarning, setShowSkipWarning] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -246,7 +266,38 @@ export default function PropertyUploader({ onAnalysisComplete }: PropertyUploade
                     <div className="h-px bg-white/10 flex-1"></div>
                 </div>
 
-                <div className="mt-6 text-center">
+                <div className="mt-6 text-center space-y-3">
+                    <button
+                        onClick={() => {
+                            // Create blank rent roll template
+                            const blankUnits = Array(10).fill(null).map((_, i) => ({
+                                unitNumber: '',
+                                tenantName: '',
+                                currentRent: 0,
+                                deposit: 0,
+                                leaseEndDate: '',
+                                status: 'vacant'
+                            }));
+
+                            setRentRollData({
+                                units: blankUnits,
+                                totals: {
+                                    totalMonthlyRent: 0,
+                                    totalDeposits: 0
+                                },
+                                propertyAddress: '',
+                                confidence: { overall: 1.0 }
+                            });
+                            setStep('review-rent-roll');
+                            setIsRentRollReviewOpen(true);
+                        }}
+                        className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors border-b border-transparent hover:border-emerald-500/50 pb-0.5"
+                    >
+                        Create Rent Roll from Scratch
+                    </button>
+
+                    <div className="text-xs text-slate-500">or</div>
+
                     <button
                         onClick={() => {
                             setPropertyData({
@@ -258,12 +309,12 @@ export default function PropertyUploader({ onAnalysisComplete }: PropertyUploade
                             setStep('review-deed');
                             setIsReviewOpen(true);
                         }}
-                        className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors border-b border-transparent hover:border-emerald-500/50 pb-0.5"
+                        className="text-sm font-medium text-slate-400 hover:text-white transition-colors border-b border-transparent hover:border-white/20 pb-0.5"
                     >
-                        Enter details manually
+                        Enter Property Details Manually
                     </button>
                     <p className="text-xs text-slate-500 mt-2">
-                        Skip the AI and type in property info yourself.
+                        Skip the AI and type in info yourself.
                     </p>
                 </div>
             </div>
