@@ -41,10 +41,19 @@ ${body}
 
         try {
             // Dynamic import to avoid build errors if package missing
-            // const { Octokit } = await import("@octokit/rest");
-            // Implementation would go here with Octokit
-            // For now, return mock success to prevent runtime crashes if octokit isn't installed
-            return `[MOCK] Issue "${title}" would be created in ${repoUrl} (Simulated)`;
+            const { Octokit } = await import("@octokit/rest");
+            const octokit = new Octokit({ auth: token });
+            const [owner, repo] = repoUrl.split('/');
+
+            const response = await octokit.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+                labels: labels || [],
+            });
+
+            return `Issue "${title}" successfully created at ${response.data.html_url}`;
         } catch (e) {
             return `Error creating issue: ${(e as Error).message}`;
         }

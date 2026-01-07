@@ -15,9 +15,17 @@ description: Pull latest changes, integrate local work, verify build, and push t
    `git pull --rebase origin main`
 
 // turbo
-4. Verify the project still builds correctly
+4. Run project linting
+   `npm run lint`
+
+// turbo
+5. Verify the project still builds correctly
    `npm run build`
 
 // turbo
-5. Push the synced and verified changes to GitHub
+6. Run deep architectural and security lint
+   `/lint`
+
+// turbo
+7. Push the synced and verified changes to GitHub
    `git push origin main`

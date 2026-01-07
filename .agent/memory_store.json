@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1767807210400",
+    "content": "User preference: prefers dark mode UI.",
+    "type": "preference",
+    "timestamp": "2026-01-07T17:33:30.400Z",
+    "tags": [
+      "ui",
+      "preference"
+    ]
+  },
+  {
+    "id": "1767807216789",
+    "content": "User preference: prefers dark mode UI.",
+    "type": "preference",
+    "timestamp": "2026-01-07T17:33:36.789Z",
+    "tags": [
+      "ui",
+      "preference"
+    ]
+  },
+  {
+    "id": "1767807227045",
+    "content": "User preference: prefers dark mode UI.",
+    "type": "preference",
+    "timestamp": "2026-01-07T17:33:47.045Z",
+    "tags": [
+      "ui",
+      "preference"
+    ]
+  }
+]

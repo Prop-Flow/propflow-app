@@ -37,6 +37,11 @@ export async function handleDatabaseTool(args: Record<string, unknown>) {
 
         return JSON.stringify(result, null, 2);
     } catch (error) {
-        return JSON.stringify({ error: "Database operation failed: " + (error as Error).message });
+        console.error("Database Tool Internal Error:", error);
+        return JSON.stringify({
+            error: "Database operation failed",
+            message: (error as Error).message,
+            stack: (error as Error).stack?.split('\n').slice(0, 3).join('\n') // Limit stack trace
+        }, null, 2);
     }
 }

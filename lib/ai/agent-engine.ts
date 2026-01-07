@@ -1,23 +1,11 @@
 import OpenAI from 'openai';
 import { buildAgentPrompt } from './prompts';
 import { storeTenantInteraction } from './vector-store';
-import { register } from "@arizeai/phoenix-otel";
-import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
-import { OpenAIInstrumentation } from "@opentelemetry/instrumentation-openai";
-import { registerInstrumentations } from "@opentelemetry/instrumentation";
+import { initTracing } from './otel';
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 // Initialize tracing
-const provider = new NodeTracerProvider();
-registerInstrumentations({
-    instrumentations: [new OpenAIInstrumentation()],
-});
-provider.register();
-
-// Initialize Phoenix
-register({
-    projectName: "propflow-agent",
-});
+initTracing();
 
 import { SEQUENTIAL_THINKING_TOOL_DEF } from './tools/sequential-thinking';
 import { MEMORY_TOOL_DEF, handleMemoryTool } from './tools/memory';
@@ -51,6 +39,9 @@ export interface AgentContext {
  */
 export async function generateAgentResponse(context: AgentContext): Promise<string> {
     try {
+        // Auto-retrieve recent memories to set context
+        const recentMemories = await handleMemoryTool({ action: 'list' }).catch(() => "[]");
+
         // Build the prompt
         const prompt = buildAgentPrompt(context.scenario, {
             tenantName: context.tenantName,
@@ -65,7 +56,12 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
         const messages: ChatCompletionMessageParam[] = [
             {
                 role: 'system',
-                content: 'You are a professional property management AI assistant. Generate concise, friendly, and professional messages. Use the sequential_thinking tool to plan your response for complex scenarios, ensuring you cover all requirements.',
+                content: `You are a professional property management AI assistant. Generate concise, friendly, and professional messages. 
+                Use the sequential_thinking tool to plan your response for complex scenarios.
+                
+                RECENT MEMORIES:
+                ${recentMemories}
+                `,
             },
             {
                 role: 'user',
