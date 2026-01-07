@@ -18,14 +18,17 @@ export async function POST(req: NextRequest) {
 
         const tenant = await prisma.tenant.findUnique({
             where: { id: tenantId },
+            include: { property: true }
         });
 
         if (!tenant) {
             return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
         }
 
-        // Check permissions: User must own or manage the property the tenant belongs to
-        // For MVP/Demo, skipping complex permission check, but in prod this is critical.
+        // Check permissions: User must own the property
+        if (tenant.property.ownerUserId !== user.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        }
 
         const request: CommunicationRequest = {
             tenantId,

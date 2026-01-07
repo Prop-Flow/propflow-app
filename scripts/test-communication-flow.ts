@@ -116,7 +116,7 @@ async function main() {
     const creationLog = await prisma.communicationLog.findFirst({
         where: {
             tenantId: tenant.id,
-            content: { contains: maintenanceReq.ticketNumber },
+            content: { contains: maintenanceReq.ticketNumber ?? '' },
             direction: 'OUTBOUND',
         },
         orderBy: { date: 'desc' },

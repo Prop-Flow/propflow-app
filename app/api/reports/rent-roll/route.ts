@@ -12,7 +12,9 @@ export async function GET(request: NextRequest) {
         const propertyId = searchParams.get('propertyId');
 
         // Build query filter
-        const whereClause = propertyId ? { propertyId } : { property: { ownerUserId: session.id } };
+        const whereClause = propertyId
+            ? { propertyId, property: { ownerUserId: session.id } }
+            : { property: { ownerUserId: session.id } };
 
         // Fetch tenants with their active lease agreements
         // We prioritize the structured LeaseAgreement if it exists, otherwise fallback to Tenant fields

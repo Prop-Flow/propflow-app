@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Download, AlertTriangle, FileText } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface RentRollItem {
@@ -218,16 +218,4 @@ export default function RentRollTable({ propertyId }: { propertyId?: string }) {
     );
 }
 
-function renderRiskBadge(status: string) {
-    switch (status) {
-        case 'CRITICAL':
-        case 'EXPIRED':
-            return <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400">CRITICAL</span>;
-        case 'HIGH':
-            return <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-orange-500/20 text-orange-400">HIGH</span>;
-        case 'MEDIUM':
-            return <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-yellow-500/20 text-yellow-400">MEDIUM</span>;
-        default:
-            return <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-400">STABLE</span>;
-    }
-}
+
