@@ -33,6 +33,14 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Property ID required' }, { status: 400 });
         }
 
+        const property = await prisma.property.findUnique({
+            where: { id: propertyId, ownerUserId: session.id }
+        });
+
+        if (!property) {
+            return NextResponse.json({ error: 'Property not found or unauthorized' }, { status: 403 });
+        }
+
         const leases = await prisma.leaseAgreement.findMany({
             where: { propertyId },
             include: { tenant: { select: { name: true, email: true } } },

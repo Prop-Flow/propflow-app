@@ -104,7 +104,7 @@ export async function processInboundMessage(
         // Use OpenAI to analyze intent
         const openai = getOpenAIClient();
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4',
+            model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',

@@ -14,19 +14,26 @@ export async function POST(req: NextRequest) {
             return new NextResponse('Missing required fields', { status: 400 });
         }
 
-        // Validate Twilio Signature (Optional for dev/demo but recommended)
-        // const twilioSignature = req.headers.get('x-twilio-signature') || '';
-        // const url = req.url;
-        // const isValid = twilio.validateRequest(
-        //     process.env.TWILIO_AUTH_TOKEN!,
-        //     twilioSignature,
-        //     url,
-        //     Object.fromEntries(formData)
-        // );
+        // Validate Twilio Signature
+        const twilioSignature = req.headers.get('x-twilio-signature') || '';
+        const url = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000') + '/api/webhooks/twilio/sms';
 
-        // if (!isValid) {
-        //     return new NextResponse('Unauthorized', { status: 401 });
-        // }
+        // In production, we must validate. In dev, we can skip if token is missing or intentional.
+        const shouldValidate = process.env.NODE_ENV === 'production';
+
+        if (shouldValidate) {
+            const isValid = twilio.validateRequest(
+                process.env.TWILIO_AUTH_TOKEN!,
+                twilioSignature,
+                url,
+                Object.fromEntries(formData)
+            );
+
+            if (!isValid) {
+                console.warn(`Invalid Twilio Signature from ${from}`);
+                return new NextResponse('Unauthorized', { status: 401 });
+            }
+        }
 
         console.log(`Received SMS from ${from}: ${body}`);
 
