@@ -181,7 +181,7 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep, clas
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
+                    await response.text(); // Consume body but ignore for now
                     // console.error(`Failed to parse ${file.name}:`, errorText);
                     toast({
                         title: "Error parsing file",

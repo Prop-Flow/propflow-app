@@ -4,7 +4,7 @@ import BrandLogo from '@/components/ui/BrandLogo';
 import {
     ArrowRight,
     CheckCircle2,
-    LineChart,
+
     ShieldCheck,
     AlertTriangle,
     Users,
