@@ -3,9 +3,9 @@ import { buildAgentPrompt } from './prompts';
 import { storeTenantInteraction } from './vector-store';
 import { register } from "@arizeai/phoenix-otel";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
-import { SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { OpenAIInstrumentation } from "@opentelemetry/instrumentation-openai";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 // Initialize tracing
 const provider = new NodeTracerProvider();
@@ -62,7 +62,7 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
 
         // Generate response using OpenAI with Sequential Thinking support
         const openai = getOpenAIClient();
-        const messages: any[] = [
+        const messages: ChatCompletionMessageParam[] = [
             {
                 role: 'system',
                 content: 'You are a professional property management AI assistant. Generate concise, friendly, and professional messages. Use the sequential_thinking tool to plan your response for complex scenarios, ensuring you cover all requirements.',
@@ -76,11 +76,19 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
         let finalResponse = '';
         let loopCount = 0;
         const MAX_LOOPS = 10;
+        let consecutiveErrorCount = 0;
+        const MAX_CONSECUTIVE_ERRORS = 3;
 
         while (loopCount < MAX_LOOPS) {
+            // Circuit breaker
+            if (consecutiveErrorCount >= MAX_CONSECUTIVE_ERRORS) {
+                finalResponse = "I encountered multiple errors while trying to process your request. Please check the logs or try again with a simpler request.";
+                break;
+            }
+
             const completion = await openai.chat.completions.create({
                 model: 'gpt-4',
-                messages: messages as any,
+                messages,
                 temperature: 0.7,
                 max_tokens: 400, // Increased for thinking thoughts
                 tools: [
@@ -96,7 +104,7 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
             if (!message) break;
 
             // Add the assistant's response to history
-            messages.push(message as any);
+            messages.push(message);
 
             if (message.tool_calls && message.tool_calls.length > 0) {
                 // Handle tool calls
@@ -109,7 +117,11 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
                                 tool_call_id: toolCall.id,
                                 content: JSON.stringify({ status: 'thought_recorded', thoughtNumber: args.thoughtNumber }),
                             });
-                        } catch (e) {
+                            // Reset error count on successful tool execution (logic handled inside tool, but here we assume success if no throw)
+                            consecutiveErrorCount = 0;
+                        } catch (_e) {
+                            // console.error(e);
+                            consecutiveErrorCount++;
                             messages.push({
                                 role: 'tool',
                                 tool_call_id: toolCall.id,
@@ -125,7 +137,9 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
                                 tool_call_id: toolCall.id,
                                 content: result,
                             });
-                        } catch (e) {
+                            consecutiveErrorCount = 0;
+                        } catch (_e) {
+                            consecutiveErrorCount++;
                             messages.push({
                                 role: 'tool',
                                 tool_call_id: toolCall.id,
@@ -141,7 +155,9 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
                                 tool_call_id: toolCall.id,
                                 content: result,
                             });
-                        } catch (e) {
+                            consecutiveErrorCount = 0;
+                        } catch (_e) {
+                            consecutiveErrorCount++;
                             messages.push({
                                 role: 'tool',
                                 tool_call_id: toolCall.id,
@@ -157,7 +173,9 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
                                 tool_call_id: toolCall.id,
                                 content: result,
                             });
-                        } catch (e) {
+                            consecutiveErrorCount = 0;
+                        } catch (_e) {
+                            consecutiveErrorCount++;
                             messages.push({
                                 role: 'tool',
                                 tool_call_id: toolCall.id,

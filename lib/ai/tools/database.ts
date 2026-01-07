@@ -1,5 +1,5 @@
 
-import { z } from "zod";
+
 import { prisma } from "@/lib/prisma"; // Assuming standard Next.js usage
 
 export const DATABASE_TOOL_DEF = {
@@ -20,13 +20,20 @@ export const DATABASE_TOOL_DEF = {
     }
 };
 
-export async function handleDatabaseTool(args: any) {
+export async function handleDatabaseTool(args: Record<string, unknown>) {
     try {
-        const model = args.model;
-        const query = JSON.parse(args.query);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { model, operation, query: queryString } = args as any;
+        const query = JSON.parse(queryString);
 
-        // @ts-ignore - Dynamic key access
-        const result = await prisma[model.charAt(0).toLowerCase() + model.slice(1)][args.operation](query);
+        // Security: Enforce a limit on findMany if not provided to prevent DoS
+        if (operation === 'findMany' && typeof query === 'object' && query !== null && !('take' in query)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (query as any).take = 10;
+        }
+
+        // @ts-expect-error - Dynamic key access is intentionally loose here for the tool
+        const result = await prisma[model.charAt(0).toLowerCase() + model.slice(1)][operation](query);
 
         return JSON.stringify(result, null, 2);
     } catch (error) {

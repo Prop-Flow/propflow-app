@@ -1,18 +1,18 @@
 
-import { z } from "zod";
+
 import fs from 'fs/promises';
 import path from 'path';
 
 // Memory storage schema
-const memoryEntrySchema = z.object({
-    id: z.string(),
-    content: z.string(),
-    type: z.enum(['fact', 'preference', 'interaction', 'plan']),
-    timestamp: z.string(),
-    tags: z.array(z.string()).optional()
-});
+// const memoryEntrySchema = z.object({ ... });
 
-type MemoryEntry = z.infer<typeof memoryEntrySchema>;
+type MemoryEntry = {
+    id: string;
+    content: string;
+    type: 'fact' | 'preference' | 'interaction' | 'plan';
+    timestamp: string;
+    tags: string[];
+};
 
 const MEMORY_FILE_PATH = path.join(process.cwd(), '.agent', 'memory_store.json');
 
@@ -48,27 +48,29 @@ export const MEMORY_TOOL_DEF = {
 /**
  * Handle memory operations
  */
-export async function handleMemoryTool(args: any): Promise<string> {
+export async function handleMemoryTool(args: Record<string, unknown>): Promise<string> {
     await ensureMemoryFile();
     const data = await fs.readFile(MEMORY_FILE_PATH, 'utf-8');
     const memories: MemoryEntry[] = JSON.parse(data);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { action, content, type, tags } = args as any;
 
-    if (args.action === 'store') {
+    if (action === 'store') {
         const newMemory: MemoryEntry = {
             id: Date.now().toString(),
-            content: args.content,
-            type: args.type || 'fact',
+            content: content,
+            type: type || 'fact',
             timestamp: new Date().toISOString(),
-            tags: args.tags || []
+            tags: tags || []
         };
         memories.push(newMemory);
         await fs.writeFile(MEMORY_FILE_PATH, JSON.stringify(memories, null, 2));
         return `Memory stored with ID: ${newMemory.id}`;
     }
 
-    if (args.action === 'retrieve') {
+    if (action === 'retrieve') {
         // Simple keyword match for now
-        const query = args.content.toLowerCase();
+        const query = content.toLowerCase();
         const found = memories.filter(m =>
             m.content.toLowerCase().includes(query) ||
             m.tags?.some(t => t.toLowerCase().includes(query))
@@ -76,7 +78,7 @@ export async function handleMemoryTool(args: any): Promise<string> {
         return JSON.stringify(found, null, 2);
     }
 
-    if (args.action === 'list') {
+    if (action === 'list') {
         return JSON.stringify(memories.slice(-10), null, 2); // Last 10
     }
 

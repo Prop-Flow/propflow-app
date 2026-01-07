@@ -18,8 +18,9 @@ export const GITHUB_TOOL_DEF = {
     }
 };
 
-export async function handleGitHubTool(args: any): Promise<string> {
-    const { action, title, body, labels } = args;
+export async function handleGitHubTool(args: Record<string, unknown>): Promise<string> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { action, title, body, labels } = args as any;
 
     if (action === 'create_issue') {
         const token = process.env.GITHUB_TOKEN;
