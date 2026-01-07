@@ -17,6 +17,7 @@ function getOpenAIClient(): OpenAI {
 
 export interface ExtractedTenantData {
     name?: string;
+    unitNumber?: string;
     email?: string;
     phone?: string;
     propertyAddress?: string;
@@ -73,6 +74,9 @@ export interface RentRollData {
         leaseEndDate?: string;
         deposit?: number;
         balance?: number;
+        email?: string;
+        phone?: string;
+        status?: 'Occupied' | 'Vacant';
     }[];
     totals: {
         totalMonthlyRent?: number;

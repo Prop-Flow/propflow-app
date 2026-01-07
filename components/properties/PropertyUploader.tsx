@@ -1,547 +1,682 @@
-import React, { useCallback, useState } from 'react';
-import { FileText, CheckCircle, Loader2, BookOpen, User, AlertCircle, X } from 'lucide-react';
-import { ExtractedPropertyData, ExtractedTenantData, RentRollData } from '@/lib/ai/document-parser';
-import PropertyReviewModal from './PropertyReviewModal';
-import RentRollReviewModal from './RentRollReviewModal';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { Upload, FileText, Check, AlertCircle, X, Loader2, Plus, Trash2, Users, Building, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { useToast } from '@/hooks/use-toast';
+import { Progress } from '@/components/ui/Progress';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/Table";
+import { cn } from '@/lib/utils';
+import {
+    ExtractedPropertyData,
+    ExtractedTenantData,
+    RentRollData
+} from '@/lib/ai/document-parser';
 
-export interface WizardData extends ExtractedPropertyData {
-    tenant?: ExtractedTenantData;
-    rentRollUnits?: RentRollData['units'];
+// Interface matching the API expectation (see app/api/properties/route.ts)
+export interface WizardData {
+    property?: {
+        address?: string;
+        city?: string;
+        state?: string;
+        zipCode?: string;
+        units?: number;
+    };
+    rentRollUnits?: {
+        unitNumber?: string | number;
+        tenantName?: string;
+        currentRent?: number;
+        marketRent?: number;
+        leaseEndDate?: string | Date;
+        leaseStartDate?: string | Date;
+        status?: string;
+        email?: string;
+        phone?: string;
+        deposit?: number;
+    }[];
 }
 
 interface PropertyUploaderProps {
     onAnalysisComplete: (data: WizardData) => void;
-    initialStep?: Step;
+    initialStep?: string;
+    className?: string;
 }
 
-type Step = 'upload-property-doc' | 'analyzing-doc' | 'review-deed' | 'analyzing-rent-roll' | 'review-rent-roll' | 'occupancy-check' | 'upload-lease' | 'analyzing-lease' | 'review-lease';
+type UploadStep = 'upload-method' | 'upload-lease' | 'upload-rent-roll' | 'manual-entry' | 'review' | 'analysis' | 'occupancy-check';
 
-export default function PropertyUploader({ onAnalysisComplete, initialStep = 'upload-property-doc' }: PropertyUploaderProps) {
-    const [step, setStep] = useState<Step>(initialStep);
-    const [dragActive, setDragActive] = useState(false);
+// Local interface for form state
+interface LocalPropertyData {
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    buildingName: string;
+}
 
-    // Data state
-    const [propertyData, setPropertyData] = useState<ExtractedPropertyData>({ confidence: {} } as ExtractedPropertyData);
-    const [tenantData, setTenantData] = useState<ExtractedTenantData>({ confidence: {} } as ExtractedTenantData);
+export default function PropertyUploader({ onAnalysisComplete, initialStep, className }: PropertyUploaderProps) {
+    const [step, setStep] = useState<UploadStep>('occupancy-check');
+    const [isDragging, setIsDragging] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [parsingProgress, setParsingProgress] = useState<{ current: number; total: number; filename: string } | null>(null);
+    const [analysisStep, setAnalysisStep] = useState<string>('');
+    const [error, setError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { toast } = useToast();
 
-    // Initialize rent roll if starting in review mode
-    const [rentRollData, setRentRollData] = useState<RentRollData | null>(() => {
-        if (initialStep === 'review-rent-roll') {
-            return {
-                units: Array(10).fill(null).map(() => ({
-                    unitNumber: '',
-                    tenantName: '',
-                    currentRent: 0,
-                    deposit: 0,
-                    leaseEndDate: '',
-                    status: 'vacant'
-                })),
-                totals: { totalMonthlyRent: 0, totalDeposits: 0 },
-                propertyAddress: '',
-                confidence: { overall: 1.0 }
-            } as RentRollData;
-        }
-        return null;
+    const [propertyData, setPropertyData] = useState<LocalPropertyData>({
+        address: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        buildingName: ''
     });
 
-    // UI state
-    const [isReviewOpen, setIsReviewOpen] = useState(false);
-    const [isRentRollReviewOpen, setIsRentRollReviewOpen] = useState(initialStep === 'review-rent-roll');
-    const [showSkipWarning, setShowSkipWarning] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [showManualInput, setShowManualInput] = useState(false);
+    const [rentRollData, setRentRollData] = useState<RentRollData>({
+        units: [],
+        totals: {},
+        confidence: {}
+    });
 
-    const handleCreateManualRentRoll = (count: number) => {
-        const blankUnits = Array(count).fill(null).map((_, i) => ({
-            unitNumber: (i + 1).toString(),
-            tenantName: '',
+    const [manualUnitCount, setManualUnitCount] = useState<string>('');
+
+    useEffect(() => {
+        if (initialStep === 'review-rent-roll') {
+            setStep('review'); // Or whatever mapping makes sense, usually starts upload but client suggests review?
+            // Actually better to start at upload-rent-roll if no data
+            if (rentRollData.units.length === 0) setStep('upload-rent-roll');
+        } else if (initialStep === 'upload-property-doc') {
+            setStep('upload-rent-roll'); // or occupancy check
+        }
+    }, [initialStep]); // Run only on mount or if props change
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    }, []);
+
+
+    const processFiles = useCallback(async (files: File[], context: 'property-doc' | 'lease') => {
+        setIsAnalyzing(true);
+        setError(null);
+
+        let processedCount = 0;
+        const totalFiles = files.length;
+
+        // Helper to merge new tenant data into existing rent roll
+        const mergeTenantData = (newTenant: ExtractedTenantData) => {
+            setRentRollData(prev => {
+                const existingUnits = [...(prev.units || [])];
+                // Try to find if unit already exists
+                const existingUnitIndex = newTenant.unitNumber
+                    ? existingUnits.findIndex(u => u.unitNumber?.toLowerCase() === newTenant.unitNumber?.toLowerCase())
+                    : -1;
+
+                const unitData = {
+                    unitNumber: newTenant.unitNumber || `Unit ${existingUnits.length + 1}`,
+                    tenantName: newTenant.name || 'Unknown',
+                    leaseStart: newTenant.leaseStartDate,
+                    leaseEnd: newTenant.leaseEndDate,
+                    currentRent: newTenant.rentAmount,
+                    deposit: newTenant.securityDeposit,
+                    status: 'Occupied' as const,
+                    email: newTenant.email,
+                    phone: newTenant.phone
+                };
+
+                if (existingUnitIndex >= 0) {
+                    existingUnits[existingUnitIndex] = { ...existingUnits[existingUnitIndex], ...unitData };
+                } else {
+                    existingUnits.push(unitData);
+                }
+                return {
+                    ...prev,
+                    units: existingUnits,
+                    totals: prev.totals || {},
+                    confidence: prev.confidence || {}
+                };
+            });
+        };
+
+        const mergePropertyData = (newData: ExtractedPropertyData) => {
+            setPropertyData(prev => {
+                return {
+                    address: prev.address || newData.property?.address || '',
+                    city: prev.city || '', // Extraction might not separate city/state
+                    state: prev.state || '',
+                    zipCode: prev.zipCode || '',
+                    buildingName: prev.buildingName || ''
+                };
+            });
+        };
+
+        try {
+            for (const file of files) {
+                setParsingProgress({
+                    current: processedCount + 1,
+                    total: totalFiles,
+                    filename: file.name
+                });
+                setAnalysisStep(`Parsing ${file.name}...`);
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('type', context);
+
+                const response = await fetch('/api/properties/parse', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    // console.error(`Failed to parse ${file.name}:`, errorText);
+                    toast({
+                        title: "Error parsing file",
+                        description: `Failed to process ${file.name}. Continuing with others...`,
+                        variant: "destructive"
+                    });
+                    continue;
+                }
+
+                const responseJson = await response.json();
+                const docType = responseJson.documentType;
+                const extractedData = responseJson.extractedData;
+
+                // Aggregation Logic
+                if (extractedData && (extractedData.property || extractedData.owner)) {
+                    mergePropertyData(extractedData as ExtractedPropertyData);
+                } else if (extractedData && extractedData.propertyAddress) {
+                    setPropertyData(prev => ({
+                        ...prev,
+                        address: prev.address || extractedData.propertyAddress || ''
+                    }));
+                }
+
+                if (docType === 'lease' || (extractedData && extractedData.name && extractedData.rentAmount)) {
+                    mergeTenantData(extractedData as ExtractedTenantData);
+                } else if (docType === 'rent_roll' || (extractedData && extractedData.units)) {
+                    const rrData = extractedData as RentRollData;
+                    if (rrData.units) {
+                        setRentRollData(prev => {
+                            const newUnits = rrData.units.map(u => ({
+                                ...u,
+                                status: (u.tenantName && u.tenantName !== 'Vacant') ? ('Occupied' as const) : ('Vacant' as const)
+                            }));
+
+                            const existingUnits = [...prev.units];
+                            newUnits.forEach(u => {
+                                const idx = existingUnits.findIndex(eu => eu.unitNumber === u.unitNumber);
+                                if (idx >= 0) existingUnits[idx] = { ...existingUnits[idx], ...u };
+                                else existingUnits.push(u);
+                            });
+
+                            return {
+                                ...prev,
+                                units: existingUnits,
+                                totals: prev.totals || {},
+                                confidence: prev.confidence || {}
+                            };
+                        });
+                    }
+                } else {
+                    // console.warn('Unknown document type or empty data:', docType, extractedData);
+                }
+
+                processedCount++;
+            }
+
+            setAnalysisStep('Finalizing...');
+            await new Promise(r => setTimeout(r, 500));
+
+            setStep('review');
+
+        } catch (err) {
+            console.error('Batch processing error:', err);
+            setError(err instanceof Error ? err.message : 'An error occurred while processing files');
+        } finally {
+            setIsAnalyzing(false);
+            setParsingProgress(null);
+        }
+    }, [toast]);
+
+    const handleDrop = useCallback(async (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        setError(null);
+
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length === 0) return;
+
+        let context: 'property-doc' | 'lease' = 'lease';
+        if (step === 'upload-rent-roll') context = 'property-doc';
+
+        await processFiles(files, context);
+
+    }, [step, processFiles]);
+
+    const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        let context: 'property-doc' | 'lease' = 'lease';
+        if (step === 'upload-rent-roll') context = 'property-doc';
+
+        await processFiles(files, context);
+
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    }, [step, processFiles]);
+
+
+    const handleManualEntryStart = () => {
+        const count = parseInt(manualUnitCount) || 1;
+        const newUnits = Array.from({ length: count }).map((_, i) => ({
+            unitNumber: `Unit ${i + 1}`,
+            tenantName: 'Vacant', // Defaults
+            status: 'Vacant' as const,
             currentRent: 0,
-            deposit: 0,
-            leaseEndDate: '',
-            status: 'vacant'
+            bedrooms: 1,
+            bathrooms: 1
         }));
 
         setRentRollData({
-            units: blankUnits,
-            totals: {
-                totalMonthlyRent: 0,
-                totalDeposits: 0
+            units: newUnits,
+            totals: {},
+            confidence: {}
+        });
+        setStep('review');
+    };
+
+    const handleConfirmData = () => {
+
+        // Transform rentRollData.units to WizardData.rentRollUnits
+        const finalData: WizardData = {
+            property: {
+                address: propertyData.address,
+                city: propertyData.city,
+                state: propertyData.state,
+                zipCode: propertyData.zipCode,
+                units: rentRollData.units.length
             },
-            propertyAddress: '',
-            confidence: { overall: 1.0 }
-        });
-        setStep('review-rent-roll');
-        setIsRentRollReviewOpen(true);
+            rentRollUnits: rentRollData.units.map(u => ({
+                unitNumber: u.unitNumber,
+                tenantName: u.tenantName,
+                currentRent: u.currentRent,
+                marketRent: u.marketRent,
+                leaseEndDate: u.leaseEndDate,
+                leaseStartDate: u.leaseStartDate,
+                status: u.status,
+                email: u.email,
+                phone: u.phone,
+                deposit: u.deposit
+            }))
+        };
+
+        onAnalysisComplete(finalData);
     };
 
-    const handleDrag = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.type === 'dragenter' || e.type === 'dragover') {
-            setDragActive(true);
-        } else if (e.type === 'dragleave') {
-            setDragActive(false);
-        }
-    }, []);
+    const renderOccupancyCheck = () => (
+        <div className="space-y-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                <Users className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold">Is the property currently occupied?</h3>
+            <p className="text-gray-500 max-w-sm mx-auto">
+                We can help you set up your rent roll automatically if you have existing tenants.
+            </p>
 
-    const processFile = useCallback(async (file: File, context: 'property-doc' | 'lease') => {
-        let nextStep: Step;
-        if (context === 'property-doc') nextStep = 'analyzing-doc';
-        else nextStep = 'analyzing-lease';
-
-        setStep(nextStep);
-        setError(null);
-
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            // API autodetects type, so context is just for our UI flow
-
-            const response = await fetch('/api/properties/parse', {
-                method: 'POST',
-                body: formData,
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) throw new Error(result.error || 'Failed to analyze document');
-
-            if (result.documentType === 'rent_roll') {
-                setRentRollData(result.extractedData);
-                setStep('review-rent-roll');
-                setIsRentRollReviewOpen(true);
-
-                // If we also got property address from Rent Roll, set it
-                if (result.extractedData.propertyAddress) {
-                    setPropertyData(prev => ({
-                        ...prev,
-                        property: {
-                            ...prev.property,
-                            address: result.extractedData.propertyAddress
-                        }
-                    }));
-                }
-            } else if (result.documentType === 'property' || result.documentType === 'deed') {
-                setPropertyData(result.extractedData);
-                setStep('review-deed');
-                setIsReviewOpen(true);
-            } else if (result.documentType === 'lease') {
-                setTenantData(result.extractedData);
-                setStep('review-lease');
-                // If this was uploaded in the property-doc step, we might want to warn or just proceed
-            } else {
-                // Determine fallback based on context
-                if (context === 'property-doc') {
-                    // Assume property data if unsure, or maybe show error
-                    setPropertyData(result.extractedData);
-                    setStep('review-deed');
-                    setIsReviewOpen(true);
-                } else {
-                    setTenantData(result.extractedData);
-                    setStep('review-lease');
-                }
-            }
-
-        } catch (error) {
-            console.error('Analysis failed:', error);
-            setError('Failed to analyze document. Please ensure it is a valid PDF or Image.');
-            setStep(context === 'property-doc' ? 'upload-property-doc' : 'upload-lease');
-        }
-    }, []);
-
-    const handleDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragActive(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const context = step === 'upload-lease' ? 'lease' : 'property-doc';
-            processFile(e.dataTransfer.files[0], context);
-        }
-    }, [step, processFile]);
-
-    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        if (e.target.files && e.target.files[0]) {
-            const context = step === 'upload-lease' ? 'lease' : 'property-doc';
-            processFile(e.target.files[0], context);
-        }
-    }, [step, processFile]);
-
-    const handlePropertySave = (data: ExtractedPropertyData) => {
-        setPropertyData(data);
-        setIsReviewOpen(false);
-        setStep('occupancy-check');
-    };
-
-    const handleRentRollSave = (data: RentRollData) => {
-        setRentRollData(data);
-        setIsRentRollReviewOpen(false);
-
-        // Update property address if changed in review
-        if (data.propertyAddress) {
-            setPropertyData(prev => ({
-                ...prev,
-                property: { ...prev.property, address: data.propertyAddress }
-            }));
-        }
-
-        // Skip occupancy check if we have units
-        handleFinalSubmit(data.units);
-    };
-
-    const handleFinalSubmit = (rentRollUnits?: RentRollData['units']) => {
-        onAnalysisComplete({
-            ...propertyData,
-            tenant: tenantData,
-            rentRollUnits: rentRollUnits || (rentRollData ? rentRollData.units : undefined)
-        });
-    };
-
-    const renderUploadZone = (title: string, subtitle: string, icon: React.ReactNode) => (
-        <div
-            className={`relative border-2 border-dashed rounded-xl p-8 transition-all duration-200 ease-in-out text-center ${dragActive
-                ? 'border-primary bg-primary/10 scale-[1.02]'
-                : 'border-white/10 hover:border-white/20 bg-card/30 backdrop-blur-sm'
-                }`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-        >
-            <input
-                type="file"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                onChange={handleChange}
-                accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv"
-            />
-            <div className="flex flex-col items-center justify-center space-y-4 pointer-events-none">
-                <div className="bg-card p-4 rounded-full shadow-sm border border-white/10">
-                    {icon}
-                </div>
-                <div className="space-y-1">
-                    <h3 className="font-semibold text-foreground">{title}</h3>
-                    <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: subtitle }} />
-                </div>
-                <div className="flex flex-col gap-1">
-                    <p className="text-xs text-muted-foreground/60 pt-2">
-                        Supports PDF, JPG, PNG
-                    </p>
-                    <p className="text-[10px] text-green-400/80 font-medium">
-                        ✨ Best for: Rent Rolls, Deeds, Leases
-                    </p>
-                </div>
-                {error && (
-                    <div className="text-red-400 text-xs flex items-center mt-2">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        {error}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg mx-auto mt-8">
+                <Card
+                    className="p-6 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all group border-2 border-transparent shadow-sm hover:shadow-md bg-white"
+                    onClick={() => setStep('upload-lease')}
+                >
+                    <div className="space-y-4">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto group-hover:bg-blue-200 transition-colors">
+                            <FileText className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <h4 className="font-medium mb-1">Yes, I have leases</h4>
+                            <p className="text-sm text-gray-500">Upload lease PDFs to auto-create rent roll</p>
+                        </div>
                     </div>
-                )}
-            </div>
-        </div>
-    );
+                </Card>
 
-    const renderLoading = (message: string) => (
-        <div className="text-center py-12">
-            <div className="relative inline-block">
-                <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping opacity-75"></div>
-                <div className="relative bg-card p-4 rounded-full shadow-sm border border-white/10 mb-4">
-                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                </div>
-            </div>
-            <h3 className="font-semibold text-foreground">{message}</h3>
-            <p className="text-sm text-muted-foreground mt-1">Using AI to extract details...</p>
-        </div>
-    );
+                <Card
+                    className="p-6 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all group border-2 border-transparent shadow-sm hover:shadow-md bg-white"
+                    onClick={() => setStep('manual-entry')}
+                >
+                    <div className="space-y-4">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto group-hover:bg-green-200 transition-colors">
+                            <Check className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                            <h4 className="font-medium mb-1">Yes, but no files</h4>
+                            <p className="text-sm text-gray-500">Manually enter tenant details</p>
+                        </div>
+                    </div>
+                </Card>
 
-    const renderReviewField = (label: string, value: string | undefined | number, onChange: (val: string) => void) => (
-        <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">{label}</label>
-            <input
-                type="text"
-                value={value || ''}
-                onChange={(e) => onChange(e.target.value)}
-                className="w-full bg-background/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none transition-all"
-            />
-        </div>
-    );
-
-    // STEP 1: Upload Property Document (Deed OR Rent Roll)
-    if (step === 'upload-property-doc') {
-        return (
-            <div className="w-full max-w-xl mx-auto">
-                <div className="mb-6 text-center">
-                    <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium mb-3">
-                        Recommended
-                    </span>
-                    <h3 className="text-lg font-semibold text-white mb-2">Start with Documents</h3>
-                    <p className="text-sm text-slate-400 max-w-sm mx-auto">
-                        Upload a <strong>Rent Roll</strong> to import multiple tenants at once, or a <strong>Deed</strong> to verify ownership.
-                    </p>
-                </div>
-                {renderUploadZone(
-                    "Upload Property Documents",
-                    "Drag & drop a <strong>Rent Roll</strong> or <strong>Deed</strong>",
-                    <BookOpen className="w-8 h-8 text-muted-foreground" />
-                )}
-
-                <div className="mt-6 flex items-center justify-center gap-4">
-                    <div className="h-px bg-white/10 flex-1"></div>
-                    <span className="text-xs text-muted-foreground uppercase tracking-widest">or</span>
-                    <div className="h-px bg-white/10 flex-1"></div>
-                </div>
-
-                <div className="mt-6 text-center space-y-3">
-                    <div className="flex flex-col items-center gap-3">
-                        {!showManualInput ? (
-                            <button
-                                onClick={() => setShowManualInput(true)}
-                                className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors border-b border-transparent hover:border-emerald-500/50 pb-0.5"
-                            >
-                                Create Rent Roll from Scratch
-                            </button>
-                        ) : (
-                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-                                <label className="text-sm text-slate-300">How many units?</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-white"
-                                    placeholder="#"
-                                    // We need a ref or state here, let's use a local variable approach or better yet, simple state
-                                    // Since this is inside render, let's add state to component above
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            const val = parseInt((e.target as HTMLInputElement).value);
-                                            if (val > 0) handleCreateManualRentRoll(val);
-                                        }
-                                    }}
-                                    id="manual-unit-count"
-                                />
-                                <button
-                                    onClick={() => {
-                                        const input = document.getElementById('manual-unit-count') as HTMLInputElement;
-                                        const val = parseInt(input.value);
-                                        if (val > 0) handleCreateManualRentRoll(val);
-                                    }}
-                                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded"
-                                >
-                                    Go
-                                </button>
-                                <button
-                                    onClick={() => setShowManualInput(false)}
-                                    className="p-1 hover:bg-white/10 rounded"
-                                >
-                                    <X className="w-4 h-4 text-slate-400" />
-                                </button>
+                <Card
+                    className="p-6 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all group border-2 border-transparent shadow-sm hover:shadow-md bg-white col-span-1 md:col-span-2"
+                    onClick={() => {
+                        setManualUnitCount('1');
+                        setStep('manual-entry');
+                    }}
+                >
+                    <div className="flex items-center justify-between px-4">
+                        <div className="flex items-center gap-4 text-left">
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                                <Building className="w-5 h-5 text-gray-600" />
                             </div>
+                            <div>
+                                <h4 className="font-medium mb-1">No, it&apos;s vacant</h4>
+                                <p className="text-sm text-gray-500">Start with empty units</p>
+                            </div>
+                        </div>
+                        <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                    </div>
+                </Card>
+            </div>
+            <div className="mt-6">
+                <Button variant="ghost" size="sm" onClick={() => setStep('upload-rent-roll')} className="text-gray-400 hover:text-gray-600">
+                    I have a rent roll file (Excel/CSV)
+                </Button>
+            </div>
+        </div>
+    );
+
+    const renderUploadZone = (title: string, subtitle: string, context: 'lease' | 'rent-roll') => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold">{title}</h3>
+                <p className="text-sm text-gray-500">{subtitle}</p>
+            </div>
+
+            <div
+                className={cn(
+                    "border-2 border-dashed rounded-xl p-10 text-center transition-all duration-200 ease-in-out cursor-pointer",
+                    isDragging ? "border-blue-500 bg-blue-50 scale-[1.02]" : "border-gray-200 hover:border-blue-400 hover:bg-gray-50",
+                    error ? "border-red-300 bg-red-50" : ""
+                )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+            >
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept={context === 'lease' ? ".pdf,.doc,.docx" : ".xlsx,.xls,.csv,.pdf"}
+                    multiple={true} // Allow multiple files
+                    onChange={handleFileSelect}
+                />
+
+                <div className="flex flex-col items-center gap-4">
+                    <div className={cn(
+                        "p-4 rounded-full transition-colors",
+                        isDragging ? "bg-blue-100" : "bg-gray-100"
+                    )}>
+                        {isAnalyzing ? (
+                            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                        ) : (
+                            <Upload className={cn(
+                                "w-8 h-8",
+                                isDragging ? "text-blue-600" : "text-gray-500"
+                            )} />
                         )}
                     </div>
 
-                    <div className="text-xs text-slate-500">or</div>
-
-                    <button
-                        onClick={() => {
-                            setPropertyData({
-                                confidence: {},
-                                property: { address: '', type: 'multi_unit', units: 1 },
-                                owner: { legalName1: '' },
-                                financials: {} // Initialize empty financials
-                            } as ExtractedPropertyData);
-                            setStep('review-deed');
-                            setIsReviewOpen(true);
-                        }}
-                        className="text-sm font-medium text-slate-400 hover:text-white transition-colors border-b border-transparent hover:border-white/20 pb-0.5"
-                    >
-                        Enter Property Details Manually
-                    </button>
-                    <p className="text-xs text-slate-500 mt-2">
-                        Skip the AI and type in info yourself.
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
-    // STEP 2: Analyzing Document
-    if (step === 'analyzing-doc') {
-        return renderLoading("Analyzing Document");
-    }
-
-    // STEP 2b: Review Rent Roll
-    if (step === 'review-rent-roll' && rentRollData) {
-        return (
-            <>
-                <div className="w-full max-w-xl mx-auto text-center py-12">
-                    <p className="text-muted-foreground mb-4">Reviewing extracted rent roll...</p>
-                    <button
-                        onClick={() => setIsRentRollReviewOpen(true)}
-                        className="text-primary hover:underline text-sm"
-                    >
-                        Re-open Review Modal
-                    </button>
-                </div>
-
-                <RentRollReviewModal
-                    isOpen={isRentRollReviewOpen}
-                    onClose={() => setStep('upload-property-doc')}
-                    onSave={handleRentRollSave}
-                    data={rentRollData}
-                />
-            </>
-        );
-    }
-
-    // STEP 3: Review Deed (Modal Trigger)
-    if (step === 'review-deed') {
-        return (
-            <>
-                <div className="w-full max-w-xl mx-auto text-center py-12">
-                    <p className="text-muted-foreground mb-4">Reviewing extracted data...</p>
-                    <button
-                        onClick={() => setIsReviewOpen(true)}
-                        className="text-primary hover:underline text-sm"
-                    >
-                        Re-open Review Modal
-                    </button>
-                </div>
-
-                <PropertyReviewModal
-                    isOpen={isReviewOpen}
-                    onClose={() => setStep('upload-property-doc')} // If cancelled, go back
-                    onSave={handlePropertySave}
-                    data={propertyData}
-                />
-            </>
-        );
-    }
-
-    // STEP 4: Occupancy Check
-    if (step === 'occupancy-check') {
-        return (
-            <div className="text-center space-y-6 animate-in fade-in slide-in-from-right-4">
-                <div className="bg-card/30 p-8 rounded-xl border border-white/5">
-                    <User className="w-12 h-12 text-primary mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-foreground">Is this property currently rented?</h3>
-                    <p className="text-muted-foreground mt-2 mb-8">
-                        If yes, we&apos;ll need to upload the Lease Agreement to import tenant details.
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <button
-                            onClick={() => handleFinalSubmit()}
-                            className="p-4 border border-white/10 rounded-xl hover:bg-white/5 transition-all text-left group"
-                        >
-                            <span className="block font-semibold text-foreground mb-1 group-hover:text-primary">No, it&apos;s vacant</span>
-                            <span className="text-xs text-muted-foreground">Skip tenant setup for now.</span>
-                        </button>
-                        <button
-                            onClick={() => setStep('upload-lease')}
-                            className="p-4 border border-primary/50 bg-primary/5 rounded-xl hover:bg-primary/10 transition-all text-left"
-                        >
-                            <span className="block font-semibold text-primary mb-1">Yes, it&apos;s occupied</span>
-                            <span className="text-xs text-muted-foreground">Upload lease next.</span>
-                        </button>
+                    <div className="space-y-1">
+                        {isAnalyzing ? (
+                            <div className="space-y-2">
+                                <h4 className="font-medium text-blue-700 text-lg">Analyzing Files...</h4>
+                                {parsingProgress && (
+                                    <div className="w-full max-w-xs mx-auto space-y-1">
+                                        <Progress value={(parsingProgress.current / parsingProgress.total) * 100} className="h-2" />
+                                        <p className="text-xs text-blue-600">
+                                            Processing {parsingProgress.current} of {parsingProgress.total}: {parsingProgress.filename}
+                                        </p>
+                                    </div>
+                                )}
+                                <p className="text-sm text-blue-600/80">{analysisStep}</p>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="font-medium text-gray-900">
+                                    Click or drag files here
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                    {context === 'lease' ? 'Upload all your lease PDFs' : 'Excel, CSV, or PDF rent rolls'}
+                                </p>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
-        );
-    }
 
-    // STEP 5: Upload Lease
-    if (step === 'upload-lease') {
-        return (
-            <div className="w-full max-w-xl mx-auto animate-in fade-in">
-                <div className="mb-6 text-center">
-                    <h3 className="text-lg font-semibold text-white mb-2">Add Tenants</h3>
+            {error && (
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                    <AlertCircle className="w-4 h-4" />
+                    <p>{error}</p>
+                    <button onClick={() => setError(null)} className="ml-auto hover:text-red-800">
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
-                {renderUploadZone(
-                    "Upload Lease Agreement",
-                    "Drag & drop the current <strong>Lease Agreement</strong>.",
-                    <FileText className="w-8 h-8 text-muted-foreground" />
-                )}
-                <button
-                    onClick={() => setShowSkipWarning(true)}
-                    className="w-full mt-4 py-2 text-sm text-muted-foreground hover:text-foreground"
+            )}
+
+            <Button
+                variant="ghost"
+                className="w-full text-gray-400 hover:text-gray-600"
+                onClick={() => setStep('occupancy-check')}
+            >
+                Back
+            </Button>
+        </div>
+    );
+
+    const renderReview = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <h3 className="text-lg font-semibold">Review Rent Roll</h3>
+                    <p className="text-sm text-gray-500">
+                        We found {rentRollData.units.length} units. Please verify the details.
+                    </p>
+                </div>
+                <Button onClick={() => setStep('manual-entry')} variant="outline" size="sm">
+                    <Plus className="w-4 h-4 mr-2" /> Add Unit
+                </Button>
+            </div>
+
+            <Card className="overflow-hidden border text-sm">
+                <div className="max-h-[400px] overflow-auto">
+                    <Table>
+                        <TableHeader className="bg-gray-50 sticky top-0 z-10">
+                            <TableRow>
+                                <TableHead>Unit</TableHead>
+                                <TableHead>Tenant</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Rent</TableHead>
+                                <TableHead className="text-right">Deposit</TableHead>
+                                <TableHead></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {rentRollData.units.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                                        No units found. Add one manually.
+                                    </TableCell>
+                                </TableRow>
+                            ) : rentRollData.units.map((unit, idx) => (
+                                <TableRow key={idx}>
+                                    <TableCell className="font-medium">{unit.unitNumber}</TableCell>
+                                    <TableCell>
+                                        <div className="font-medium">{unit.tenantName}</div>
+                                        <div className="text-xs text-gray-500 flex gap-2">
+                                            {unit.email && <span>{unit.email}</span>}
+                                            {unit.phone && <span>{unit.phone}</span>}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className={cn(
+                                            "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                                            unit.status === 'Occupied' ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                                        )}>
+                                            {unit.status}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        {unit.currentRent ? `$${unit.currentRent}` : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        {unit.deposit ? `$${unit.deposit}` : '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                                            onClick={() => {
+                                                const newUnits = [...rentRollData.units];
+                                                newUnits.splice(idx, 1);
+                                                setRentRollData({
+                                                    ...rentRollData,
+                                                    units: newUnits,
+                                                    totals: rentRollData.totals || {},
+                                                    confidence: rentRollData.confidence || {}
+                                                });
+                                            }}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </Card>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>Property Address</Label>
+                    <Input
+                        value={propertyData.address}
+                        onChange={(e) => setPropertyData({ ...propertyData, address: e.target.value })}
+                        placeholder="123 Main St"
+                    />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-2 col-span-2">
+                        <Label>City</Label>
+                        <Input
+                            value={propertyData.city}
+                            onChange={(e) => setPropertyData({ ...propertyData, city: e.target.value })}
+                            placeholder="City"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>State</Label>
+                        <Input
+                            value={propertyData.state}
+                            onChange={(e) => setPropertyData({ ...propertyData, state: e.target.value })}
+                            placeholder="State"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+                <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setStep('occupancy-check')}
                 >
-                    Skip this step
-                </button>
+                    Back
+                </Button>
+                <Button
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={handleConfirmData}
+                >
+                    Confirm & Create Property
+                </Button>
+            </div>
+        </div>
+    );
 
-                {showSkipWarning && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-                        <div className="bg-card p-6 rounded-xl shadow-2xl max-w-md w-full border border-white/10">
-                            <div className="flex items-center gap-3 mb-4 text-orange-400">
-                                <AlertCircle className="w-6 h-6" />
-                                <h3 className="text-lg font-bold">Heads up!</h3>
-                            </div>
-                            <p className="text-muted-foreground mb-6">
-                                Skipping the lease upload means we cannot <strong>automatically create tenant accounts</strong> or <strong>set up rent collection</strong>.
-                                <br /><br />
-                                You will need to manually invite tenants and configure payments later in the Tenant Portal.
-                            </p>
-                            <div className="flex justify-end gap-3">
-                                <button
-                                    onClick={() => setShowSkipWarning(false)}
-                                    className="px-4 py-2 text-sm font-medium text-foreground hover:bg-white/5 rounded-lg transition-colors"
-                                >
-                                    Go Back
-                                </button>
-                                <button
-                                    onClick={() => handleFinalSubmit()}
-                                    className="px-4 py-2 text-sm font-bold text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors shadow-sm"
-                                >
-                                    Skip Anyway
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+    const renderManualEntry = () => (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="text-center space-y-2 mb-6">
+                <h3 className="text-lg font-semibold">How many units?</h3>
+                <p className="text-sm text-gray-500">We&apos;ll create a template for you to fill in.</p>
+            </div>
+
+            <div className="max-w-xs mx-auto space-y-4">
+                <div className="space-y-2">
+                    <Label>Number of Units</Label>
+                    <Input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 4"
+                        value={manualUnitCount}
+                        onChange={(e) => setManualUnitCount(e.target.value)}
+                        className="text-center text-lg"
+                    />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-4">
+                    <Button
+                        variant="ghost"
+                        onClick={() => setStep('occupancy-check')}
+                    >
+                        Back
+                    </Button>
+                    <Button
+                        onClick={handleManualEntryStart}
+                        disabled={!manualUnitCount || parseInt(manualUnitCount) < 1}
+                    >
+                        Continue
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+
+    return (
+        <Card className={cn("bg-white shadow-lg border-none", className)}>
+            <div className="p-1">
+                {step === 'occupancy-check' && renderOccupancyCheck()}
+
+                {step === 'upload-lease' && renderUploadZone(
+                    'Upload Lease Agreements',
+                    'Upload one or more PDF leases. We\'ll extract the details into a rent roll.',
+                    'lease'
                 )}
+
+                {step === 'upload-rent-roll' && renderUploadZone(
+                    'Upload Rent Roll',
+                    'Upload your existing rent roll (Excel, CSV, PDF).',
+                    'rent-roll'
+                )}
+
+                {step === 'review' && renderReview()}
+
+                {step === 'manual-entry' && renderManualEntry()}
             </div>
-        );
-    }
-
-    // STEP 6: Analyzing Lease
-    if (step === 'analyzing-lease') {
-        return renderLoading("Analyzing Lease Agreement");
-    }
-
-    // STEP 7: Review Lease Data (Simple)
-    if (step === 'review-lease') {
-        return (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <div>
-                        <h4 className="text-sm font-semibold text-green-400">Lease Analyzed Successfully</h4>
-                        <p className="text-xs text-green-400/80">Tenant details extracted.</p>
-                    </div>
-                </div>
-
-                <div className="grid gap-4">
-                    {renderReviewField("Tenant Name", tenantData.name, (val) => setTenantData({ ...tenantData, name: val }))}
-                    <div className="grid grid-cols-2 gap-4">
-                        {renderReviewField("Monthly Rent", tenantData.rentAmount, (val) => setTenantData({ ...tenantData, rentAmount: parseFloat(val) }))}
-                        {renderReviewField("Lease End Date", tenantData.leaseEndDate, (val) => setTenantData({ ...tenantData, leaseEndDate: val }))}
-                    </div>
-                </div>
-
-                <div className="flex gap-4">
-                    <button
-                        onClick={() => setStep('upload-lease')}
-                        className="flex-1 py-3 border border-white/10 rounded-lg text-muted-foreground hover:bg-white/5 transition-all"
-                    >
-                        Re-upload
-                    </button>
-                    <button
-                        onClick={() => handleFinalSubmit()}
-                        className="flex-[2] bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-all"
-                    >
-                        Finish & Save Property
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    return null;
+        </Card>
+    );
 }
