@@ -113,12 +113,14 @@ export default function LoginPage() {
                     }
                     const userData = await response.json();
 
-                    if (userData.role === 'OWNER') {
+                    const roundedRole = (userData.role || '').toUpperCase();
+
+                    if (roundedRole === 'OWNER') {
                         router.push('/dashboard/owner');
-                    } else if (userData.role === 'PROPERTY_MANAGER') {
+                    } else if (roundedRole === 'PROPERTY_MANAGER') {
                         router.push('/dashboard/manager');
                     } else {
-                        router.push('/dashboard/tenant/maintenance');
+                        router.push('/dashboard/tenant');
                     }
                 } catch (err) {
                     console.error('Error fetching user role:', err);

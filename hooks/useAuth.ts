@@ -61,13 +61,14 @@ export function useAuth(requireRole?: 'tenant' | 'owner' | 'manager') {
                         const userData = await response.json();
                         setUser(userData);
 
+                        const userRole = (userData.role || '').toUpperCase();
                         // Check role-based access
                         if (requireRole) {
                             const mappedRole = requireRole === 'manager' ? 'PROPERTY_MANAGER' : requireRole.toUpperCase();
-                            if (userData.role !== mappedRole) {
+                            if (userRole !== mappedRole) {
                                 let target = '/dashboard/owner';
-                                if (userData.role === 'TENANT') target = '/dashboard/tenant';
-                                else if (userData.role === 'PROPERTY_MANAGER') target = '/dashboard/manager';
+                                if (userRole === 'TENANT') target = '/dashboard/tenant';
+                                else if (userRole === 'PROPERTY_MANAGER') target = '/dashboard/manager';
                                 router.replace(target);
                             }
                         }
@@ -90,11 +91,13 @@ export function useAuth(requireRole?: 'tenant' | 'owner' | 'manager') {
                     setUser(localUser);
 
                     if (requireRole) {
-                        const mappedRole = requireRole === 'manager' ? 'property_manager' : requireRole;
-                        if (localUser.role !== mappedRole) {
+                        const localRole = (localUser.role || '').toUpperCase();
+                        const mappedRole = requireRole === 'manager' ? 'PROPERTY_MANAGER' : requireRole.toUpperCase();
+
+                        if (localRole !== mappedRole) {
                             let target = '/dashboard/owner';
-                            if (localUser.role === 'tenant') target = '/dashboard/tenant';
-                            else if (localUser.role === 'property_manager') target = '/dashboard/manager';
+                            if (localRole === 'TENANT') target = '/dashboard/tenant';
+                            else if (localRole === 'PROPERTY_MANAGER') target = '/dashboard/manager';
                             router.replace(target);
                         }
                     }
