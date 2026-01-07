@@ -38,7 +38,7 @@ export async function getSession(request: NextRequest): Promise<{ user: SessionU
     }
 
     // 2. Check for Developer Mode bypass (Cookie-based) only if no real session
-    const devMode = request.cookies.get('propflow_dev_mode')?.value === 'true';
+    const devMode = process.env.NODE_ENV === 'development' && request.cookies.get('propflow_dev_mode')?.value === 'true';
     if (devMode) {
         const devRole = request.cookies.get('propflow_dev_role')?.value || 'owner';
         return {

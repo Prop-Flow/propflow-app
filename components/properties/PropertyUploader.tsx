@@ -95,7 +95,7 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep, clas
         } else if (initialStep === 'upload-property-doc') {
             setStep('upload-rent-roll'); // or occupancy check
         }
-    }, [initialStep]); // Run only on mount or if props change
+    }, [initialStep, rentRollData.units.length]); // Run only on mount or if props change
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();

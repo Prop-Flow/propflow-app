@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { from, to, subject, html, text } = body;
+        const { from, subject, html, text } = body;
 
         // Note: Resend incoming webhooks might vary in structure depending on the setup (e.g. if using a forwarder or direct webhook)
         // This assumes a standard structure similar to Postmark or other providers, adapted for Resend webhooks if they exist or a custom forwarder.
