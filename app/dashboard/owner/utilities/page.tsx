@@ -1,14 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Plus } from 'lucide-react';
 import { UtilityKPICards } from '@/components/utilities/UtilityKPICards';
 import { ConsumptionChart } from '@/components/utilities/ConsumptionChart';
 import { ReadingsTable } from '@/components/utilities/ReadingsTable';
+import { AddReadingModal } from '@/components/utilities/AddReadingModal';
 
 export default function UtilitiesPage() {
     const { user, loading } = useAuth();
+    const [isAddReadingOpen, setIsAddReadingOpen] = useState(false);
 
     if (loading) {
         return (
@@ -38,7 +41,10 @@ export default function UtilitiesPage() {
                         <h1 className="text-3xl font-bold text-foreground">Utility Management</h1>
                         <p className="text-muted-foreground mt-1">Monitor consumption, track RUBS recovery, and detect anomalies.</p>
                     </div>
-                    <button className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all">
+                    <button
+                        onClick={() => setIsAddReadingOpen(true)}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all"
+                    >
                         <Plus className="w-5 h-5" />
                         Add Reading
                     </button>
@@ -55,6 +61,11 @@ export default function UtilitiesPage() {
                     </div>
                 </div>
             </div>
+
+            <AddReadingModal
+                isOpen={isAddReadingOpen}
+                onClose={() => setIsAddReadingOpen(false)}
+            />
         </DashboardShell>
     );
 }
