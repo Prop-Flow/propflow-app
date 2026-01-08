@@ -22,6 +22,52 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate Configuration
+        run: |
+          echo "🔍 Validating deployment configuration..."
+
+          # Load centralized config
+          PROJECT_ID=$(jq -r '.projectId' deployment-config.json)
+          REGION=$(jq -r '.region' deployment-config.json)
+          SERVICE_NAME=$(jq -r '.serviceName' deployment-config.json)
+          IMAGE_NAME=$(jq -r '.imageName' deployment-config.json)
+
+          # Validate against workflow env vars
+          ERRORS=0
+
+          if [ "$PROJECT_ID" != "${{ env.PROJECT_ID }}" ]; then
+            echo "❌ PROJECT_ID mismatch! Config: $PROJECT_ID, Workflow: ${{ env.PROJECT_ID }}"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          if [ "$REGION" != "${{ env.REGION }}" ]; then
+            echo "❌ REGION mismatch! Config: $REGION, Workflow: ${{ env.REGION }}"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          if [ "$SERVICE_NAME" != "${{ env.SERVICE_NAME }}" ]; then
+            echo "❌ SERVICE_NAME mismatch! Config: $SERVICE_NAME, Workflow: ${{ env.SERVICE_NAME }}"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          if [ "$IMAGE_NAME" != "${{ env.REPO_NAME }}" ]; then
+            echo "❌ IMAGE_NAME mismatch! Config: $IMAGE_NAME, Workflow: ${{ env.REPO_NAME }}"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          if [ $ERRORS -gt 0 ]; then
+            echo ""
+            echo "💥 Configuration validation failed with $ERRORS error(s)!"
+            echo "Please update deployment-config.json or .github/workflows/deploy.yml to match."
+            exit 1
+          fi
+
+          echo "✅ All configurations validated successfully"
+          echo "   Project: $PROJECT_ID"
+          echo "   Region: $REGION"
+          echo "   Service: $SERVICE_NAME"
+          echo "   Image: $IMAGE_NAME"
+
       # Note: For production use, setup Workload Identity Federation instead of long-lived keys
       # Check 'google-github-actions/auth' documentation for setup
 

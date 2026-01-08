@@ -1,0 +1,22 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "PropFlow Deployment Configuration",
+    "description": "Single source of truth for all deployment settings. Update this file to change deployment configuration across all systems.",
+    "projectId": "propflow-ai-483621",
+    "region": "us-east4",
+    "serviceName": "ssrpropflowai483621",
+    "imageName": "ssrpropflowai483621",
+    "artifactRegistry": {
+        "location": "us-east4",
+        "repository": "cloud-run-source-deploy"
+    },
+    "cloudSql": {
+        "instance": "propflow-db-east",
+        "region": "us-east4"
+    },
+    "cloudRun": {
+        "memory": "512Mi",
+        "allowUnauthenticated": true,
+        "platform": "managed"
+    }
+}
