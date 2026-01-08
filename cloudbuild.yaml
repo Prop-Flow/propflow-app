@@ -29,6 +29,8 @@ steps:
       - "--region"
       - "us-east5"
       - "--allow-unauthenticated" # Allow public access (remove if internal only)
+      - "--memory"
+      - "512Mi"
       - "--platform"
       - "managed"
       - "--set-env-vars"
