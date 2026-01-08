@@ -47,7 +47,8 @@ export async function registerUser(prevState: RegisterState, formData: FormData)
         };
     }
 
-    const { firstName, lastName, email, password, role, phone } = validatedFields.data;
+    const { firstName, lastName, email: rawEmail, password, role, phone } = validatedFields.data;
+    const email = rawEmail.toLowerCase().trim();
 
     try {
         const userSnapshot = await db.collection('users').where('email', '==', email).limit(1).get();

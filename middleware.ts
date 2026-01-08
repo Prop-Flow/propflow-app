@@ -17,7 +17,8 @@ export default auth(async function middleware(req) {
         path.startsWith('/_next') ||
         path.startsWith('/static') ||
         path.startsWith('/favicon.ico') ||
-        path.includes('.') // likely a file extension
+        path.startsWith('/debug-auth') || // Allow debug page
+        path.includes('.') // likely a file extension ||
     ) {
         return NextResponse.next();
     }
