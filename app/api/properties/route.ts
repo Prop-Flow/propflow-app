@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
         const properties = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Manual count of tenants for each property if needed (Prisma included this)
+        // Manual count of tenants for each property if needed
         // For simplicity, we'll return the properties as is
         return NextResponse.json({ properties });
     } catch (error) {

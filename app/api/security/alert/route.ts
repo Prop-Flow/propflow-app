@@ -10,8 +10,7 @@ export async function POST(req: Request) {
         // Using console for now as placeholder for real security log table, or reusing communication log if appropriate
         console.warn(`SECURITY EVENT [${severity}]: ${type} - ${description} (${sourceIp})`, metadata);
 
-        // Example: Log to a hypothetical SecurityLog table if it existed
-        // await prisma.securityLog.create({ ... });
+
 
         // 2. Send Email if critical/warning
         if (severity === 'CRITICAL' || severity === 'WARNING') {
