@@ -35,7 +35,6 @@ steps:
       - "GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
       - "--add-cloudsql-instances"
       - "$PROJECT_ID:us-east5:propflow-db-east"
-      - "--set-secrets"
 
 images:
   - "us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/propflow-app:$COMMIT_SHA"

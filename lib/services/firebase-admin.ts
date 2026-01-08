@@ -6,13 +6,6 @@ if (!admin.apps.length) {
         const clientEmail = process.env.GCP_CLIENT_EMAIL;
         const privateKey = process.env.GCP_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-        console.log('--- Firebase Admin Init Debug ---');
-        console.log('Project ID present:', !!projectId);
-        console.log('Client Email present:', !!clientEmail);
-        console.log('Private Key present:', !!privateKey);
-        console.log('GOOG_APP_CREDS present:', !!process.env.GOOGLE_APPLICATION_CREDENTIALS);
-        console.log('---------------------------------');
-
         if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
             admin.initializeApp({
                 credential: admin.credential.applicationDefault(),

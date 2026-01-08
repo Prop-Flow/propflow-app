@@ -9,8 +9,21 @@ import {
 const project = process.env.NEXT_PUBLIC_GCP_PROJECT_ID || 'propflow-ai-483621';
 const location = process.env.GCP_REGION || 'us-east5';
 
-// Initialize Vertex AI
-const vertexAI = new VertexAI({ project, location });
+// Initialize Vertex AI with explicit credentials support
+const googleAuthOptions = (process.env.GCP_CLIENT_EMAIL && process.env.GCP_PRIVATE_KEY)
+    ? {
+        credentials: {
+            client_email: process.env.GCP_CLIENT_EMAIL,
+            private_key: process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        }
+    }
+    : undefined;
+
+const vertexAI = new VertexAI({
+    project,
+    location,
+    googleAuthOptions
+});
 
 /**
  * Gemini models for different use cases

@@ -73,7 +73,10 @@ export function useAuth(requireRole?: 'tenant' | 'owner' | 'manager') {
                             }
                         }
                     } else {
-                        console.error('Failed to fetch user data');
+                        // Suppress errors for expected unauthenticated states
+                        if (response.status !== 401 && response.status !== 404) {
+                            console.error('Failed to fetch user data');
+                        }
                         setUser(null);
                     }
                 } catch (error) {
