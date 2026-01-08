@@ -90,7 +90,7 @@ npx firebase deploy
 
 ## Project Structure
 
-```
+```'
 propflow/
 ├── app/
 │   ├── api/
@@ -129,4 +129,4 @@ For questions or issues, please open a GitHub issue or contact support.
 
 ---
 
-Built with ❤️ using Next.js, OpenAI, and Twilio
+Built with ❤️ using Next.js, Vertex AI, and Twilio
