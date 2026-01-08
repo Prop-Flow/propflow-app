@@ -46,7 +46,7 @@ jobs:
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
-          image: ${{ env.REGION }}-docker.pkg.dev/${env.PROJECT_ID}/cloud-run-source-deploy/${env.REPO_NAME}:${{ env.GITHUB_SHA }}
-          flags: '--allow-unauthenticated'
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/cloud-run-source-deploy/${{ env.REPO_NAME }}:${{ env.GITHUB_SHA }}
+          flags: '--allow-unauthenticated --memory 512Mi'
           env_vars: |
             NODE_ENV=production
