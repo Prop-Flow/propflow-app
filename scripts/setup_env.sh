@@ -3,8 +3,8 @@ echo "-----------------------------------"
 echo "  Propflow Database Setup Helper"
 echo "-----------------------------------"
 echo ""
-echo "Please paste your Neon Connection String below and press ENTER:"
-echo "(Example: postgresql://neondb_owner:...@ep-cool-frog-...aws.neon.tech/neondb)"
+echo "Please paste your PostgreSQL Connection String below and press ENTER:"
+echo "(Example: postgresql://user:password@localhost:5432/propflow)"
 echo ""
 read -r DB_URL
 

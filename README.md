@@ -39,7 +39,7 @@ AI-powered property management system that automates tenant follow-ups, document
 npm install
 ```
 
-2. **Set up environment variables**
+1. **Set up environment variables**
 
 Copy `.env.example` to `.env` and fill in your API keys:
 
@@ -48,6 +48,7 @@ cp .env.example .env
 ```
 
 Required environment variables:
+
 - `DATABASE_URL`: PostgreSQL connection string
 - `OPENAI_API_KEY`: OpenAI API key
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`: Twilio credentials
@@ -55,7 +56,7 @@ Required environment variables:
 - `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`: Pinecone credentials
 - `NEXT_PUBLIC_APP_URL`: Your app URL (e.g., `http://localhost:3000`)
 
-3. **Set up the database**
+1. **Set up the database**
 
 ```bash
 # Generate Prisma client
@@ -68,7 +69,7 @@ npx prisma db push
 npx prisma studio
 ```
 
-4. **Run the development server**
+1. **Run the development server**
 
 ```bash
 npm run dev
@@ -155,18 +156,22 @@ propflow/
 ## API Endpoints
 
 ### Properties
+
 - `GET /api/properties` - List all properties
 - `POST /api/properties` - Create new property
 
 ### Tenants
+
 - `GET /api/tenants` - List all tenants
 - `GET /api/tenants?propertyId=xxx` - List tenants by property
 - `POST /api/tenants` - Create new tenant
 
 ### Workflows
+
 - `POST /api/workflows/trigger` - Trigger AI workflow
 
 ### Webhooks
+
 - `POST /api/webhooks/twilio/sms` - Twilio SMS webhook
 - `POST /api/webhooks/twilio/voice/gather` - Twilio voice IVR webhook
 
@@ -186,10 +191,12 @@ For advanced workflow orchestration, you can use n8n:
 The system includes configurable compliance rules by property type:
 
 **Residential:**
+
 - Required documents: Lease, W-9, Renters Insurance
 - Lease renewal window: 90 days before expiry
 
 **Commercial:**
+
 - Required documents: Lease, W-9, Liability Insurance, Business License
 - Lease renewal window: 180 days before expiry
 - Inspection frequency: Every 6 months
@@ -223,20 +230,18 @@ npm run lint
 
 ## Deployment
 
-### Vercel (Recommended)
+### Google Cloud Run (Recommended)
 
 1. Push code to GitHub
-2. Import project in Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy
+2. Connect repository to Google Cloud Build
+3. Deploy to Cloud Run using `cloudbuild.yaml`
 
 ### Database
 
-Use a managed PostgreSQL service:
-- Vercel Postgres
-- Supabase
-- Railway
-- Neon
+Use Google Cloud SQL (PostgreSQL):
+
+- Provision a Cloud SQL instance
+- Connect via Private IP or Cloud SQL Auth Proxy
 
 ## Cost Estimates
 
@@ -251,6 +256,7 @@ For 100 tenants with 5 follow-ups each per month:
 ## Roadmap
 
 **Phase 1 (MVP - Current):**
+
 - ✅ AI agent communication engine
 - ✅ Multi-channel automation (SMS, email, voice)
 - ✅ Document tracking
@@ -258,6 +264,7 @@ For 100 tenants with 5 follow-ups each per month:
 - ✅ Dashboard interface
 
 **Phase 2 (Future):**
+
 - Document OCR and parsing
 - Integration with property management systems (Buildium, AppFolio)
 - Advanced voice AI with natural conversation
