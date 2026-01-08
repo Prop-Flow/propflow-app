@@ -35,7 +35,7 @@ jobs:
           # Standard Next.js build env vars (mocks/secrets often handled via secrets context in real repos)
           NEXT_TELEMETRY_DISABLED: 1
           # Add any necessary build-time env vars here, potentially mock values if just checking compilation
-          DATABASE_URL: "postgresql://mock:mock@localhost:5432/mock"
+
           NEXT_PUBLIC_GCP_PROJECT_ID: "mock-project-id"
           GOOGLE_APPLICATION_CREDENTIALS: "/dev/null"
           SKIP_WEBHOOK_VALIDATION: "true"

@@ -2,6 +2,11 @@
 
 AI-powered property management system that automates tenant follow-ups, document collection, and compliance monitoring. Reduce landlord admin time from 15-20 hours/month to <2 hours.
 
+## 🚀 Live Demo
+
+[Live App](https://propflow-ai-483621.web.app/)
+(Hosted on Firebase Hosting & Cloud Run)
+
 ## Features
 
 - **AI Agent Communication**: Automated multi-channel follow-ups (SMS, email, voice) using OpenAI GPT-4
@@ -40,7 +45,7 @@ AI-powered property management system that automates tenant follow-ups, document
 npm install
 ```
 
-2. **Set up environment variables**
+1. **Set up environment variables**
 
 Copy `.env.example` to `.env` and fill in your API keys:
 
@@ -49,6 +54,7 @@ cp .env.example .env
 ```
 
 Required environment variables:
+
 - `FIREBASE_PROJECT_ID`: Your Firebase Project ID
 - `FIREBASE_CLIENT_EMAIL`: Your Firebase Service Account Email
 - `FIREBASE_PRIVATE_KEY`: Your Firebase Private Key
@@ -58,7 +64,7 @@ Required environment variables:
 - `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`: Pinecone credentials
 - `NEXT_PUBLIC_APP_URL`: Your app URL (e.g., `http://localhost:3000`)
 
-3. **Run the development server**
+1. **Run the development server**
 
 ```bash
 npm run dev
@@ -71,11 +77,13 @@ Open [http://localhost:3000](http://localhost:3000) to see the dashboard.
 ### Firebase Hosting (Recommended)
 
 1. Authenticate with Firebase:
+
 ```bash
 npx firebase login
 ```
 
-2. Deploy:
+1. Deploy:
+
 ```bash
 npx firebase deploy
 ```
