@@ -7,7 +7,7 @@ import {
 } from '@google-cloud/vertexai';
 
 const project = process.env.NEXT_PUBLIC_GCP_PROJECT_ID || 'propflow-ai-483621';
-const location = 'us-central1';
+const location = process.env.GCP_REGION || 'us-east5';
 
 // Initialize Vertex AI
 const vertexAI = new VertexAI({ project, location });
