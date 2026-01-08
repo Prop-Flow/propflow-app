@@ -4,7 +4,7 @@ AI-powered property management system that automates tenant follow-ups, document
 
 ## Features
 
-- **AI Agent Communication**: Automated multi-channel follow-ups (SMS, email, voice) using OpenAI GPT-4
+- **AI Agent Communication**: Automated multi-channel follow-ups (SMS, email, voice) using Google Vertex AI (Gemini 1.5 Pro)
 - **Document Tracking**: Automatically detect missing compliance documents (W-9s, insurance certificates, leases)
 - **Compliance Monitoring**: Track lease renewals and inspection deadlines with auto-alerts
 - **Centralized Dashboard**: Single view of all properties, tenants, pending actions, and compliance status
@@ -14,7 +14,7 @@ AI-powered property management system that automates tenant follow-ups, document
 
 - **Frontend**: Next.js 15, React 19, TypeScript, TailwindCSS
 - **Database**: PostgreSQL with Prisma ORM
-- **AI/LLM**: OpenAI GPT-4 for intelligent responses
+- **AI/LLM**: Google Vertex AI (Gemini 1.5 Pro) for intelligent responses
 - **Vector Storage**: Pinecone for tenant/property context
 - **Communication**: Twilio (SMS + Voice), Resend (Email)
 - **Workflow Orchestration**: n8n (optional)
@@ -26,7 +26,7 @@ AI-powered property management system that automates tenant follow-ups, document
 - Node.js 18+ and npm
 - PostgreSQL database
 - API keys for:
-  - OpenAI
+  - Google Cloud (Vertex AI enabled)
   - Twilio (for SMS/voice)
   - Resend or SendGrid (for email)
   - Pinecone (for vector storage)
@@ -50,7 +50,8 @@ cp .env.example .env
 Required environment variables:
 
 - `DATABASE_URL`: PostgreSQL connection string
-- `OPENAI_API_KEY`: OpenAI API key
+- `GOOGLE_APPLICATION_CREDENTIALS`: Path to GCP Service Account Key
+- `NEXT_PUBLIC_GCP_PROJECT_ID`: Google Cloud Project ID
 - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`: Twilio credentials
 - `RESEND_API_KEY`: Resend API key for email
 - `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`: Pinecone credentials
@@ -249,7 +250,7 @@ For 100 tenants with 5 follow-ups each per month:
 
 - **Twilio SMS**: ~$5-10/month ($0.01/SMS)
 - **Twilio Voice**: ~$10-20/month ($0.02/min)
-- **OpenAI API**: ~$30-50/month ($0.01-0.03 per interaction)
+- **Vertex AI**: ~$30-50/month (based on tokens)
 - **Pinecone**: Free tier or ~$70/month for production
 - **Total**: ~$50-150/month
 
@@ -282,4 +283,4 @@ For questions or issues, please open a GitHub issue or contact support.
 
 ---
 
-Built with ❤️ using Next.js, OpenAI, and Twilio
+Built with ❤️ using Next.js, Google Cloud, and Twilio
