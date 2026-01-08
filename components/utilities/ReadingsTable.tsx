@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
-import { Droplets, Zap, Flame, Terminal } from 'lucide-react';
+import { Droplets, Zap, Flame } from 'lucide-react';
 
 const mockReadings = [
     { id: 1, type: 'WATER', property: 'Sunset Apartments', unit: '4B', value: '4,502 gal', date: '2025-05-15', status: 'Normal' },
@@ -40,8 +40,8 @@ export function ReadingsTable() {
                             <div className="text-right">
                                 <p className="font-medium text-sm text-foreground">{reading.value}</p>
                                 <span className={`text-xs px-2 py-0.5 rounded-full ${reading.status === 'Anomaly' ? 'bg-red-500/10 text-red-500' :
-                                        reading.status === 'High' ? 'bg-yellow-500/10 text-yellow-500' :
-                                            'bg-green-500/10 text-green-500'
+                                    reading.status === 'High' ? 'bg-yellow-500/10 text-yellow-500' :
+                                        'bg-green-500/10 text-green-500'
                                     }`}>
                                     {reading.status}
                                 </span>

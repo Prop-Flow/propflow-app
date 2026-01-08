@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { DollarSign, Droplets, Zap, Flame, ArrowUpRight, ArrowDownRight, AlertCircle } from 'lucide-react';
+import { DollarSign, Droplets, Zap, Flame, ArrowUpRight, AlertCircle } from 'lucide-react';
 
 interface UtilityMetrics {
     totalCost: number;

@@ -18,8 +18,9 @@ export async function POST(req: NextRequest) {
         const twilioSignature = req.headers.get('x-twilio-signature') || '';
         const url = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000') + '/api/webhooks/twilio/sms';
 
-        // In production, we must validate. In dev, we can skip if token is missing or intentional.
-        const shouldValidate = process.env.NODE_ENV === 'production';
+        // In production, we must validate. In dev, we can skip if explicitly valid.
+        // SECURITY: Default to validating unless explicitly disabled (Fail Secure)
+        const shouldValidate = process.env.SKIP_WEBHOOK_VALIDATION !== 'true';
 
         if (shouldValidate) {
             const isValid = twilio.validateRequest(

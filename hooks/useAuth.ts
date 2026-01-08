@@ -85,7 +85,8 @@ export function useAuth(requireRole?: 'tenant' | 'owner' | 'manager') {
             }
 
             // Priority 2: Developer Mode (Only if not authenticated)
-            if (isDevMode && status === 'unauthenticated') {
+            // SECURITY: Ensure this is strictly gated to development environment
+            if (process.env.NODE_ENV === 'development' && isDevMode && status === 'unauthenticated') {
                 const localUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('propflow_user') || 'null') : null;
                 if (localUser) {
                     setUser(localUser);
