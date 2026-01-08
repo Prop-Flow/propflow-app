@@ -117,8 +117,9 @@ export async function parseDocument(
             model: model,
             generationConfig: {
                 'maxOutputTokens': 8192,
-                'temperature': 0.1, // Low temp for extraction consistency
+                'temperature': 0.1,
                 'topP': 0.95,
+                responseMimeType: 'application/json',
             },
         });
 
@@ -170,11 +171,28 @@ export async function parseDocument(
         }
 
         // 1. Classify Document
+        // For classification, we still use text output as it's a simple string, or we could enforce JSON. 
+        // Let's keep it simple for now, but strictly speaking we could also use JSON here.
+        // But the main extraction needs JSON.
+
+        // Note: We need a separate model instance if we want DIFFERENT config (json vs text) usually, 
+        // but here we configured the main one as JSON. 
+        // Let's create a text-based model for classification to be safe, or just parse the JSON classification.
+
+        const textModel = vertex_ai.preview.getGenerativeModel({
+            model: model,
+            generationConfig: {
+                temperature: 0.1,
+                topP: 0.95,
+                // No JSON mode for classification to keep the prompt simple or update prompt to ask for JSON
+            }
+        });
+
         const classificationReq = {
             contents: [{ role: 'user', parts: [{ text: DOCUMENT_CLASSIFICATION_PROMPT }, contentPart] }]
         };
 
-        const classResult = await generativeModel.generateContent(classificationReq);
+        const classResult = await textModel.generateContent(classificationReq);
         const classResponse = await classResult.response;
         const classText = classResponse.candidates?.[0].content.parts[0].text;
 
@@ -197,8 +215,8 @@ export async function parseDocument(
         const extractResponse = await extractResult.response;
         const extractText = extractResponse.candidates?.[0].content.parts[0].text || '{}';
 
-        const cleanedJson = cleanJsonOutput(extractText);
-        const parsedData = JSON.parse(cleanedJson);
+        // With JSON mode, it should be valid JSON already, but safer to parse directly
+        const parsedData = JSON.parse(extractText);
 
         // Normalize phone numbers if present
         if ('phone' in parsedData && parsedData.phone) {

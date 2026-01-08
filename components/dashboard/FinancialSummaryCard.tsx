@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 
 interface FinancialSummaryProps {
     revenue: number;

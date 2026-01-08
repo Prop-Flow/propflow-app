@@ -2,13 +2,16 @@
 set -e
 
 # Configuration
-PROJECT_ID="propflow-ai-483621"
-REGION="us-east5"
+# Use existing env var or fallback to gcloud config, then default
+PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
+PROJECT_ID="${PROJECT_ID:-propflow-ai-483621}"
+REGION="${GOOGLE_CLOUD_REGION:-us-east5}"
 DB_INSTANCE_NAME="propflow-db-east"
 DB_NAME="propflow_db"
 DB_USER="propflow_user"
 
 echo "Using Project ID: $PROJECT_ID"
+echo "Using Region: $REGION"
 
 # 1. Enable Required APIs
 echo "Enabling APIs..."
@@ -32,12 +35,16 @@ gcloud artifacts repositories create cloud-run-source-deploy \
 
 # 3. Create Cloud SQL Instance (PostgreSQL)
 echo "Creating Cloud SQL Instance (This may take 10-15 minutes)..."
+# Generate secure root password
+ROOT_PASSWORD=$(openssl rand -base64 24)
+echo "Generated Root Password: (hidden)"
+
 gcloud sql instances create $DB_INSTANCE_NAME \
     --database-version=POSTGRES_15 \
     --cpu=1 \
     --memory=3840MiB \
     --region=$REGION \
-    --root-password=root_temp_password_123 \
+    --root-password=$ROOT_PASSWORD \
     --project=$PROJECT_ID || echo "Instance likely already exists"
 
 # 4. Create Database and User
