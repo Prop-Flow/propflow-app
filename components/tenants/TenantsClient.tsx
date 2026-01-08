@@ -100,9 +100,9 @@ export default function TenantsClient() {
                     <User className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-foreground mb-2">No tenants yet</h3>
                     <p className="text-muted-foreground mb-6">Add your first tenant to get started</p>
-                    <button className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all">
-                        Add Your First Tenant
-                    </button>
+                    <div className="flex justify-center">
+                        <TenantInviteButton />
+                    </div>
                 </div>
             ) : (
                 <div className="space-y-4">

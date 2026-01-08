@@ -82,7 +82,10 @@ export default function LoginPage() {
                 console.error('[Login] SignIn Result Error:', result.error);
                 setError(devMode ? 'Invalid security key' : 'Invalid credentials');
                 setLoading(false);
-            } else {
+            } else if (result?.ok) {
+                // Explicit success check to differentiate from error cases that might be ambiguous
+                // ... proceed to success logic in else block ...
+
                 if (devMode) {
                     document.cookie = "propflow_dev_mode=true; path=/; max-age=31536000";
                     document.cookie = "propflow_dev_role=owner; path=/; max-age=31536000";
