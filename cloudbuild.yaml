@@ -5,7 +5,7 @@ steps:
     args:
       [
         "-c",
-        "gcloud artifacts repositories create cloud-run-source-deploy --location=us-east5 --description='Docker repository for Cloud Run' --repository-format=docker --project=$PROJECT_ID || echo 'Repository likely exists or permission denied'",
+        "gcloud artifacts repositories create cloud-run-source-deploy --location=us-east4 --description='Docker repository for Cloud Run' --repository-format=docker --project=$PROJECT_ID || echo 'Repository likely exists or permission denied'",
       ]
 
   # 1. Build the container image
@@ -14,11 +14,11 @@ steps:
       [
         "build",
         "-t",
-        "us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/propflow-app:$COMMIT_SHA",
+        "us-east4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ssrpropflowai483621:$COMMIT_SHA",
         "--build-arg",
         "NEXT_PUBLIC_GCP_PROJECT_ID=$PROJECT_ID",
         "--build-arg",
-        "GCP_REGION=us-east5",
+        "GCP_REGION=us-east4",
         "--build-arg",
         "NEXT_PUBLIC_APP_URL=https://propflow-ai-483621.web.app",
         ".",
@@ -29,7 +29,7 @@ steps:
     args:
       [
         "push",
-        "us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/propflow-app:$COMMIT_SHA",
+        "us-east4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ssrpropflowai483621:$COMMIT_SHA",
       ]
 
   # 3. Deploy container to Cloud Run
@@ -38,11 +38,11 @@ steps:
     args:
       - "run"
       - "deploy"
-      - "propflow-app"
+      - "ssrpropflowai483621"
       - "--image"
-      - "us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/propflow-app:$COMMIT_SHA"
+      - "us-east4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ssrpropflowai483621:$COMMIT_SHA"
       - "--region"
-      - "us-east5"
+      - "us-east4"
       - "--allow-unauthenticated" # Allow public access (remove if internal only)
       - "--memory"
       - "512Mi"
@@ -51,10 +51,10 @@ steps:
       - "--set-env-vars"
       - "GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
       - "--add-cloudsql-instances"
-      - "$PROJECT_ID:us-east5:propflow-db-east"
+      - "$PROJECT_ID:us-east4:propflow-db-east"
 
 images:
-  - "us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/propflow-app:$COMMIT_SHA"
+  - "us-east4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ssrpropflowai483621:$COMMIT_SHA"
 
 options:
   logging: CLOUD_LOGGING_ONLY
