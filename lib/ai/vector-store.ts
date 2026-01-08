@@ -2,7 +2,7 @@ import { Pinecone } from '@pinecone-database/pinecone';
 import { VertexAI } from '@google-cloud/vertexai';
 
 const project = process.env.NEXT_PUBLIC_GCP_PROJECT_ID || 'propflow-ai-483621';
-const location = process.env.GCP_REGION || 'us-east5';
+const location = process.env.GCP_REGION || 'us-east4';
 const vertexAI = new VertexAI({ project, location });
 
 let pineconeClient: Pinecone | null = null;
@@ -69,7 +69,7 @@ export async function storeTenantInteraction(
 
         await index.upsert([
             {
-                id: `${tenantId}-${Date.now()}`,
+                id: `${tenantId} -${Date.now()} `,
                 values: embedding,
                 metadata: {
                     tenantId,
@@ -143,12 +143,12 @@ export async function storePropertyInfo(
         const pinecone = getPineconeClient();
         const index = pinecone.index(process.env.PINECONE_INDEX_NAME);
 
-        const text = `${info.name} - ${info.address}: ${info.details}`;
+        const text = `${info.name} - ${info.address}: ${info.details} `;
         const embedding = await generateEmbedding(text);
 
         await index.upsert([
             {
-                id: `property-${propertyId}`,
+                id: `property - ${propertyId} `,
                 values: embedding,
                 metadata: {
                     propertyId,

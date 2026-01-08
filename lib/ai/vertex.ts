@@ -7,7 +7,7 @@ import {
 } from '@google-cloud/vertexai';
 
 const project = process.env.NEXT_PUBLIC_GCP_PROJECT_ID || 'propflow-ai-483621';
-const location = process.env.GCP_REGION || 'us-east5';
+const location = process.env.GCP_REGION || 'us-east4';
 
 // Initialize Vertex AI with explicit credentials support
 const googleAuthOptions = (process.env.GCP_CLIENT_EMAIL && process.env.GCP_PRIVATE_KEY)
