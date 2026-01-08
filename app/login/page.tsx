@@ -152,6 +152,7 @@ export default function LoginPage() {
                     <p className="text-muted-foreground">
                         {devMode ? 'Enter security key to bypass authentication' : 'Enter your credentials to access your dashboard.'}
                     </p>
+                    <p className="text-[10px] text-slate-500 mt-2">v1.0.debug-shark-9000</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500" noValidate>
