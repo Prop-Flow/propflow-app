@@ -9,7 +9,7 @@ initTracing();
 import { SEQUENTIAL_THINKING_TOOL_DEF } from './tools/sequential-thinking';
 import { MEMORY_TOOL_DEF, handleMemoryTool } from './tools/memory';
 import { DATABASE_TOOL_DEF, handleDatabaseTool } from './tools/database';
-import { GITHUB_TOOL_DEF, handleGitHubTool } from './tools/github';
+// GitHub tool import removed (using native MCP)
 
 // Initialize Vertex AI
 const project = process.env.GOOGLE_CLOUD_PROJECT || 'propflow-ai-483621';
@@ -39,11 +39,7 @@ const tools: { functionDeclarations: FunctionDeclaration[] }[] = [{
             description: DATABASE_TOOL_DEF.description,
             parameters: DATABASE_TOOL_DEF.parameters as unknown as FunctionDeclaration['parameters']
         },
-        {
-            name: GITHUB_TOOL_DEF.name,
-            description: GITHUB_TOOL_DEF.description,
-            parameters: GITHUB_TOOL_DEF.parameters as unknown as FunctionDeclaration['parameters']
-        }
+        // GitHub tool removed (using native MCP)
     ]
 }];
 
@@ -132,9 +128,6 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
                         functionResponse = { result };
                     } else if (functionName === 'database_query') {
                         const result = await handleDatabaseTool(args);
-                        functionResponse = { result };
-                    } else if (functionName === 'github_tool') {
-                        const result = await handleGitHubTool(args);
                         functionResponse = { result };
                     }
 
