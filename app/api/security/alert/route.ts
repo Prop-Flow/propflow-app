@@ -1,7 +1,5 @@
-
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/communication/email-service';
-// import { prisma } from '@/lib/prisma'; // Removed unused import
 
 export async function POST(req: Request) {
     try {

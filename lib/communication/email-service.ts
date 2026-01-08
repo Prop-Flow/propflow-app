@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 
 let resendClient: Resend | null = null;
 
@@ -35,7 +35,6 @@ export async function sendEmail(
             html: html || generateEmailHTML(message),
         });
 
-        // TODO: Re-implement logging with a new simplified model if needed
         console.log(`Email sent to ${to} for tenant ${tenantId}: ${subject}`);
 
         return {
@@ -106,22 +105,19 @@ export async function processIncomingEmail(
 ): Promise<{ tenantId?: string; message: string }> {
     try {
         // Find tenant by email
-        const tenant = await prisma.tenant.findFirst({
-            where: {
-                email: {
-                    equals: from,
-                },
-            },
-        });
+        const snapshot = await db.collection('tenants')
+            .where('email', '==', from)
+            .get();
 
-        if (!tenant) {
+        if (snapshot.empty) {
             console.warn(`No tenant found for email: ${from}`);
             return {
                 message: 'Tenant not found',
             };
         }
 
-        // TODO: Re-implement logging with a new simplified model if needed
+        const tenant = snapshot.docs[0];
+
         console.log(`Incoming email from ${from} for tenant ${tenant.id}: ${subject}`);
 
         return {

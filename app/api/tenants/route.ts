@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { getSessionUser } from '@/lib/auth/session';
-import { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
     try {
@@ -9,26 +8,28 @@ export async function GET(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const propertyId = searchParams.get('propertyId');
 
-        // Filter by user's properties to ensure data isolation
-        const where: Prisma.TenantWhereInput = {
-            property: {
-                ownerUserId: user.id
-            }
-        };
+        let query: FirebaseFirestore.Query = db.collection('tenants');
 
         if (propertyId) {
-            where.propertyId = propertyId;
+            // Check property access
+            const propertyDoc = await db.collection('properties').doc(propertyId).get();
+            if (!propertyDoc.exists || propertyDoc.data()?.ownerUserId !== user.id) {
+                return NextResponse.json({ error: 'Property not found or access denied' }, { status: 403 });
+            }
+            query = query.where('propertyId', '==', propertyId);
+        } else {
+            // Need to filter by all user's properties (limited implementation)
+            const propertySnapshot = await db.collection('properties')
+                .where('ownerUserId', '==', user.id)
+                .get();
+            const propertyIds = propertySnapshot.docs.map(doc => doc.id);
+            if (propertyIds.length === 0) return NextResponse.json({ tenants: [] });
+
+            query = query.where('propertyId', 'in', propertyIds.slice(0, 30));
         }
 
-        const tenants = await prisma.tenant.findMany({
-            where,
-            include: {
-                property: true,
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
+        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        const tenants = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         return NextResponse.json({ tenants });
     } catch (error) {
@@ -46,35 +47,32 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         // Check if property exists and belongs to the user
-        const property = await prisma.property.findFirst({
-            where: {
-                id: body.propertyId,
-                ownerUserId: user.id
-            },
-        });
-
-        if (!property) {
+        const propertyDoc = await db.collection('properties').doc(body.propertyId).get();
+        if (!propertyDoc.exists || propertyDoc.data()?.ownerUserId !== user.id) {
             return NextResponse.json(
                 { error: 'Property not found or access denied' },
                 { status: 404 }
             );
         }
 
-        const tenant = await prisma.tenant.create({
-            data: {
-                propertyId: body.propertyId,
-                name: body.name,
-                email: body.email,
-                phone: body.phone,
-                leaseStartDate: body.leaseStartDate ? new Date(body.leaseStartDate) : undefined,
-                leaseEndDate: body.leaseEndDate ? new Date(body.leaseEndDate) : undefined,
-                rentAmount: body.rentAmount,
-                apartmentNumber: body.apartmentNumber,
-                squareFootage: body.squareFootage,
-                numberOfOccupants: body.numberOfOccupants || 1,
-                status: 'active'
-            },
-        });
+        const tenantData = {
+            propertyId: body.propertyId,
+            name: body.name,
+            email: body.email || null,
+            phone: body.phone || null,
+            leaseStartDate: body.leaseStartDate ? new Date(body.leaseStartDate) : null,
+            leaseEndDate: body.leaseEndDate ? new Date(body.leaseEndDate) : null,
+            rentAmount: body.rentAmount || 0,
+            apartmentNumber: body.apartmentNumber || null,
+            squareFootage: body.squareFootage || null,
+            numberOfOccupants: body.numberOfOccupants || 1,
+            status: 'active',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const docRef = await db.collection('tenants').add(tenantData);
+        const tenant = { id: docRef.id, ...tenantData };
 
         return NextResponse.json({ tenant }, { status: 201 });
     } catch (error) {

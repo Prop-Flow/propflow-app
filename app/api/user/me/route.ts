@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { logger } from '@/lib/logger';
 
 export async function GET() {
@@ -14,23 +14,10 @@ export async function GET() {
 
         logger.api(`Fetching user profile for ID: ${session.user.id}`);
 
-
-
         // Lookup user by ID from session
-        const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                firstName: true,
-                lastName: true,
-                role: true,
-                phone: true,
-            },
-        });
+        const userDoc = await db.collection('users').doc(session.user.id).get();
 
-        if (!user) {
+        if (!userDoc.exists) {
             logger.error(`User not found for session ID: ${session.user.id}`);
 
             // Production: minimal error info
@@ -46,10 +33,20 @@ export async function GET() {
                 debug: {
                     requestedId: session.user.id,
                     requestedEmail: session.user.email,
-                    sessionKeys: Object.keys(session.user)
                 }
             }, { status: 404 });
         }
+
+        const userData = userDoc.data();
+        const user = {
+            id: userDoc.id,
+            email: userData?.email,
+            name: userData?.name,
+            firstName: userData?.firstName,
+            lastName: userData?.lastName,
+            role: userData?.role,
+            phone: userData?.phone,
+        };
 
         return NextResponse.json(user);
     } catch (error) {

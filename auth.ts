@@ -1,6 +1,5 @@
 import NextAuth from 'next-auth';
-import { PrismaAdapter } from '@auth/prisma-adapter';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { authConfig } from './auth.config';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
@@ -9,7 +8,6 @@ import { logger } from '@/lib/logger';
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig,
-    adapter: PrismaAdapter(prisma),
     session: {
         strategy: 'jwt',
         maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -27,11 +25,15 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     const email = rawEmail.toLowerCase().trim();
                     logger.auth(`Attempting login for: ${email}`);
 
-                    const user = await prisma.user.findUnique({ where: { email } });
-                    if (!user) {
+                    const userSnapshot = await db.collection('users').where('email', '==', email).limit(1).get();
+
+                    if (userSnapshot.empty) {
                         logger.auth('User not found');
                         return null;
                     }
+
+                    const userDoc = userSnapshot.docs[0];
+                    const user = userDoc.data();
 
                     if (!user.passwordHash) {
                         logger.auth(`No password hash for user: ${email}`);
@@ -44,10 +46,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     if (passwordsMatch) {
                         logger.auth(`Password verified successfully for ${email}`);
                         const returnUser = {
-                            id: user.id,
+                            id: userDoc.id,
                             email: user.email,
                             name: user.name,
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             role: user.role as any,
                         };
                         logger.debug('Returning user object', returnUser);
@@ -64,13 +65,11 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             },
         }),
     ],
-    // Extend session to include role and other fields
     callbacks: {
         ...authConfig.callbacks,
         async session({ session, token }) {
             if (session.user && token.sub) {
                 session.user.id = token.sub;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 session.user.role = token.role as any;
             }
             return session;
@@ -78,7 +77,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         async jwt({ token, user }) {
             if (user) {
                 token.sub = user.id;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 token.role = (user as any).role;
             }
             return token;

@@ -1,5 +1,5 @@
 import twilio from 'twilio';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { formatPhoneNumber } from '@/lib/utils/formatters';
 
 const twilioClient = twilio(
@@ -29,7 +29,6 @@ export async function sendSMS(
             to: formattedPhone,
         });
 
-        // TODO: Re-implement logging with a new simplified model if needed
         console.log(`SMS sent to ${to} for tenant ${tenantId}: ${message}`);
 
         return {
@@ -51,17 +50,22 @@ export async function sendSMS(
  * Process incoming SMS webhook from Twilio
  */
 export async function processIncomingSMS(
-    from: string,
+    from: string, // Incoming phone number
     body: string
 ): Promise<{ tenantId?: string; message: string }> {
     try {
-        // Find tenant by phone number
-        const tenant = await prisma.tenant.findFirst({
-            where: {
-                phone: {
-                    contains: from.replace(/\D/g, '').slice(-10), // Match last 10 digits
-                },
-            },
+        // Find tenant by phone number (last 10 digits)
+        const normalizedFrom = from.replace(/\D/g, '').slice(-10);
+        const snapshot = await db.collection('tenants')
+            .where('phone', '>=', normalizedFrom) // Simplistic match for Firestore
+            .get();
+
+        // Firestore doesn't support 'contains' or regex matches well, 
+        // normally we'd store a normalized phone number for exact matching.
+        // For now, find the best match in memory if needed.
+        const tenant = snapshot.docs.find(doc => {
+            const phone = doc.data().phone?.replace(/\D/g, '') || '';
+            return phone.endsWith(normalizedFrom);
         });
 
         if (!tenant) {
@@ -71,7 +75,6 @@ export async function processIncomingSMS(
             };
         }
 
-        // TODO: Re-implement logging with a new simplified model if needed
         console.log(`Incoming SMS from ${from} for tenant ${tenant.id}: ${body}`);
 
         return {

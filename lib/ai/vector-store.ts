@@ -1,12 +1,9 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 import { VertexAI } from '@google-cloud/vertexai';
 
-// Initialize Vertex AI
-const project = process.env.GOOGLE_CLOUD_PROJECT || 'propflow-ai-483621';
-const location = 'us-east5';
-const vertex_ai = new VertexAI({ project: project, location: location });
-
-const embeddingModelName = 'text-embedding-004';
+const project = process.env.NEXT_PUBLIC_GCP_PROJECT_ID || 'propflow-ai-483621';
+const location = 'us-central1';
+const vertexAI = new VertexAI({ project, location });
 
 let pineconeClient: Pinecone | null = null;
 
@@ -23,24 +20,26 @@ function getPineconeClient(): Pinecone {
 }
 
 /**
- * Generate embeddings for text using Vertex AI
+ * Generate embeddings for text using Vertex AI (text-embedding-004)
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
     try {
-        const model = vertex_ai.getGenerativeModel({ model: embeddingModelName });
+        const model = vertexAI.getGenerativeModel({ model: 'text-embedding-004' });
 
-        // Vertex AI embedding expects 'content' object
-        // @ts-expect-error - embedContent is missing in current type definition but exists in runtime
-        const result = await model.embedContent(text);
-        const embedding = result.embedding.values;
+        // Use the native embedContent method
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (model as any).embedContent({
+            content: { role: 'user', parts: [{ text }] }
+        });
 
+        const embedding = result.predictions?.[0]?.embeddings?.values;
         if (!embedding) {
             throw new Error('No embedding returned from Vertex AI');
         }
 
         return embedding;
     } catch (error) {
-        console.error('Error generating embedding:', error);
+        console.error('Error generating embedding with Vertex AI:', error);
         throw error;
     }
 }

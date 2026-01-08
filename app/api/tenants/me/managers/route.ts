@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 
 export async function GET(req: NextRequest) {
     try {
@@ -10,37 +10,50 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Email required' }, { status: 400 });
         }
 
-        // Find tenant by email -> get property -> get managers
-        const tenant = await prisma.tenant.findFirst({
-            where: { email },
-            include: {
-                property: {
-                    include: {
-                        managers: {
-                            select: {
-                                id: true,
-                                firstName: true,
-                                lastName: true,
-                                email: true,
-                                phone: true
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        // Find tenant by email
+        const tSnapshot = await db.collection('tenants')
+            .where('email', '==', email)
+            .limit(1)
+            .get();
 
-        if (!tenant) {
+        if (tSnapshot.empty) {
             return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const managers = (tenant as any).property.managers;
+        const tenant = tSnapshot.docs[0].data();
+        const propertyId = tenant.propertyId;
+
+        if (!propertyId) {
+            return NextResponse.json({ managers: [], propertyName: 'No Property Assigned' });
+        }
+
+        // Get property
+        const pDoc = await db.collection('properties').doc(propertyId).get();
+        if (!pDoc.exists) {
+            return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+        }
+
+        const property = pDoc.data();
+
+        // Fetch managers. Assuming managerUserId stores the ID or properties have multiple.
+        const managers = [];
+        if (property?.managerUserId) {
+            const mDoc = await db.collection('users').doc(property.managerUserId).get();
+            if (mDoc.exists) {
+                const mData = mDoc.data();
+                managers.push({
+                    id: mDoc.id,
+                    firstName: mData?.firstName || mData?.name,
+                    lastName: mData?.lastName || '',
+                    email: mData?.email,
+                    phone: mData?.phone
+                });
+            }
+        }
 
         return NextResponse.json({
             managers,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            propertyName: (tenant as any).property.name
+            propertyName: property?.name || 'Unknown Property'
         });
     } catch (error) {
         console.error('Failed to fetch tenant manager:', error);

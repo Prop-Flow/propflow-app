@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { getSessionUser } from '@/lib/auth/session';
 import { differenceInDays } from 'date-fns';
 
@@ -11,75 +11,93 @@ export async function GET(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const propertyId = searchParams.get('propertyId');
 
-        // Build query filter
-        const whereClause = propertyId
-            ? { propertyId, property: { ownerUserId: session.id } }
-            : { property: { ownerUserId: session.id } };
+        // Fetch properties owned by the user (to verify ownership)
+        const propsSnapshot = await db.collection('properties')
+            .where('ownerUserId', '==', session.id)
+            .get();
 
-        // Fetch tenants with their active lease agreements
-        // We prioritize the structured LeaseAgreement if it exists, otherwise fallback to Tenant fields
-        const tenants = await prisma.tenant.findMany({
-            where: {
-                ...whereClause,
-                status: 'active'
-            },
-            include: {
-                property: { select: { name: true } },
-                leases: {
-                    where: { status: 'ACTIVE' },
-                    orderBy: { createdAt: 'desc' },
-                    take: 1
-                }
+        const ownedPropertyIds = propsSnapshot.docs.map(doc => doc.id);
+        const propertiesMap = propsSnapshot.docs.reduce((acc, doc) => {
+            acc[doc.id] = { id: doc.id, ...doc.data() };
+            return acc;
+        }, {} as Record<string, Record<string, unknown>>);
+
+        if (ownedPropertyIds.length === 0) {
+            return NextResponse.json({ generatedAt: new Date().toISOString(), summary: {}, rentRoll: [] });
+        }
+
+        // Build query for tenants
+        let tenantsQuery: FirebaseFirestore.Query = db.collection('tenants').where('status', '==', 'active');
+
+        if (propertyId) {
+            if (!ownedPropertyIds.includes(propertyId)) {
+                return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
             }
-        });
+            tenantsQuery = tenantsQuery.where('propertyId', '==', propertyId);
+        } else {
+            // Firestore 'in' limit
+            tenantsQuery = tenantsQuery.where('propertyId', 'in', ownedPropertyIds.slice(0, 30));
+        }
 
-        // 2. Synthesize Rent Roll Data
-        const rentRoll = tenants.map(tenant => {
-            const activeLease = tenant.leases[0];
+        const tenantsSnapshot = await tenantsQuery.get();
 
-            // Determine effective values (Lease > Tenant Model)
+        // Fetch leases for these tenants
+        const rentRoll = await Promise.all(tenantsSnapshot.docs.map(async doc => {
+            const tenant = doc.data();
+            const property = propertiesMap[tenant.propertyId];
+
+            // Fetch active lease
+            const leaseSnapshot = await db.collection('leases')
+                .where('tenantId', '==', doc.id)
+                .where('status', '==', 'ACTIVE')
+                .orderBy('createdAt', 'desc')
+                .limit(1)
+                .get();
+
+            const activeLease = leaseSnapshot.empty ? null : leaseSnapshot.docs[0].data();
+
+            // Determine effective values
             const rentAmount = activeLease?.rentAmount ?? tenant.rentAmount ?? 0;
             const leaseEnd = activeLease?.endDate ?? tenant.leaseEndDate;
             const leaseStart = activeLease?.startDate ?? tenant.leaseStartDate;
             const securityDeposit = activeLease?.securityDeposit ?? 0;
 
-            // 3. Turnover Risk Analysis
             let riskStatus = 'LOW';
             let daysUntilExpiration = null;
 
             if (leaseEnd) {
                 const today = new Date();
-                daysUntilExpiration = differenceInDays(new Date(leaseEnd), today);
+                const endDate = leaseEnd.toDate ? leaseEnd.toDate() : new Date(leaseEnd);
+                daysUntilExpiration = differenceInDays(endDate, today);
 
                 if (daysUntilExpiration < 0) {
-                    riskStatus = 'EXPIRED'; // Month-to-month or holdover
+                    riskStatus = 'EXPIRED';
                 } else if (daysUntilExpiration <= 30) {
-                    riskStatus = 'CRITICAL'; // Immediate turnover risk
+                    riskStatus = 'CRITICAL';
                 } else if (daysUntilExpiration <= 90) {
-                    riskStatus = 'HIGH'; // Upcoming vacancy
+                    riskStatus = 'HIGH';
                 } else if (daysUntilExpiration <= 180) {
                     riskStatus = 'MEDIUM';
                 }
             }
 
             return {
-                id: tenant.id,
+                id: doc.id,
                 tenantName: tenant.name,
-                propertyName: tenant.property.name,
+                propertyName: property?.name || 'Unknown',
                 unit: tenant.apartmentNumber || 'N/A',
-                type: tenant.numberOfOccupants > 0 ? 'Residential' : 'Commercial', // Simple heuristic or fetch from property
+                type: tenant.numberOfOccupants > 0 ? 'Residential' : 'Commercial',
                 sqFt: tenant.squareFootage || 0,
                 rent: rentAmount,
                 deposit: securityDeposit,
-                leaseStart: leaseStart ? leaseStart.toISOString().split('T')[0] : 'N/A',
-                leaseEnd: leaseEnd ? leaseEnd.toISOString().split('T')[0] : 'N/A',
+                leaseStart: leaseStart ? (leaseStart.toDate ? leaseStart.toDate() : new Date(leaseStart)).toISOString().split('T')[0] : 'N/A',
+                leaseEnd: leaseEnd ? (leaseEnd.toDate ? leaseEnd.toDate() : new Date(leaseEnd)).toISOString().split('T')[0] : 'N/A',
                 daysUntilExpiration,
                 riskStatus,
                 status: tenant.status
             };
-        });
+        }));
 
-        // Calculate Totals
         const summary = {
             totalMonthlyRent: rentRoll.reduce((sum, item) => sum + item.rent, 0),
             totalDeposits: rentRoll.reduce((sum, item) => sum + item.deposit, 0),

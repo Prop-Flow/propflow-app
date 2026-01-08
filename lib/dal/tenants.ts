@@ -3,36 +3,41 @@
  * Centralizes tenant data access with built-in authorization
  */
 
-import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
+import { db } from '../services/firebase-admin';
 import { ForbiddenError, NotFoundError } from '../errors/custom-errors';
-import { getTenantFieldsForRole } from '../auth/rbac';
+import { getAllowedTenantFields, filterFields } from '../auth/rbac';
 import type { SessionUser } from '../auth/session';
 
 /**
  * Get tenant by ID with role-based access control
  */
 export async function getTenantForUser(tenantId: string, user: SessionUser) {
-    const tenant = await prisma.tenant.findFirst({
-        where: {
-            id: tenantId,
-            OR: [
-                // Tenant can access their own data
-                { userId: user.id },
-                // Owner can access tenants in their properties
-                ...(user.role === 'owner' ? [{ property: { ownerUserId: user.id } }] : []),
-                // Manager can access tenants in managed properties
-                ...(user.role === 'property_manager' ? [{ property: { managers: { some: { id: user.id } } } }] : []),
-            ],
-        },
-        select: getTenantFieldsForRole(user.role),
-    });
+    const doc = await db.collection('tenants').doc(tenantId).get();
 
-    if (!tenant) {
-        throw new NotFoundError('Tenant not found or access denied');
+    if (!doc.exists) {
+        throw new NotFoundError('Tenant not found');
     }
 
-    return tenant;
+    const data = doc.data()!;
+    const propertyDoc = await db.collection('properties').doc(data.propertyId).get();
+    const propertyData = propertyDoc.exists ? propertyDoc.data() : null;
+
+    const hasAccess =
+        data.userId === user.id ||
+        (propertyData && (
+            propertyData.ownerUserId === user.id ||
+            (propertyData.managers || []).includes(user.id)
+        ));
+
+    if (!hasAccess) {
+        throw new ForbiddenError('Access denied to this tenant');
+    }
+
+    // Apply role-based field filtering
+    const allowedFields = getAllowedTenantFields(user.role);
+    const filteredData = { id: doc.id, ...filterFields(data as Record<string, unknown>, allowedFields) };
+
+    return filteredData;
 }
 
 /**
@@ -43,139 +48,132 @@ export async function getTenantsForUser(user: SessionUser, filters?: {
     propertyId?: string;
     status?: string;
 }) {
-    const where: Prisma.TenantWhereInput = {};
+    let tenantQuery: FirebaseFirestore.Query = db.collection('tenants');
 
-    // Apply role-based filtering
-    if (user.role === 'owner') {
-        where.property = { ownerUserId: user.id };
-    } else if (user.role === 'property_manager') {
-        where.property = { managers: { some: { id: user.id } } };
-    } else if (user.role === 'tenant') {
-        where.userId = user.id;
+    if (user.role === 'tenant') {
+        tenantQuery = tenantQuery.where('userId', '==', user.id);
     } else {
-        throw new ForbiddenError('Invalid role for tenant access');
+        // Owner or Manager: Need to filter by property access
+        let propertyIds: string[] = [];
+        const propertyQuery = user.role === 'owner'
+            ? db.collection('properties').where('ownerUserId', '==', user.id)
+            : db.collection('properties').where('managers', 'array-contains', user.id);
+
+        const propertySnapshot = await propertyQuery.get();
+        propertyIds = propertySnapshot.docs.map(doc => doc.id);
+
+        if (propertyIds.length === 0) return [];
+
+        // Handle propertyId filter
+        if (filters?.propertyId) {
+            if (propertyIds.includes(filters.propertyId)) {
+                tenantQuery = tenantQuery.where('propertyId', '==', filters.propertyId);
+            } else {
+                return []; // No access to requested property
+            }
+        } else {
+            // Filter by all accessible properties (limit 30 for 'in' operator)
+            const chunkedIds = propertyIds.slice(0, 30);
+            tenantQuery = tenantQuery.where('propertyId', 'in', chunkedIds);
+        }
     }
 
-    // Apply additional filters
-    if (filters?.propertyId) {
-        where.propertyId = filters.propertyId;
-    }
     if (filters?.status) {
-        where.status = filters.status;
+        tenantQuery = tenantQuery.where('status', '==', filters.status);
     }
 
-    const tenants = await prisma.tenant.findMany({
-        where,
-        select: getTenantFieldsForRole(user.role),
-        orderBy: { createdAt: 'desc' },
-    });
+    const snapshot = await tenantQuery.orderBy('createdAt', 'desc').get();
+    const allowedFields = getAllowedTenantFields(user.role);
 
-    return tenants;
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { id: doc.id, ...filterFields(data as Record<string, unknown>, allowedFields) };
+    });
 }
 
 /**
  * Create tenant (owner/manager only)
  */
-export async function createTenant(data: Prisma.TenantUncheckedCreateInput, user: SessionUser) {
+export async function createTenant(data: Record<string, unknown>, user: SessionUser) {
     if (user.role === 'tenant') {
         throw new ForbiddenError('Tenants cannot create other tenants');
     }
 
     // Verify user has access to the property
-    const property = await prisma.property.findFirst({
-        where: {
-            id: data.propertyId,
-            OR: [
-                { ownerUserId: user.id },
-                { managers: { some: { id: user.id } } },
-            ],
-        },
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const propertyDoc = await db.collection('properties').doc((data as any).propertyId).get();
+    if (!propertyDoc.exists) throw new NotFoundError('Property not found');
 
-    if (!property) {
+    const propertyData = propertyDoc.data()!;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hasAccess = (propertyData as any).ownerUserId === user.id || ((propertyData as any).managers || []).includes(user.id);
+
+    if (!hasAccess) {
         throw new ForbiddenError('You do not have access to this property');
     }
 
-    const tenant = await prisma.tenant.create({
-        data,
-        select: getTenantFieldsForRole(user.role),
-    });
+    const tenantData = {
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
 
-    return tenant;
+    const docRef = await db.collection('tenants').add(tenantData);
+    const doc = await docRef.get();
+
+    return { id: doc.id, ...doc.data() };
 }
 
 /**
  * Update tenant (owner/manager only, or tenant updating own data)
  */
-export async function updateTenant(tenantId: string, data: Prisma.TenantUncheckedUpdateInput, user: SessionUser) {
-    const existing = await prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: {
-            userId: true,
-            property: {
-                select: {
-                    ownerUserId: true,
-                    managers: { select: { id: true } },
-                },
-            },
-        },
-    });
+export async function updateTenant(tenantId: string, data: Record<string, unknown>, user: SessionUser) {
+    const docRef = db.collection('tenants').doc(tenantId);
+    const doc = await docRef.get();
 
-    if (!existing) {
+    if (!doc.exists) {
         throw new NotFoundError('Tenant not found');
     }
 
+    const existingData = doc.data()!;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const propertyDoc = await db.collection('properties').doc((existingData as any).propertyId).get();
+    const propertyData = propertyDoc.exists ? propertyDoc.data() : null;
+
     // Check permissions
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     const canUpdate =
-        existing.userId === user.id || // Tenant updating own data
-        existing.property.ownerUserId === user.id || // Owner
-        existing.property.managers.some(m => m.id === user.id); // Manager
+        (existingData as any).userId === user.id || // Tenant updating own data
+        (propertyData && (
+            (propertyData as any).ownerUserId === user.id ||
+            ((propertyData as any).managers || []).includes(user.id)
+        ));
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     if (!canUpdate) {
         throw new ForbiddenError('You do not have permission to update this tenant');
     }
 
     // Tenants can only update limited fields
+    let finalUpdateData = data;
     if (user.role === 'tenant') {
-        const updateData: Prisma.TenantUpdateInput = {};
-        // Explicitly check and assign allowed fields to avoid dynamic key index errors for Prisma types
-        if ('phone' in data && typeof data.phone === 'string') updateData.phone = data.phone;
-        if ('email' in data && typeof data.email === 'string') updateData.email = data.email;
-
-        // Only use the filtered updateData
-        data = updateData;
+        finalUpdateData = {};
+        if (data.phone) finalUpdateData.phone = data.phone;
+        if (data.email) finalUpdateData.email = data.email;
     }
 
-    const tenant = await prisma.tenant.update({
-        where: { id: tenantId },
-        data,
-        select: getTenantFieldsForRole(user.role),
+    await docRef.update({
+        ...finalUpdateData,
+        updatedAt: new Date(),
     });
 
-    return tenant;
+    const updatedDoc = await docRef.get();
+    return { id: updatedDoc.id, ...updatedDoc.data() };
 }
 
 /**
  * Get pending tenants (owner/manager only)
  */
 export async function getPendingTenantsForUser(user: SessionUser) {
-    if (user.role === 'tenant') {
-        throw new ForbiddenError('Tenants cannot view pending tenant list');
-    }
-
-    const where: Prisma.TenantWhereInput = { status: 'pending' };
-
-    if (user.role === 'owner') {
-        where.property = { ownerUserId: user.id };
-    } else if (user.role === 'property_manager') {
-        where.property = { managers: { some: { id: user.id } } };
-    }
-
-    const tenants = await prisma.tenant.findMany({
-        where,
-        select: getTenantFieldsForRole(user.role),
-        orderBy: { createdAt: 'desc' },
-    });
-
-    return tenants;
+    return getTenantsForUser(user, { status: 'pending' });
 }

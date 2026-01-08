@@ -1,81 +1,60 @@
-# Propflow Tech Stack Update: AI Agents & MCP Integration
-
-Date: January 7, 2026 Version: 1.0.0
+# Propflow Tech Stack Update: Google Vertex AI & Firebase Integration
+Date: January 7, 2026 Version: 1.1.0
 
 ## Overview
-
-This document outlines the recent upgrades to the Propflow technology stack. We have significantly enhanced the core AI Engine (`lib/ai/agent-engine.ts`) by integrating Model Context Protocol (MCP) capabilities. These changes transform the AI from a simple text generator into a sophisticated agent capable of reasoning, memory retention, database access, and observability.
+This document outlines the migration of Propflow's AI backend from OpenAI to Google Vertex AI. We have transitioned to Gemini 1.5 (Pro/Flash) for advanced multimodal document analysis and agent reasoning, integrated Firebase Admin SDK for unified GCP management, and updated our vector embedding model to `text-embedding-004`.
 
 ## 1. New Dependencies & Tech Stack Additions
-
-We have introduced the following packages to support advanced observability and agent tooling:
+We have replaced OpenAI with Google Cloud's unified AI platform:
 
 | Package | Purpose |
-| :--- | :--- |
-| `@arizeai/phoenix-otel` | provides OpenTelemetry instrumentation to trace and debug AI execution flows and tool usage. |
-| `@opentelemetry/sdk-trace-node` | Core SDK for Node.js tracing. |
-| `@google-cloud/vertexai` | Google Cloud Vertex AI SDK for Gemini models. |
-| `@google-cloud/documentai` | Google Cloud Document AI SDK for intelligent document processing. |
-| `zod` | Used for strict schema validation of tool inputs (Thinking, Memory, Database tools). |
+|---------|---------|
+| `@google-cloud/vertexai` | Primary SDK for Gemini 1.5 Pro/Flash and text embeddings. |
+| `firebase-admin` | Server-side management of Firebase services and GCP resources. |
+| `@arizeai/phoenix-otel` | OpenTelemetry instrumentation for AI observability. |
+| `@opentelemetry/instrumentation-http` | Captures Vertex AI API calls and other external service latency. |
+| `zod` | Strict schema validation for tool inputs (Thinking, Memory, Database). |
 
-## 2. Integrated MCP Capabilities (Tools)
+## 2. Integrated Gemini Capabilities
+The AI agents are now powered by Google's Gemini models, offering native multimodal support.
 
-The AI agents now have access to a suite of "polyfilled" MCP tools that run locally within the application.
+### 🧠 Gemini 1.5 Pro / Flash (Agents & Parser)
+- **Feature**: Native support for processing PDFs, images, and long-context reasoning without pre-extraction.
+- **Benefit**: Faster, more accurate document parsing and superior "step-by-step" logical thinking.
+- **Location**: `lib/ai/vertex.ts` (Unified service wrapper).
 
-### 🧠 Sequential Thinking (Reasoning)
+### 📐 Text Embeddings (Vertex-based)
+- **Feature**: Switched from OpenAI to `text-embedding-004` (768 dimensions).
+- **Benefit**: Improved semantic retrieval for tenant-specific context within the Google ecosystem.
+- **Location**: `lib/ai/vector-store.ts`.
 
-- **Feature**: Allows the agent to pause, "think" step-by-step, revise its logic, and branch its reasoning before answering.
-- **Benefit**: Vastly improved handling of complex scenarios (e.g., "Analyze the risks of this lease vs. the tenant's payment history").
-- **Location**: `lib/ai/tools/sequential-thinking.ts`
+### 💾 Firebase Admin SDK
+- **Feature**: Integrated for robust server-side authentication and backend service orchestration.
+- **Cloud Connection**: Local development uses Application Default Credentials (ADC).
 
-### 💾 Long-Term Memory
-
-- **Feature**: A persistence layer that lets agents store and recall information across conversations.
-- **Benefit**: The agent can "remember" tenant preferences (e.g., "Mrs. Smith prefers texts over email") or property quirks.
-- **Storage**: `.agent/memory_store.json` (Local JSON file).
-- **Location**: `lib/ai/tools/memory.ts`
-
-### 🔍 Database Access (Prisma Integration)
-
-- **Feature**: Direct read-access to the application's database tables (User, Lease, Property, etc.).
-- **Benefit**: Agents can answer factual questions like "What is the current balance for Unit 4B?" without guessing.
-- **Location**: `lib/ai/tools/database.ts`
+### 🔍 Database & Memory Tools
+- **Persistence**: Remained consistent with Prisma and local memory storage, but adapted for Gemini's function calling format.
 
 ### 🐞 Observability (Arize Phoenix)
-
-- **Feature**: Full tracing of every AI interaction.
-- **Benefit**: You can now see exactly why an agent made a decision, how long each step took, and what tool inputs were used.
-- **Configuration**: Auto-instruments on app startup in `agent-engine.ts`.
-
-### 🛠️ GitHub Integration
-
-- **Feature**: Ability to log bugs or feature requests directly from the agent.
-- **Benefit**: Streamlines development by allowing the AI to flag issues it encounters.
-- **Location**: `lib/ai/tools/github.ts`
-
-### 📄 Document AI (New)
-
-- **Feature**: Intelligent extraction of data from documents (leases, invoices).
-- **Location**: `lib/gcp/document-ai.ts`
+- **Tracing**: Full HTTP-level tracing of Every Gemini call, replacing the previous OpenAI-specific instrumentation.
 
 ## 3. Configuration Requirements
-
-To fully utilize these new features, ensure your environment (`.env.local`) has the following keys:
+Updated environment keys (`.env.local`):
 
 ```bash
-# Required for Intelligence (Vertex AI auto-auths via gcloud or service account)
-GOOGLE_CLOUD_PROJECT=propflow-ai-483621
+# Required for GCP/Vertex
+NEXT_PUBLIC_GCP_PROJECT_ID=propflow-...
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 
-# Required for Database Tool (Already configured in Propflow)
-DATABASE_URL=postgresql://...
-
-# Optional: For Real-world GitHub Issues (Default: Simulates locally)
-GITHUB_TOKEN=ghp_...
-GITHUB_REPO=owner/repo
+# Required for Vector Store (Pinecone)
+PINECONE_API_KEY=...
+PINECONE_INDEX_NAME=...
 ```
 
-## 4. How to Verify
+> [!IMPORTANT]
+> Since we changed embedding models, existing vectors in Pinecone (1536d) are incompatible with the new 768d vectors. The index must be recreated or cleared.
 
-1. **Thinking**: Ask the agent a complex question. You will see it generate "thought" tokens before the final answer.
-2. **Memory**: Tell the agent "My favorite color is blue." Later, ask "What is my favorite color?"
-3. **Tracing**: Run the app and check your console or Arize dashboard (if configured) to see traces of the execution.
+## 4. How to Verify
+1. **Gemini Reasoning**: Ask the agent a complex property management question. 
+2. **Document Parsing**: Upload a lease PDF; the agent will process it using native multimodal vision.
+3. **Embeddings**: Run `ts-node scripts/test-vertex-integration.ts` to verify API connectivity.

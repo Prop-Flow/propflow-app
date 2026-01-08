@@ -4,10 +4,9 @@
  * Implements OWASP best practice: authorization closest to data
  */
 
-import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
+import { db } from '../services/firebase-admin';
 import { ForbiddenError, NotFoundError } from '../errors/custom-errors';
-import { getPropertyFieldsForRole, canAccessProperty } from '../auth/rbac';
+import { getAllowedPropertyFields, canAccessProperty, filterFields } from '../auth/rbac';
 import type { SessionUser } from '../auth/session';
 
 /**
@@ -15,24 +14,31 @@ import type { SessionUser } from '../auth/session';
  * Throws UnauthorizedError if user doesn't have access
  */
 export async function getPropertyForUser(propertyId: string, user: SessionUser) {
-    const property = await prisma.property.findFirst({
-        where: {
-            id: propertyId,
-            OR: [
-                { ownerUserId: user.id }, // Owner access
-                { managers: { some: { id: user.id } } }, // Manager access
-                // Tenants can see basic info only (handled by field selection)
-                ...(user.role === 'tenant' ? [{ tenants: { some: { userId: user.id } } }] : []),
-            ],
-        },
-        select: getPropertyFieldsForRole(user.role),
-    });
+    const doc = await db.collection('properties').doc(propertyId).get();
 
-    if (!property) {
-        throw new NotFoundError('Property not found or access denied');
+    if (!doc.exists) {
+        throw new NotFoundError('Property not found');
     }
 
-    return property;
+    const data = doc.data()!;
+    // Combine managers array and individual manager checks if needed
+    const managers = data.managers || [];
+    const tenants = data.tenants || [];
+
+    const hasAccess =
+        data.ownerUserId === user.id ||
+        managers.includes(user.id) ||
+        (user.role === 'tenant' && tenants.includes(user.id));
+
+    if (!hasAccess) {
+        throw new ForbiddenError('Access denied to this property');
+    }
+
+    // Apply role-based field filtering
+    const allowedFields = getAllowedPropertyFields(user.role);
+    const filteredData = { id: doc.id, ...filterFields(data as Record<string, unknown>, allowedFields) };
+
+    return filteredData;
 }
 
 /**
@@ -40,70 +46,72 @@ export async function getPropertyForUser(propertyId: string, user: SessionUser) 
  * Returns only properties the user has access to
  */
 export async function getPropertiesForUser(user: SessionUser) {
-    const where = user.role === 'owner'
-        ? { ownerUserId: user.id }
-        : user.role === 'property_manager'
-            ? { managers: { some: { id: user.id } } }
-            : user.role === 'tenant'
-                ? { tenants: { some: { userId: user.id } } }
-                : { id: 'never-match' }; // No access for other roles
+    let query: FirebaseFirestore.Query = db.collection('properties');
 
-    const properties = await prisma.property.findMany({
-        where,
-        select: getPropertyFieldsForRole(user.role),
-        orderBy: { createdAt: 'desc' },
+    if (user.role === 'owner') {
+        query = query.where('ownerUserId', '==', user.id);
+    } else if (user.role === 'property_manager') {
+        query = query.where('managers', 'array-contains', user.id);
+    } else if (user.role === 'tenant') {
+        query = query.where('tenants', 'array-contains', user.id);
+    } else {
+        return [];
+    }
+
+    const snapshot = await query.orderBy('createdAt', 'desc').get();
+    const allowedFields = getAllowedPropertyFields(user.role);
+
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { id: doc.id, ...filterFields(data as Record<string, unknown>, allowedFields) };
     });
-
-    return properties;
 }
 
 /**
  * Create property (owner only)
  */
-export async function createProperty(data: Prisma.PropertyUncheckedCreateInput, user: SessionUser) {
+export async function createProperty(data: Record<string, unknown>, user: SessionUser) {
     if (user.role !== 'owner') {
         throw new ForbiddenError('Only owners can create properties');
     }
 
-    const property = await prisma.property.create({
-        data: {
-            ...data,
-            ownerUserId: user.id,
-        },
-        select: getPropertyFieldsForRole(user.role),
-    });
+    const propertyData = {
+        ...data,
+        ownerUserId: user.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
 
-    return property;
+    const docRef = await db.collection('properties').add(propertyData);
+    const doc = await docRef.get();
+
+    return { id: doc.id, ...doc.data() };
 }
 
 /**
  * Update property (owner/manager only)
  */
-export async function updateProperty(propertyId: string, data: Prisma.PropertyUncheckedUpdateInput, user: SessionUser) {
-    // Verify access first
-    const existing = await prisma.property.findUnique({
-        where: { id: propertyId },
-        select: {
-            ownerUserId: true,
-            managers: { select: { id: true } },
-        },
-    });
+export async function updateProperty(propertyId: string, data: Record<string, unknown>, user: SessionUser) {
+    const docRef = db.collection('properties').doc(propertyId);
+    const doc = await docRef.get();
 
-    if (!existing) {
+    if (!doc.exists) {
         throw new NotFoundError('Property not found');
     }
 
-    if (!canAccessProperty(existing, user.id, user.role)) {
+    const existingData = doc.data()!;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!canAccessProperty(existingData as any, user.id, user.role)) {
         throw new ForbiddenError('You do not have permission to update this property');
     }
 
-    const property = await prisma.property.update({
-        where: { id: propertyId },
-        data,
-        select: getPropertyFieldsForRole(user.role),
+    await docRef.update({
+        ...data,
+        updatedAt: new Date(),
     });
 
-    return property;
+    const updatedDoc = await docRef.get();
+    return { id: updatedDoc.id, ...updatedDoc.data() };
 }
 
 /**
@@ -114,22 +122,19 @@ export async function deleteProperty(propertyId: string, user: SessionUser) {
         throw new ForbiddenError('Only owners can delete properties');
     }
 
-    const property = await prisma.property.findUnique({
-        where: { id: propertyId },
-        select: { ownerUserId: true },
-    });
+    const docRef = db.collection('properties').doc(propertyId);
+    const doc = await docRef.get();
 
-    if (!property) {
+    if (!doc.exists) {
         throw new NotFoundError('Property not found');
     }
 
-    if (property.ownerUserId !== user.id) {
+    const data = doc.data()!;
+    if (data.ownerUserId !== user.id) {
         throw new ForbiddenError('You can only delete your own properties');
     }
 
-    await prisma.property.delete({
-        where: { id: propertyId },
-    });
+    await docRef.delete();
 
     return { success: true };
 }

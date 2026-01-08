@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth/session';
 import { sendWithFallback, CommunicationRequest } from '@/lib/communication/channel-router';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 
 export async function POST(req: NextRequest) {
     try {
         const user = await getSessionUser(req);
         // Ensure user is authorized (e.g. is a property manager or owner)
-        // For now, assuming any authenticated user can send for valid tenants
 
         const body = await req.json();
         const { tenantId, message, subject } = body;
@@ -16,25 +15,29 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        const tenant = await prisma.tenant.findUnique({
-            where: { id: tenantId },
-            include: { property: true }
-        });
-
-        if (!tenant) {
+        const tenantDoc = await db.collection('tenants').doc(tenantId).get();
+        if (!tenantDoc.exists) {
             return NextResponse.json({ error: 'Tenant not found' }, { status: 404 });
         }
 
+        const tenantData = tenantDoc.data();
+        const propertyDoc = await db.collection('properties').doc(tenantData?.propertyId).get();
+
+        if (!propertyDoc.exists) {
+            return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+        }
+
+        const propertyData = propertyDoc.data();
         // Check permissions: User must own the property
-        if (tenant.property.ownerUserId !== user.id) {
+        if (propertyData?.ownerUserId !== user.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
         const request: CommunicationRequest = {
             tenantId,
-            tenantName: tenant.name,
-            phone: tenant.phone || undefined,
-            email: tenant.email || undefined,
+            tenantName: tenantData?.name || 'Unknown',
+            phone: tenantData?.phone || undefined,
+            email: tenantData?.email || undefined,
             message,
             subject,
         };

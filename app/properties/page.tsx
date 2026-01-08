@@ -1,5 +1,5 @@
 import PropertiesClient from '@/components/properties/PropertiesClient';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 
@@ -10,26 +10,30 @@ export default async function PropertiesPage() {
         redirect('/login');
     }
 
-    const properties = await prisma.property.findMany({
-        where: {
-            ownerUserId: session.user.id
-        },
-        include: {
-            _count: {
-                select: {
-                    tenants: true,
-                },
-            },
-        },
-        orderBy: {
-            createdAt: 'desc',
-        },
-    });
+    const propertiesSnapshot = await db.collection('properties')
+        .where('ownerUserId', '==', session.user.id)
+        .orderBy('createdAt', 'desc')
+        .get();
 
-    const mappedProperties = properties.map(p => ({
-        ...p,
-        type: p.propertyType
+    const mappedProperties = await Promise.all(propertiesSnapshot.docs.map(async doc => {
+        const data = doc.data();
+
+        // Fetch tenant count for this property
+        const tenantsSnapshot = await db.collection('tenants')
+            .where('propertyId', '==', doc.id)
+            .count()
+            .get();
+
+        return {
+            id: doc.id,
+            ...data,
+            type: data.propertyType,
+            _count: {
+                tenants: tenantsSnapshot.data().count
+            }
+        };
     }));
 
-    return <PropertiesClient initialProperties={mappedProperties} />;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return <PropertiesClient initialProperties={mappedProperties as any} />;
 }

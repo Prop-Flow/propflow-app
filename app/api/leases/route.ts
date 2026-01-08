@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { getSessionUser } from '@/lib/auth/session';
 import { z } from 'zod';
 
@@ -11,7 +11,6 @@ const LeaseSchema = z.object({
     endDate: z.string().or(z.date()),
     rentAmount: z.number().min(0),
     securityDeposit: z.number().min(0),
-    // Lease specific fields
     leaseType: z.string().optional().nullable(),
     escalationType: z.string().optional().nullable(),
     escalationValue: z.number().optional().nullable(),
@@ -33,19 +32,17 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Property ID required' }, { status: 400 });
         }
 
-        const property = await prisma.property.findUnique({
-            where: { id: propertyId, ownerUserId: session.id }
-        });
-
-        if (!property) {
+        const propertyDoc = await db.collection('properties').doc(propertyId).get();
+        if (!propertyDoc.exists || propertyDoc.data()?.ownerUserId !== session.id) {
             return NextResponse.json({ error: 'Property not found or unauthorized' }, { status: 403 });
         }
 
-        const leases = await prisma.leaseAgreement.findMany({
-            where: { propertyId },
-            include: { tenant: { select: { name: true, email: true } } },
-            orderBy: { createdAt: 'desc' }
-        });
+        const snapshot = await db.collection('leaseAgreements')
+            .where('propertyId', '==', propertyId)
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const leases = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         return NextResponse.json(leases);
 
@@ -73,11 +70,8 @@ export async function POST(request: NextRequest) {
         const { propertyId, tenantId, ...data } = result.data;
 
         // Verify property ownership
-        const property = await prisma.property.findUnique({
-            where: { id: propertyId, ownerUserId: session.id }
-        });
-
-        if (!property) {
+        const propertyDoc = await db.collection('properties').doc(propertyId).get();
+        if (!propertyDoc.exists || propertyDoc.data()?.ownerUserId !== session.id) {
             return NextResponse.json({ error: 'Property not found or unauthorized' }, { status: 404 });
         }
 
@@ -88,25 +82,24 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid start or end date' }, { status: 400 });
         }
 
-        const newLease = await prisma.leaseAgreement.create({
-            data: {
-                propertyId,
-                tenantId: tenantId || null,
-                type: data.type,
-                startDate,
-                endDate,
-                rentAmount: data.rentAmount,
-                securityDeposit: data.securityDeposit,
-                leaseType: data.leaseType,
-                escalationType: data.escalationType,
-                escalationValue: data.escalationValue,
-                // Store misc fields in terms JSON if schema doesn't support them directly
-                // or if schema supports them:
-                // isFurnished: data.isFurnished,
-                // petsAllowed: data.petsAllowed,
-                status: 'DRAFT'
-            }
-        });
+        const leaseData = {
+            propertyId,
+            tenantId: tenantId || null,
+            type: data.type,
+            startDate,
+            endDate,
+            rentAmount: data.rentAmount,
+            securityDeposit: data.securityDeposit,
+            leaseType: data.leaseType || null,
+            escalationType: data.escalationType || null,
+            escalationValue: data.escalationValue || null,
+            status: 'DRAFT',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        const docRef = await db.collection('leaseAgreements').add(leaseData);
+        const newLease = { id: docRef.id, ...leaseData };
 
         return NextResponse.json(newLease, { status: 201 });
 

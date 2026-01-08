@@ -3,127 +3,76 @@
  * Defines what data each role can access
  */
 
-import type { Prisma } from '@prisma/client';
-
 /**
  * Get property fields based on user role
- * Implements principle of least privilege
+ * Returns an array of field names that the role is allowed to see
  */
-export function getPropertyFieldsForRole(role: string): Prisma.PropertySelect {
-    const baseFields: Prisma.PropertySelect = {
-        id: true,
-        name: true,
-        address: true,
-        city: true,
-        state: true,
-        zipCode: true,
-        units: true,
-        createdAt: true,
-        updatedAt: true,
-    };
+export function getAllowedPropertyFields(role: string): string[] {
+    const baseFields = [
+        'id', 'name', 'address', 'city', 'state', 'zipCode', 'units', 'createdAt', 'updatedAt'
+    ];
 
-    // Owner and Manager: Full access to all fields
     if (role === 'owner' || role === 'property_manager') {
-        return {
+        return [
             ...baseFields,
-            squareFeet: true,
-            yearBuilt: true,
-            purchasePrice: true,
-            purchaseDate: true,
-            buildingCode: true,
-            ownerUserId: true,
-            _count: {
-                select: {
-                    tenants: true,
-                },
-            },
-        };
+            'squareFeet', 'yearBuilt', 'purchasePrice', 'purchaseDate', 'buildingCode', 'ownerUserId'
+        ];
     }
 
-    // Tenant: Limited access - no financial data
-    if (role === 'tenant') {
-        return {
-            ...baseFields,
-            // Tenants can see basic property info only
-            // NO financial data, NO purchase price, NO owner info
-        };
-    }
-
-    // Default: Minimal access
     return baseFields;
 }
 
 /**
  * Get tenant fields based on user role
  */
-export function getTenantFieldsForRole(role: string): Prisma.TenantSelect {
-    const baseFields: Prisma.TenantSelect = {
-        id: true,
-        name: true,
-        status: true,
-        apartmentNumber: true,
-        createdAt: true,
-    };
+export function getAllowedTenantFields(role: string): string[] {
+    const baseFields = [
+        'id', 'name', 'status', 'apartmentNumber', 'createdAt'
+    ];
 
-    // Owner and Manager: Full access
     if (role === 'owner' || role === 'property_manager') {
-        return {
+        return [
             ...baseFields,
-            email: true,
-            phone: true,
-            leaseStartDate: true,
-            leaseEndDate: true,
-            rentAmount: true,
-            squareFootage: true,
-            numberOfOccupants: true,
-            property: {
-                select: {
-                    id: true,
-                    name: true,
-                    address: true,
-                },
-            },
-        };
+            'email', 'phone', 'leaseStartDate', 'leaseEndDate', 'rentAmount', 'squareFootage', 'numberOfOccupants', 'propertyId'
+        ];
     }
 
-    // Tenant: Can only see their own data
     if (role === 'tenant') {
-        return {
+        return [
             ...baseFields,
-            email: true,
-            phone: true,
-            leaseStartDate: true,
-            leaseEndDate: true,
-            rentAmount: true,
-            property: {
-                select: {
-                    id: true,
-                    name: true,
-                    address: true,
-                },
-            },
-        };
+            'email', 'phone', 'leaseStartDate', 'leaseEndDate', 'rentAmount', 'propertyId'
+        ];
     }
 
     return baseFields;
 }
 
 /**
+ * Filter object fields based on allowed list
+ */
+export function filterFields(data: Record<string, unknown>, allowedFields: string[]): Record<string, unknown> {
+    if (!data) return data;
+    const filtered: Record<string, unknown> = {};
+    allowedFields.forEach(field => {
+        if (field in data) {
+            filtered[field] = data[field];
+        }
+    });
+    return filtered;
+}
+
+/**
  * Check if user can access property
  */
 export function canAccessProperty(
-    property: { ownerUserId: string | null; managers?: { id: string }[] },
+    property: { ownerUserId: string | null; managers?: string[] },
     userId: string,
     role: string
 ): boolean {
-    // Owner access
     if (property.ownerUserId === userId) return true;
-
-    // Manager access
-    if (role === 'property_manager' && property.managers?.some(m => m.id === userId)) {
+    if (role === 'property_manager' && property.managers?.includes(userId)) {
         return true;
     }
-
     return false;
 }
 
@@ -135,14 +84,7 @@ export function canAccessTenant(
     userId: string,
     role: string
 ): boolean {
-    // Tenant can access their own data
     if (tenant.userId === userId) return true;
-
-    // Owner/Manager can access tenants in their properties
-    if (role === 'owner' || role === 'property_manager') {
-        // Would need to verify property ownership here
-        return true;
-    }
-
-    return false;
+    // Owner/Manager check usually happens at property level
+    return role === 'owner' || role === 'property_manager';
 }

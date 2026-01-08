@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 
 export async function GET() {
     try {
-        const propertyCount = await prisma.property.count();
-        const tenantCount = await prisma.tenant.count();
+        const propertiesSnapshot = await db.collection('properties').count().get();
+        const tenantsSnapshot = await db.collection('tenants').count().get();
+
+        const propertyCount = propertiesSnapshot.data().count;
+        const tenantCount = tenantsSnapshot.data().count;
 
         // Mocking values for now since logic was removed
         const requestCount = Math.floor(tenantCount / 3);

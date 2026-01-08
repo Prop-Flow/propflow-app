@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { userRegisterSchema } from '@/lib/validations/auth';
 
 export async function POST(req: NextRequest) {
@@ -18,49 +18,51 @@ export async function POST(req: NextRequest) {
         const { propertyId, firstName, lastName, email, phone, apartmentNumber, occupants } = result.data;
 
         // Check if user already exists
-        const existingUser = await prisma.user.findUnique({
-            where: { email },
-        });
-
-        if (existingUser) {
+        const userSnapshot = await db.collection('users').where('email', '==', email).get();
+        if (!userSnapshot.empty) {
             return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
         }
 
-        // Transaction to create User and Tenant profile
-        const transactionResult = await prisma.$transaction(async (tx) => {
-            // 1. Create User
-            const user = await tx.user.create({
-                data: {
-                    email,
-                    firstName,
-                    lastName,
-                    phone,
-                    role: 'TENANT',
-                    // In a real app, send welcome email with password reset link
-                }
-            });
+        // Firestore Transaction to create User and Tenant profile
+        const userId = await db.runTransaction(async (transaction) => {
+            const userRef = db.collection('users').doc();
+            const tenantRef = db.collection('tenants').doc();
 
-            // 2. Create Tenant Profile (Status: Pending)
-            const tenant = await tx.tenant.create({
-                data: {
-                    propertyId,
-                    userId: user.id,
-                    name: `${firstName} ${lastName}`,
-                    email,
-                    phone,
-                    status: 'pending',
-                    apartmentNumber,
-                    numberOfOccupants: occupants
-                }
-            });
+            const userData = {
+                id: userRef.id,
+                email,
+                firstName,
+                lastName,
+                phone: phone || null,
+                role: 'tenant',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
 
-            return { user, tenant };
+            const tenantData = {
+                id: tenantRef.id,
+                propertyId,
+                userId: userRef.id,
+                name: `${firstName} ${lastName}`,
+                email,
+                phone: phone || null,
+                status: 'pending',
+                apartmentNumber: apartmentNumber || null,
+                numberOfOccupants: occupants || 1,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+
+            transaction.set(userRef, userData);
+            transaction.set(tenantRef, tenantData);
+
+            return userRef.id;
         });
 
         return NextResponse.json({
             success: true,
             message: 'Registration successful. Waiting for approval.',
-            userId: transactionResult.user.id
+            userId: userId
         });
 
     } catch (error) {

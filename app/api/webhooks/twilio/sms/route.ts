@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processIncomingSMS } from '@/lib/communication/sms-service';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import twilio from 'twilio';
 
 export async function POST(req: NextRequest) {
@@ -42,16 +42,17 @@ export async function POST(req: NextRequest) {
 
         // Log the inbound message
         if (result.tenantId) {
-            await prisma.communicationLog.create({
-                data: {
-                    tenantId: result.tenantId,
-                    type: 'sms',
-                    direction: 'INBOUND',
-                    status: 'RECEIVED',
-                    messageId: messageSid,
-                    content: body,
-                    subject: 'Incoming SMS',
-                },
+            const logRef = db.collection('communication_logs').doc();
+            await logRef.set({
+                id: logRef.id,
+                tenantId: result.tenantId,
+                type: 'sms',
+                direction: 'INBOUND',
+                status: 'RECEIVED',
+                messageId: messageSid,
+                content: body,
+                subject: 'Incoming SMS',
+                createdAt: new Date(),
             });
         }
 

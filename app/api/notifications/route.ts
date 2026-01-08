@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { getSessionUser } from '@/lib/auth/session';
 
 export async function GET(req: NextRequest) {
     try {
         const user = await getSessionUser(req);
 
-        const notifications = await prisma.notification.findMany({
-            where: { userId: user.id },
-            orderBy: { createdAt: 'desc' },
-            take: 20
-        });
+        const snapshot = await db.collection('notifications')
+            .where('userId', '==', user.id)
+            .orderBy('createdAt', 'desc')
+            .limit(20)
+            .get();
+
+        const notifications = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
 
         return NextResponse.json(notifications);
     } catch (error) {
@@ -25,15 +30,19 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { title, message, type, link } = body;
 
-        const notification = await prisma.notification.create({
-            data: {
-                userId: user.id,
-                title,
-                message,
-                type: type || 'info',
-                link,
-            }
-        });
+        const notificationRef = db.collection('notifications').doc();
+        const notification = {
+            id: notificationRef.id,
+            userId: user.id,
+            title,
+            message,
+            type: type || 'info',
+            link: link || null,
+            createdAt: new Date(),
+            read: false
+        };
+
+        await notificationRef.set(notification);
 
         return NextResponse.json(notification);
     } catch (error) {

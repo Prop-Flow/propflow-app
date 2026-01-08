@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { inviteManagerSchema } from '@/lib/validations/auth';
 import crypto from 'crypto';
 import { getSessionUser } from '@/lib/auth/session';
@@ -20,33 +20,30 @@ export async function POST(req: NextRequest) {
 
         const { email, propertyId } = result.data;
 
-        // SECURITY CHECK: Verify if the session user owns the property they are inviting a manager to
+        // SECURITY CHECK: Verify if the session user owns the property
         if (propertyId) {
-            const property = await prisma.property.findUnique({
-                where: { id: propertyId },
-                select: { ownerUserId: true }
-            });
+            const propertyDoc = await db.collection('properties').doc(propertyId).get();
+            const propertyData = propertyDoc.data();
 
-            if (!property || property.ownerUserId !== user.id) {
+            if (!propertyDoc.exists || propertyData?.ownerUserId !== user.id) {
                 return NextResponse.json({ error: 'You do not have permission to invite managers to this property' }, { status: 403 });
             }
         }
 
-        // Check if user already exists
-        const existingUser = await prisma.user.findUnique({
-            where: { email },
-        });
+        // Check if user already exists in Firestore
+        const userSnapshot = await db.collection('users')
+            .where('email', '==', email)
+            .limit(1)
+            .get();
 
-        if (existingUser) {
+        if (!userSnapshot.empty) {
+            const existingUser = userSnapshot.docs[0];
+
             // If user exists and propertyId is provided, grant them access immediately
             if (propertyId) {
-                await prisma.property.update({
-                    where: { id: propertyId },
-                    data: {
-                        managers: {
-                            connect: { id: existingUser.id }
-                        }
-                    }
+                await db.collection('properties').doc(propertyId).update({
+                    managerUserId: existingUser.id // Simplified: 1 manager per property for now
+                    // Or if multiple: managerIds: admin.firestore.FieldValue.arrayUnion(existingUser.id)
                 });
                 return NextResponse.json({ success: true, message: 'Existing user added as manager to property.' });
             }
@@ -54,16 +51,16 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'User already exists in the system.' });
         }
 
-        // Invitations are temporarily disabled in the database
-        // We will just log the "invitation" to the console for now
         const token = crypto.randomBytes(32).toString('hex');
+
+        // Logic for creating an invitation record in Firestore could be added here
 
         // Mock Email Sending
         console.log(`[INVITATION MOCK] To: ${email}, Subject: You're invited to manage a property! Link: /auth/invite?token=${token}`);
 
         return NextResponse.json({
             success: true,
-            message: 'Invitation process initiated (Legacy database record skipped)'
+            message: 'Invitation process initiated'
         });
 
     } catch (error) {

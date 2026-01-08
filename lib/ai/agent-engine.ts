@@ -1,7 +1,12 @@
-import { VertexAI, FunctionDeclaration } from '@google-cloud/vertexai';
 import { buildAgentPrompt } from './prompts';
 import { storeTenantInteraction } from './vector-store';
 import { initTracing } from './otel';
+import { vertexService } from './vertex';
+import {
+    Content,
+    Part,
+    Tool
+} from '@google-cloud/vertexai';
 
 // Initialize tracing
 initTracing();
@@ -9,39 +14,6 @@ initTracing();
 import { SEQUENTIAL_THINKING_TOOL_DEF } from './tools/sequential-thinking';
 import { MEMORY_TOOL_DEF, handleMemoryTool } from './tools/memory';
 import { DATABASE_TOOL_DEF, handleDatabaseTool } from './tools/database';
-// GitHub tool import removed (using native MCP)
-
-// Initialize Vertex AI
-const project = process.env.GOOGLE_CLOUD_PROJECT || 'propflow-ai-483621';
-const location = 'us-east5';
-const vertex_ai = new VertexAI({ project: project, location: location });
-
-// Specialized model for reasoning and extraction
-const modelName = "gemini-1.5-pro-001";
-
-// Helper to convert simple JSON schema objects to Vertex AI FunctionDeclaration
-// Note: We are assuming our tool definitions are close enough or we strictly define them here if needed.
-// Only the top-level structure needs to match FunctionDeclaration.
-const tools: { functionDeclarations: FunctionDeclaration[] }[] = [{
-    functionDeclarations: [
-        {
-            name: SEQUENTIAL_THINKING_TOOL_DEF.name,
-            description: SEQUENTIAL_THINKING_TOOL_DEF.description,
-            parameters: SEQUENTIAL_THINKING_TOOL_DEF.parameters as unknown as FunctionDeclaration['parameters'] // Casting as structure implies compatibility
-        },
-        {
-            name: MEMORY_TOOL_DEF.name,
-            description: MEMORY_TOOL_DEF.description,
-            parameters: MEMORY_TOOL_DEF.parameters as unknown as FunctionDeclaration['parameters']
-        },
-        {
-            name: DATABASE_TOOL_DEF.name,
-            description: DATABASE_TOOL_DEF.description,
-            parameters: DATABASE_TOOL_DEF.parameters as unknown as FunctionDeclaration['parameters']
-        },
-        // GitHub tool removed (using native MCP)
-    ]
-}];
 
 export type AgentScenario = 'lease_renewal' | 'document_collection' | 'maintenance_followup' | 'escalation';
 
@@ -54,6 +26,30 @@ export interface AgentContext {
     attemptNumber?: number;
 }
 
+// Map OpenAI-style tool definitions to Vertex AI FunctionDeclarations
+const vertexTools: Tool[] = [{
+    functionDeclarations: [
+        {
+            name: SEQUENTIAL_THINKING_TOOL_DEF.name,
+            description: SEQUENTIAL_THINKING_TOOL_DEF.description,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            parameters: SEQUENTIAL_THINKING_TOOL_DEF.parameters as any
+        },
+        {
+            name: MEMORY_TOOL_DEF.name,
+            description: MEMORY_TOOL_DEF.description,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            parameters: MEMORY_TOOL_DEF.parameters as any
+        },
+        {
+            name: DATABASE_TOOL_DEF.name,
+            description: DATABASE_TOOL_DEF.description,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            parameters: DATABASE_TOOL_DEF.parameters as any
+        }
+    ]
+}];
+
 /**
  * Generate AI response for tenant communication
  */
@@ -63,7 +59,7 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
         const recentMemories = await handleMemoryTool({ action: 'list' }).catch(() => "[]");
 
         // Build the prompt
-        const prompt = buildAgentPrompt(context.scenario, {
+        const promptText = buildAgentPrompt(context.scenario, {
             tenantName: context.tenantName,
             propertyAddress: context.propertyAddress,
             specificDetails: context.specificDetails,
@@ -71,85 +67,100 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
             previousMessages: [], // Communication logs removed
         });
 
-        const generativeModel = vertex_ai.preview.getGenerativeModel({
-            model: modelName,
-            generationConfig: {
-                maxOutputTokens: 2048, // Increased for thinking thoughts
-                temperature: 0.7,
-                topP: 0.95,
-            },
-        });
-
-        const chat = generativeModel.startChat({
-            tools: tools,
-        });
-
-        const systemMessage = `You are a professional property management AI assistant. Generate concise, friendly, and professional messages. 
+        // Initialize session with Gemini 1.5 Pro
+        const history: Content[] = [
+            {
+                role: 'user',
+                parts: [{
+                    text: `You are a professional property management AI assistant. Generate concise, friendly, and professional messages. 
                 Use the sequential_thinking tool to plan your response for complex scenarios.
                 
                 RECENT MEMORIES:
                 ${recentMemories}
-                `;
 
-        // Initial message with system context (Vertex AI supports system instructions differently in preview, but prepending works)
-        // Actually, startChat doesn't take system instructions directly in current Node SDK preview easily without config, 
-        // passing it as part of first user message is reliable.
-        const fullPrompt = `${systemMessage}\n\nUser Request: ${prompt}`;
+                TASK:
+                ${promptText}`
+                }],
+            }
+        ];
 
-        let currentResponse = await chat.sendMessage(fullPrompt);
-        let finalResponseText = '';
-
-        const MAX_LOOPS = 10;
+        let finalResponse = '';
         let loopCount = 0;
+        const MAX_LOOPS = 10;
+        let consecutiveErrorCount = 0;
+        const MAX_CONSECUTIVE_ERRORS = 3;
 
         while (loopCount < MAX_LOOPS) {
-            const candidates = currentResponse.response.candidates;
-            if (!candidates || candidates.length === 0) break;
+            // Circuit breaker
+            if (consecutiveErrorCount >= MAX_CONSECUTIVE_ERRORS) {
+                finalResponse = "I encountered multiple errors while trying to process your request. Please check the logs or try again with a simpler request.";
+                break;
+            }
 
-            const content = candidates[0].content;
-            const functionCalls = content.parts.filter(part => part.functionCall).map(part => part.functionCall!);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = await vertexService.generativeModel.generateContent({
+                contents: history,
+                tools: vertexTools,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any);
 
-            if (functionCalls.length > 0) {
-                const functionResponses = [];
+            const response = await result.response;
+            const responseContent = response.candidates?.[0]?.content;
 
-                for (const call of functionCalls) {
-                    const functionName = call.name;
+            if (!responseContent) break;
+
+            // Add assistant response to history
+            history.push(responseContent);
+
+            const toolCalls = responseContent.parts.filter(p => p.functionCall);
+
+            if (toolCalls.length > 0) {
+                const toolResponses: Part[] = [];
+
+                for (const part of toolCalls) {
+                    const toolCall = part.functionCall!;
+                    const name = toolCall.name;
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const args = call.args as any;
+                    const args = toolCall.args as any;
 
-                    console.log(`Executing tool: ${functionName}`);
-
-                    let functionResponse = {};
-                    if (functionName === 'sequential_thinking') {
-                        // Just log thinking, no return value needed really to change flow, but we verify it
-                        functionResponse = { status: 'thought_recorded', thoughtNumber: args.thoughtNumber };
-                    } else if (functionName === 'memory_tool') {
-                        const result = await handleMemoryTool(args);
-                        functionResponse = { result };
-                    } else if (functionName === 'database_query') {
-                        const result = await handleDatabaseTool(args);
-                        functionResponse = { result };
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    let resultData: any;
+                    try {
+                        if (name === 'sequential_thinking') {
+                            resultData = { status: 'thought_recorded', thoughtNumber: args.thoughtNumber };
+                        } else if (name === 'memory_tool') {
+                            resultData = await handleMemoryTool(args);
+                        } else if (name === 'database_query') {
+                            resultData = await handleDatabaseTool(args);
+                        }
+                        consecutiveErrorCount = 0;
+                    } catch (e) {
+                        consecutiveErrorCount++;
+                        resultData = { status: 'error', error: (e as Error).message };
                     }
 
-                    functionResponses.push({
+                    toolResponses.push({
                         functionResponse: {
-                            name: functionName,
-                            response: { name: functionName, content: functionResponse }
+                            name,
+                            response: { content: resultData }
                         }
                     });
                 }
 
-                // Send function responses back to model
-                currentResponse = await chat.sendMessage(functionResponses);
+                // Add tool responses to history
+                history.push({
+                    role: 'function',
+                    parts: toolResponses
+                });
+                loopCount++;
             } else {
-                // No function calls, this is the final text
-                finalResponseText = content.parts.map(p => p.text).join('') || '';
+                // No tool calls, this is the final response
+                finalResponse = responseContent.parts[0]?.text || '';
                 break;
             }
-            loopCount++;
         }
 
-        return finalResponseText.trim() || "I apologize, but I couldn't generate a response at this time.";
+        return finalResponse.trim() || "I apologize, but I couldn't generate a response at this time.";
     } catch (error) {
         console.error('Error generating agent response:', error);
         throw new Error('Failed to generate AI response');
@@ -192,16 +203,7 @@ export async function processInboundMessage(
             metadata: { direction: 'inbound' },
         });
 
-        // Use Vertex AI to analyze intent
-        const generativeModel = vertex_ai.preview.getGenerativeModel({
-            model: modelName,
-            generationConfig: {
-                maxOutputTokens: 1024,
-                temperature: 0.3,
-                responseMimeType: 'application/json'
-            },
-        });
-
+        // Use Gemini Flash for intent analysis (cheaper/faster)
         const prompt = `Analyze the tenant's message and determine their intent. 
           Classify as:
           - "positive": They agree, will comply, or confirm
@@ -211,21 +213,14 @@ export async function processInboundMessage(
           
           Also suggest if the workflow should be closed (positive response) or continue (other responses).
           
-          Respond in JSON format: {"intent": "positive|negative|question|unclear", "shouldClose": true|false, "reasoning": "brief explanation"}
+          Tenant message: "${message}"
           
-          Tenant message: "${message}"`;
+          Respond in JSON format: {"intent": "positive|negative|question|unclear", "shouldClose": true|false, "reasoning": "brief explanation"}`;
 
-        const result = await generativeModel.generateContent(prompt);
-        const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-
-        let analysis;
-        try {
-            analysis = JSON.parse(text);
-        } catch {
-            // Handle markdown code blocks if Gemini wraps it
-            const clean = text.replace(/^```json/, '').replace(/```$/, '').trim();
-            analysis = JSON.parse(clean);
-        }
+        const responseText = await vertexService.generateText(prompt);
+        // Extract JSON from potential markdown blocks
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        const analysis = JSON.parse(jsonMatch ? jsonMatch[0] : '{}');
 
         return {
             intent: analysis.intent || 'unclear',

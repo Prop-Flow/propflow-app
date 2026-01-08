@@ -1,22 +1,27 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 
 export async function GET() {
     try {
-        // In a real app, verify Owner session.
-        // Fetch all users with role PROPERTY_MANAGER.
-        // Ideally filter by those assigned to Owner's properties.
+        // Fetch all users with role property_manager.
+        const snapshot = await db.collection('users')
+            .where('role', '==', 'property_manager')
+            .get();
 
-        const managers = await prisma.user.findMany({
-            where: {
-                role: 'PROPERTY_MANAGER'
-            },
-            include: {
-                managedProperties: {
-                    select: { id: true, name: true }
-                }
-            }
-        });
+        const managers = await Promise.all(snapshot.docs.map(async doc => {
+            const data = doc.data();
+            // Fetch managed properties (separate collection or mapping)
+            const propsSnapshot = await db.collection('properties')
+                .where('managerUserId', '==', doc.id)
+                .get();
+
+            return {
+                id: doc.id,
+                email: data.email,
+                name: data.name,
+                managedProperties: propsSnapshot.docs.map(p => ({ id: p.id, name: p.data().name }))
+            };
+        }));
 
         return NextResponse.json({ managers });
     } catch (error) {

@@ -2,7 +2,7 @@ import { sendSMS } from './sms-service';
 import { sendEmail } from './email-service';
 import { initiateCall } from './voice-service';
 import { determineNextChannel } from '@/lib/ai/agent-engine';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 
 export type Channel = 'sms' | 'email' | 'voice';
 
@@ -134,6 +134,7 @@ export async function routeMessage(
         };
     }
 }
+// ... (previous imports and types)
 
 // Helper to log communication
 async function logCommunication(
@@ -147,17 +148,16 @@ async function logCommunication(
     error?: string
 ) {
     try {
-        await prisma.communicationLog.create({
-            data: {
-                tenantId,
-                type,
-                direction,
-                status,
-                messageId,
-                content,
-                subject,
-                metadata: error ? { error } : undefined,
-            },
+        await db.collection('communicationLogs').add({
+            tenantId,
+            type,
+            direction,
+            status,
+            messageId,
+            content,
+            subject,
+            metadata: error ? { error } : null,
+            createdAt: new Date(),
         });
     } catch (e) {
         console.error('Failed to log communication:', e);

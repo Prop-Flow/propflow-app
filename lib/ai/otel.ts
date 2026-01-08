@@ -1,22 +1,34 @@
-import { register } from "@arizeai/phoenix-otel";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { resourceFromAttributes } from "@opentelemetry/resources";
+import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import { registerInstrumentations } from "@opentelemetry/instrumentation";
+import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
 
 /**
- * Initializes OpenTelemetry tracing for AI operations and 
- * registers with Arize Phoenix for observability.
+ * Initialize OpenTelemetry tracing with Arize Phoenix
  */
 export function initTracing() {
-    if (typeof window !== 'undefined') return; // Only run on server-side
+    // Export to Arize Phoenix (local or hosted)
+    const exporter = new OTLPTraceExporter({
+        url: process.env.PHOENIX_COLLECTOR_URL || "http://localhost:6006/v1/traces",
+    });
 
-    // Initialize tracing provider
-    const provider = new NodeTracerProvider();
+    const provider = new NodeTracerProvider({
+        resource: resourceFromAttributes({
+            [SemanticResourceAttributes.SERVICE_NAME]: "propflow-ai-agent",
+        }),
+        spanProcessors: [new BatchSpanProcessor(exporter)],
+    });
 
     provider.register();
 
-    // Initialize Arize Phoenix for tracing visibility
-    register({
-        projectName: "propflow-agent",
+    registerInstrumentations({
+        instrumentations: [
+            new HttpInstrumentation(), // Broadly capture Vertex AI and other API calls
+        ],
     });
 
-    console.log('📡 Tracing initialized (OpenTelemetry + Arize Phoenix)');
+    console.log("OTel Tracing initialized (Vertex AI / HTTP)");
 }

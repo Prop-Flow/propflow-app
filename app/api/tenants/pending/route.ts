@@ -1,60 +1,53 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { z } from 'zod';
+import { db } from '@/lib/services/firebase-admin';
 import { getSessionUser } from '@/lib/auth/session';
-
-const pendingTenantSchema = z.object({
-    id: z.string(),
-    name: z.string(),
-    email: z.string().nullable(),
-    status: z.string(),
-    createdAt: z.date(),
-    property: z.object({
-        id: z.string(),
-        name: z.string(),
-        address: z.string(),
-    }),
-});
 
 export async function GET(request: NextRequest) {
     try {
         const user = await getSessionUser(request);
 
-        const tenants = await prisma.tenant.findMany({
-            where: {
-                status: 'pending',
-                property: {
-                    ownerUserId: user.id
-                }
-            },
-            include: {
-                property: {
-                    select: {
-                        id: true,
-                        name: true,
-                        address: true,
-                    },
-                },
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
+        // Fetch properties owned by the user
+        const propertiesSnapshot = await db.collection('properties')
+            .where('ownerUserId', '==', user.id)
+            .get();
 
-        // Validate response data
-        const validatedTenants = z.array(pendingTenantSchema).parse(tenants);
-
-        return NextResponse.json(validatedTenants);
-    } catch (error) {
-        console.error('Error fetching pending tenants:', error);
-
-        if (error instanceof z.ZodError) {
-            return NextResponse.json(
-                { error: 'Invalid data format', details: error.errors },
-                { status: 500 }
-            );
+        if (propertiesSnapshot.empty) {
+            return NextResponse.json([]);
         }
 
+        const propertyIds = propertiesSnapshot.docs.map(doc => doc.id);
+        const propertiesMap = propertiesSnapshot.docs.reduce((acc, doc) => {
+            acc[doc.id] = { id: doc.id, ...doc.data() };
+            return acc;
+        }, {} as Record<string, Record<string, unknown>>);
+
+        // Fetch pending tenants for these properties
+        const tenantsSnapshot = await db.collection('tenants')
+            .where('status', '==', 'pending')
+            .where('propertyId', 'in', propertyIds.slice(0, 10))
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const tenants = tenantsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            const property = propertiesMap[data.propertyId];
+            return {
+                id: doc.id,
+                name: data.name,
+                email: data.email || null,
+                status: data.status,
+                createdAt: data.createdAt,
+                property: {
+                    id: property?.id,
+                    name: property?.name,
+                    address: property?.address,
+                }
+            };
+        });
+
+        return NextResponse.json(tenants);
+    } catch (error) {
+        console.error('Error fetching pending tenants:', error);
         return NextResponse.json(
             { error: 'Failed to fetch pending tenants' },
             { status: 500 }

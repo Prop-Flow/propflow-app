@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 
 export async function PUT(
     req: Request,
@@ -9,12 +9,10 @@ export async function PUT(
         const params = await props.params;
         const { id } = params;
 
-        const notification = await prisma.notification.update({
-            where: { id },
-            data: { read: true }
-        });
+        const notificationRef = db.collection('notifications').doc(id);
+        await notificationRef.update({ read: true, updatedAt: new Date() });
 
-        return NextResponse.json(notification);
+        return NextResponse.json({ id, success: true });
     } catch (error) {
         console.error('Error marking notification as read:', error);
         return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 });

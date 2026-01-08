@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/services/firebase-admin';
 import { sendWithFallback } from '@/lib/communication/channel-router';
 
 export type CreateMaintenanceRequestInput = {
@@ -16,30 +16,36 @@ export type CreateMaintenanceRequestInput = {
  */
 export async function createMaintenanceRequest(input: CreateMaintenanceRequestInput) {
     // 1. Create Record
-    const request = await prisma.maintenanceRequest.create({
-        data: {
-            ...input,
-            status: 'pending',
-            ticketNumber: `REQ-${Date.now().toString().slice(-6)}`, // Simple ID generation
-        },
-        include: {
-            tenant: true,
-            property: true,
-        },
-    });
+    const maintenanceData = {
+        ...input,
+        status: 'pending',
+        ticketNumber: `REQ-${Date.now().toString().slice(-6)}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
 
-    // 2. Notify Tenant (if linked)
-    if (request.tenant) {
-        const message = `We've received your maintenance request "${request.title}" (Ticket #${request.ticketNumber}). We'll update you soon.`;
+    const docRef = await db.collection('maintenanceRequests').add(maintenanceData);
+    const snapshot = await docRef.get();
+    const request = { id: snapshot.id, ...snapshot.data() } as Record<string, unknown>;
 
-        await sendWithFallback({
-            tenantId: request.tenant.id,
-            tenantName: request.tenant.name,
-            phone: request.tenant.phone || undefined,
-            email: request.tenant.email || undefined,
-            message,
-            subject: `Maintenance Request Received: ${request.ticketNumber}`,
-        });
+    // 2. Fetch linked tenant for notification
+    if (request.tenantId) {
+        const tenantDoc = await db.collection('tenants').doc(request.tenantId as string).get();
+        if (tenantDoc.exists) {
+            const tenant = tenantDoc.data()!;
+            request.tenant = { id: tenantDoc.id, ...tenant };
+
+            const message = `We've received your maintenance request "${request.title}" (Ticket #${request.ticketNumber}). We'll update you soon.`;
+
+            await sendWithFallback({
+                tenantId: tenantDoc.id,
+                tenantName: tenant.name,
+                phone: tenant.phone || undefined,
+                email: tenant.email || undefined,
+                message,
+                subject: `Maintenance Request Received: ${request.ticketNumber}`,
+            });
+        }
     }
 
     return request;
@@ -53,30 +59,37 @@ export async function updateMaintenanceRequestStatus(
     status: 'pending' | 'in_progress' | 'resolved' | 'closed',
     note?: string
 ) {
+    const docRef = db.collection('maintenanceRequests').doc(requestId);
+
     // 1. Update Record
-    const request = await prisma.maintenanceRequest.update({
-        where: { id: requestId },
-        data: { status },
-        include: {
-            tenant: true,
-        },
+    await docRef.update({
+        status,
+        updatedAt: new Date()
     });
 
-    // 2. Notify Tenant
-    if (request.tenant) {
-        let message = `Your maintenance request #${request.ticketNumber} status has been updated to: ${status.replace('_', ' ').toUpperCase()}.`;
-        if (note) {
-            message += ` Note: ${note}`;
-        }
+    const snapshot = await docRef.get();
+    const request = { id: snapshot.id, ...snapshot.data() } as Record<string, unknown>;
 
-        await sendWithFallback({
-            tenantId: request.tenant.id,
-            tenantName: request.tenant.name,
-            phone: request.tenant.phone || undefined,
-            email: request.tenant.email || undefined,
-            message,
-            subject: `Update on Ticket #${request.ticketNumber}`,
-        });
+    // 2. Notify Tenant
+    if (request.tenantId) {
+        const tenantDoc = await db.collection('tenants').doc(request.tenantId as string).get();
+        if (tenantDoc.exists) {
+            const tenant = tenantDoc.data()!;
+
+            let message = `Your maintenance request #${request.ticketNumber} status has been updated to: ${status.replace('_', ' ').toUpperCase()}.`;
+            if (note) {
+                message += ` Note: ${note}`;
+            }
+
+            await sendWithFallback({
+                tenantId: tenantDoc.id,
+                tenantName: tenant.name,
+                phone: tenant.phone || undefined,
+                email: tenant.email || undefined,
+                message,
+                subject: `Update on Ticket #${request.ticketNumber}`,
+            });
+        }
     }
 
     return request;

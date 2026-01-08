@@ -1,47 +1,64 @@
-
-
-import { prisma } from "@/lib/prisma"; // Assuming standard Next.js usage
+import { db } from "@/lib/services/firebase-admin";
 
 export const DATABASE_TOOL_DEF = {
     name: "database_query",
-    description: `Query the database directly to verify tenant or property information.
+    description: `Query the Firestore database directly to verify tenant or property information.
     Use this when you need accurate data about leases, payments, or maintenance requests.
-    Supported Tables: User, TenantProfile, Lease, Property, MaintenanceRequest, CommunicationLog.
-    Operations: 'findUnique', 'findMany', 'count'.
+    Collections: properties, tenants, leases, maintenanceRequests, communicationLogs.
+    Operations: 'getDoc', 'getDocs', 'count'.
     `,
     parameters: {
         type: "object",
         properties: {
-            model: { type: "string", enum: ["User", "TenantProfile", "Lease", "Property", "MaintenanceRequest", "CommunicationLog"] },
-            operation: { type: "string", enum: ["findUnique", "findMany", "count"] },
-            query: { type: "string", description: "JSON stringified query object (where, include, etc.)" }
+            collection: { type: "string", enum: ["properties", "tenants", "leases", "maintenanceRequests", "communicationLogs"] },
+            operation: { type: "string", enum: ["getDoc", "getDocs", "count"] },
+            query: { type: "string", description: "JSON stringified query object (id for getDoc, or filters/limit for getDocs)" }
         },
-        required: ["model", "operation", "query"]
+        required: ["collection", "operation", "query"]
     }
 };
 
 export async function handleDatabaseTool(args: Record<string, unknown>) {
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { model, operation, query: queryString } = args as any;
+        const { collection, operation, query: queryString } = args as any;
         const query = JSON.parse(queryString);
 
-        // Security: Enforce a limit on findMany if not provided to prevent DoS
-        if (operation === 'findMany' && typeof query === 'object' && query !== null && !('take' in query)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (query as any).take = 10;
+        const collectionRef = db.collection(collection);
+
+        if (operation === 'getDoc') {
+            if (!query.id) throw new Error("ID is required for getDoc");
+            const doc = await collectionRef.doc(query.id).get();
+            return JSON.stringify({ id: doc.id, ...doc.data() }, null, 2);
         }
 
-        // @ts-expect-error - Dynamic key access is intentionally loose here for the tool
-        const result = await prisma[model.charAt(0).toLowerCase() + model.slice(1)][operation](query);
+        if (operation === 'getDocs') {
+            let firestoreQuery: FirebaseFirestore.Query = collectionRef;
 
-        return JSON.stringify(result, null, 2);
+            // Basic filtering implementation if provided
+            if (query.where) {
+                for (const [key, value] of Object.entries(query.where)) {
+                    firestoreQuery = firestoreQuery.where(key, '==', value);
+                }
+            }
+
+            const limit = query.limit || 10;
+            const snapshot = await firestoreQuery.limit(limit).get();
+            const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return JSON.stringify(docs, null, 2);
+        }
+
+        if (operation === 'count') {
+            const snapshot = await collectionRef.count().get();
+            return JSON.stringify({ count: snapshot.data().count });
+        }
+
+        return "Unsupported operation";
     } catch (error) {
-        console.error("Database Tool Internal Error:", error);
+        console.error("Database Tool Internal Error (Firestore):", error);
         return JSON.stringify({
-            error: "Database operation failed",
-            message: (error as Error).message,
-            stack: (error as Error).stack?.split('\n').slice(0, 3).join('\n') // Limit stack trace
+            error: "Firestore operation failed",
+            message: (error as Error).message
         }, null, 2);
     }
 }
