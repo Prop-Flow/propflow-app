@@ -16,8 +16,8 @@
       {
         "source": "**",
         "run": {
-          "serviceId": "propflow-app",
-          "region": "us-east5"
+          "serviceId": "ssrpropflowai483621",
+          "region": "us-east4"
         }
       }
     ]

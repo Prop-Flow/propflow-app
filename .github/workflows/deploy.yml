@@ -7,8 +7,8 @@ on:
 
 env:
   PROJECT_ID: propflow-ai-483621
-  REGION: us-east5
-  SERVICE_NAME: propflow-app
+  REGION: us-east4
+  SERVICE_NAME: ssrpropflowai483621
   REPO_NAME: propflow-app
 
 jobs:

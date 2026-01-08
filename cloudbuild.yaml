@@ -23,11 +23,11 @@ steps:
     args:
       - "run"
       - "deploy"
-      - "propflow-app"
+      - "ssrpropflowai483621"
       - "--image"
-      - "us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/propflow-app:$COMMIT_SHA"
+      - "us-east4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/propflow-app:$COMMIT_SHA"
       - "--region"
-      - "us-east5"
+      - "us-east4"
       - "--allow-unauthenticated" # Allow public access (remove if internal only)
       - "--memory"
       - "512Mi"
@@ -39,7 +39,7 @@ steps:
       - "$PROJECT_ID:us-east5:propflow-db-east"
 
 images:
-  - "us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/propflow-app:$COMMIT_SHA"
+  - "us-east4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/propflow-app:$COMMIT_SHA"
 
 options:
   logging: CLOUD_LOGGING_ONLY
