@@ -5,7 +5,7 @@ set -e
 # Use existing env var or fallback to gcloud config, then default
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
 PROJECT_ID="${PROJECT_ID:-propflow-ai-483621}"
-REGION="${GOOGLE_CLOUD_REGION:-us-east5}"
+REGION="${GOOGLE_CLOUD_REGION:-us-east4}"
 # DB_INSTANCE_NAME="propflow-db-east" (Removed)
 # DB_NAME="propflow_db" (Removed)
 # DB_USER="propflow_user" (Removed)
