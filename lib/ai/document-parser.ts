@@ -1,6 +1,5 @@
+
 import { VertexAI } from '@google-cloud/vertexai';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require('pdf-parse');
 import { buildExtractionPrompt, DOCUMENT_CLASSIFICATION_PROMPT } from './extraction-prompts';
 import { formatPhoneNumber } from '@/lib/utils/formatters';
 
@@ -124,7 +123,7 @@ export async function parseDocument(
         });
 
         // Prepare content part based on mime type
-        let contentPart: any;
+        let contentPart: { text: string } | { inlineData: { mimeType: string; data: string } };
         let documentType: ParsedDocument['documentType'] = 'unknown';
         let rawContentForLog = '';
 
@@ -220,8 +219,9 @@ export async function parseDocument(
         };
 
     } catch (error) {
-        console.error('Error parsing document with Vertex AI:', error);
-        throw new Error('Failed to parse document with AI');
+        console.error('Error parsing document with Vertex AI:', error instanceof Error ? error.message : error);
+        if (error instanceof Error && error.stack) console.error(error.stack);
+        throw new Error('Failed to parse document with AI: ' + (error instanceof Error ? error.message : String(error)));
     }
 }
 

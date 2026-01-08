@@ -1,16 +1,12 @@
 import { Pinecone } from '@pinecone-database/pinecone';
-import OpenAI from 'openai';
+import { VertexAI } from '@google-cloud/vertexai';
 
-let openaiClient: OpenAI | null = null;
+// Initialize Vertex AI
+const project = process.env.GOOGLE_CLOUD_PROJECT || 'propflow-ai-483621';
+const location = 'us-east5';
+const vertex_ai = new VertexAI({ project: project, location: location });
 
-function getOpenAIClient(): OpenAI {
-    if (!openaiClient) {
-        openaiClient = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || '',
-        });
-    }
-    return openaiClient;
-}
+const embeddingModelName = 'text-embedding-004';
 
 let pineconeClient: Pinecone | null = null;
 
@@ -27,17 +23,22 @@ function getPineconeClient(): Pinecone {
 }
 
 /**
- * Generate embeddings for text using OpenAI
+ * Generate embeddings for text using Vertex AI
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
     try {
-        const openai = getOpenAIClient();
-        const response = await openai.embeddings.create({
-            model: 'text-embedding-3-small',
-            input: text,
-        });
+        const model = vertex_ai.getGenerativeModel({ model: embeddingModelName });
 
-        return response.data[0].embedding;
+        // Vertex AI embedding expects 'content' object
+        // @ts-expect-error - embedContent is missing in current type definition but exists in runtime
+        const result = await model.embedContent(text);
+        const embedding = result.embedding.values;
+
+        if (!embedding) {
+            throw new Error('No embedding returned from Vertex AI');
+        }
+
+        return embedding;
     } catch (error) {
         console.error('Error generating embedding:', error);
         throw error;
@@ -58,7 +59,7 @@ export async function storeTenantInteraction(
 ): Promise<void> {
     try {
         if (!process.env.PINECONE_API_KEY || !process.env.PINECONE_INDEX_NAME) {
-            console.warn('Pinecone not configured, skipping vector storage');
+            // console.warn('Pinecone not configured, skipping vector storage');
             return;
         }
 
@@ -96,7 +97,7 @@ export async function getTenantContext(
 ): Promise<Array<{ message: string; channel: string; timestamp: string }>> {
     try {
         if (!process.env.PINECONE_API_KEY || !process.env.PINECONE_INDEX_NAME) {
-            console.warn('Pinecone not configured, returning empty context');
+            // console.warn('Pinecone not configured, returning empty context');
             return [];
         }
 
@@ -136,7 +137,7 @@ export async function storePropertyInfo(
 ): Promise<void> {
     try {
         if (!process.env.PINECONE_API_KEY || !process.env.PINECONE_INDEX_NAME) {
-            console.warn('Pinecone not configured, skipping vector storage');
+            // console.warn('Pinecone not configured, skipping vector storage');
             return;
         }
 

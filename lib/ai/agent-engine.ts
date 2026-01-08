@@ -1,8 +1,7 @@
-import OpenAI from 'openai';
+import { VertexAI, FunctionDeclaration } from '@google-cloud/vertexai';
 import { buildAgentPrompt } from './prompts';
 import { storeTenantInteraction } from './vector-store';
 import { initTracing } from './otel';
-import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 // Initialize tracing
 initTracing();
@@ -12,16 +11,41 @@ import { MEMORY_TOOL_DEF, handleMemoryTool } from './tools/memory';
 import { DATABASE_TOOL_DEF, handleDatabaseTool } from './tools/database';
 import { GITHUB_TOOL_DEF, handleGitHubTool } from './tools/github';
 
-let openaiClient: OpenAI | null = null;
+// Initialize Vertex AI
+const project = process.env.GOOGLE_CLOUD_PROJECT || 'propflow-ai-483621';
+const location = 'us-east5';
+const vertex_ai = new VertexAI({ project: project, location: location });
 
-function getOpenAIClient(): OpenAI {
-    if (!openaiClient) {
-        openaiClient = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || '',
-        });
-    }
-    return openaiClient;
-}
+// Specialized model for reasoning and extraction
+const modelName = "gemini-1.5-pro-001";
+
+// Helper to convert simple JSON schema objects to Vertex AI FunctionDeclaration
+// Note: We are assuming our tool definitions are close enough or we strictly define them here if needed.
+// Only the top-level structure needs to match FunctionDeclaration.
+const tools: { functionDeclarations: FunctionDeclaration[] }[] = [{
+    functionDeclarations: [
+        {
+            name: SEQUENTIAL_THINKING_TOOL_DEF.name,
+            description: SEQUENTIAL_THINKING_TOOL_DEF.description,
+            parameters: SEQUENTIAL_THINKING_TOOL_DEF.parameters as unknown as FunctionDeclaration['parameters'] // Casting as structure implies compatibility
+        },
+        {
+            name: MEMORY_TOOL_DEF.name,
+            description: MEMORY_TOOL_DEF.description,
+            parameters: MEMORY_TOOL_DEF.parameters as unknown as FunctionDeclaration['parameters']
+        },
+        {
+            name: DATABASE_TOOL_DEF.name,
+            description: DATABASE_TOOL_DEF.description,
+            parameters: DATABASE_TOOL_DEF.parameters as unknown as FunctionDeclaration['parameters']
+        },
+        {
+            name: GITHUB_TOOL_DEF.name,
+            description: GITHUB_TOOL_DEF.description,
+            parameters: GITHUB_TOOL_DEF.parameters as unknown as FunctionDeclaration['parameters']
+        }
+    ]
+}];
 
 export type AgentScenario = 'lease_renewal' | 'document_collection' | 'maintenance_followup' | 'escalation';
 
@@ -51,144 +75,88 @@ export async function generateAgentResponse(context: AgentContext): Promise<stri
             previousMessages: [], // Communication logs removed
         });
 
-        // Generate response using OpenAI with Sequential Thinking support
-        const openai = getOpenAIClient();
-        const messages: ChatCompletionMessageParam[] = [
-            {
-                role: 'system',
-                content: `You are a professional property management AI assistant. Generate concise, friendly, and professional messages. 
+        const generativeModel = vertex_ai.preview.getGenerativeModel({
+            model: modelName,
+            generationConfig: {
+                maxOutputTokens: 2048, // Increased for thinking thoughts
+                temperature: 0.7,
+                topP: 0.95,
+            },
+        });
+
+        const chat = generativeModel.startChat({
+            tools: tools,
+        });
+
+        const systemMessage = `You are a professional property management AI assistant. Generate concise, friendly, and professional messages. 
                 Use the sequential_thinking tool to plan your response for complex scenarios.
                 
                 RECENT MEMORIES:
                 ${recentMemories}
-                `,
-            },
-            {
-                role: 'user',
-                content: prompt,
-            },
-        ];
+                `;
 
-        let finalResponse = '';
-        let loopCount = 0;
+        // Initial message with system context (Vertex AI supports system instructions differently in preview, but prepending works)
+        // Actually, startChat doesn't take system instructions directly in current Node SDK preview easily without config, 
+        // passing it as part of first user message is reliable.
+        const fullPrompt = `${systemMessage}\n\nUser Request: ${prompt}`;
+
+        let currentResponse = await chat.sendMessage(fullPrompt);
+        let finalResponseText = '';
+
         const MAX_LOOPS = 10;
-        let consecutiveErrorCount = 0;
-        const MAX_CONSECUTIVE_ERRORS = 3;
+        let loopCount = 0;
 
         while (loopCount < MAX_LOOPS) {
-            // Circuit breaker
-            if (consecutiveErrorCount >= MAX_CONSECUTIVE_ERRORS) {
-                finalResponse = "I encountered multiple errors while trying to process your request. Please check the logs or try again with a simpler request.";
-                break;
-            }
+            const candidates = currentResponse.response.candidates;
+            if (!candidates || candidates.length === 0) break;
 
-            const completion = await openai.chat.completions.create({
-                model: 'gpt-4',
-                messages,
-                temperature: 0.7,
-                max_tokens: 400, // Increased for thinking thoughts
-                tools: [
-                    { type: 'function', function: SEQUENTIAL_THINKING_TOOL_DEF },
-                    { type: 'function', function: MEMORY_TOOL_DEF },
-                    { type: 'function', function: DATABASE_TOOL_DEF },
-                    { type: 'function', function: GITHUB_TOOL_DEF }
-                ],
-                tool_choice: "auto",
-            });
+            const content = candidates[0].content;
+            const functionCalls = content.parts.filter(part => part.functionCall).map(part => part.functionCall!);
 
-            const message = completion.choices[0]?.message;
-            if (!message) break;
+            if (functionCalls.length > 0) {
+                const functionResponses = [];
 
-            // Add the assistant's response to history
-            messages.push(message);
+                for (const call of functionCalls) {
+                    const functionName = call.name;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const args = call.args as any;
 
-            if (message.tool_calls && message.tool_calls.length > 0) {
-                // Handle tool calls
-                for (const toolCall of message.tool_calls) {
-                    if (toolCall.function.name === 'sequential_thinking') {
-                        try {
-                            const args = JSON.parse(toolCall.function.arguments);
-                            messages.push({
-                                role: 'tool',
-                                tool_call_id: toolCall.id,
-                                content: JSON.stringify({ status: 'thought_recorded', thoughtNumber: args.thoughtNumber }),
-                            });
-                            // Reset error count on successful tool execution (logic handled inside tool, but here we assume success if no throw)
-                            consecutiveErrorCount = 0;
-                        } catch (_e) {
-                            // console.error(e);
-                            consecutiveErrorCount++;
-                            messages.push({
-                                role: 'tool',
-                                tool_call_id: toolCall.id,
-                                content: JSON.stringify({ status: 'error', error: 'Invalid arguments' }),
-                            });
-                        }
-                    } else if (toolCall.function.name === 'memory_tool') {
-                        try {
-                            const args = JSON.parse(toolCall.function.arguments);
-                            const result = await handleMemoryTool(args);
-                            messages.push({
-                                role: 'tool',
-                                tool_call_id: toolCall.id,
-                                content: result,
-                            });
-                            consecutiveErrorCount = 0;
-                        } catch (_e) {
-                            consecutiveErrorCount++;
-                            messages.push({
-                                role: 'tool',
-                                tool_call_id: toolCall.id,
-                                content: JSON.stringify({ status: 'error', error: 'Memory operation failed' }),
-                            });
-                        }
-                    } else if (toolCall.function.name === 'database_query') {
-                        try {
-                            const args = JSON.parse(toolCall.function.arguments);
-                            const result = await handleDatabaseTool(args);
-                            messages.push({
-                                role: 'tool',
-                                tool_call_id: toolCall.id,
-                                content: result,
-                            });
-                            consecutiveErrorCount = 0;
-                        } catch (_e) {
-                            consecutiveErrorCount++;
-                            messages.push({
-                                role: 'tool',
-                                tool_call_id: toolCall.id,
-                                content: JSON.stringify({ status: 'error', error: 'Database operation failed' }),
-                            });
-                        }
-                    } else if (toolCall.function.name === 'github_tool') {
-                        try {
-                            const args = JSON.parse(toolCall.function.arguments);
-                            const result = await handleGitHubTool(args);
-                            messages.push({
-                                role: 'tool',
-                                tool_call_id: toolCall.id,
-                                content: result,
-                            });
-                            consecutiveErrorCount = 0;
-                        } catch (_e) {
-                            consecutiveErrorCount++;
-                            messages.push({
-                                role: 'tool',
-                                tool_call_id: toolCall.id,
-                                content: JSON.stringify({ status: 'error', error: 'GitHub operation failed' }),
-                            });
-                        }
+                    console.log(`Executing tool: ${functionName}`);
+
+                    let functionResponse = {};
+                    if (functionName === 'sequential_thinking') {
+                        // Just log thinking, no return value needed really to change flow, but we verify it
+                        functionResponse = { status: 'thought_recorded', thoughtNumber: args.thoughtNumber };
+                    } else if (functionName === 'memory_tool') {
+                        const result = await handleMemoryTool(args);
+                        functionResponse = { result };
+                    } else if (functionName === 'database_query') {
+                        const result = await handleDatabaseTool(args);
+                        functionResponse = { result };
+                    } else if (functionName === 'github_tool') {
+                        const result = await handleGitHubTool(args);
+                        functionResponse = { result };
                     }
+
+                    functionResponses.push({
+                        functionResponse: {
+                            name: functionName,
+                            response: { name: functionName, content: functionResponse }
+                        }
+                    });
                 }
-                loopCount++;
+
+                // Send function responses back to model
+                currentResponse = await chat.sendMessage(functionResponses);
             } else {
-                // No tool calls, this is the final response
-                finalResponse = message.content || '';
+                // No function calls, this is the final text
+                finalResponseText = content.parts.map(p => p.text).join('') || '';
                 break;
             }
+            loopCount++;
         }
 
-        return finalResponse.trim() || "I apologize, but I couldn't generate a response at this time.";
+        return finalResponseText.trim() || "I apologize, but I couldn't generate a response at this time.";
     } catch (error) {
         console.error('Error generating agent response:', error);
         throw new Error('Failed to generate AI response');
@@ -231,14 +199,17 @@ export async function processInboundMessage(
             metadata: { direction: 'inbound' },
         });
 
-        // Use OpenAI to analyze intent
-        const openai = getOpenAIClient();
-        const completion = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages: [
-                {
-                    role: 'system',
-                    content: `Analyze the tenant's message and determine their intent. 
+        // Use Vertex AI to analyze intent
+        const generativeModel = vertex_ai.preview.getGenerativeModel({
+            model: modelName,
+            generationConfig: {
+                maxOutputTokens: 1024,
+                temperature: 0.3,
+                responseMimeType: 'application/json'
+            },
+        });
+
+        const prompt = `Analyze the tenant's message and determine their intent. 
           Classify as:
           - "positive": They agree, will comply, or confirm
           - "negative": They refuse, can't comply, or decline
@@ -247,18 +218,21 @@ export async function processInboundMessage(
           
           Also suggest if the workflow should be closed (positive response) or continue (other responses).
           
-          Respond in JSON format: {"intent": "positive|negative|question|unclear", "shouldClose": true|false, "reasoning": "brief explanation"}`,
-                },
-                {
-                    role: 'user',
-                    content: `Tenant message: "${message}"`,
-                },
-            ],
-            temperature: 0.3,
-            response_format: { type: 'json_object' },
-        });
+          Respond in JSON format: {"intent": "positive|negative|question|unclear", "shouldClose": true|false, "reasoning": "brief explanation"}
+          
+          Tenant message: "${message}"`;
 
-        const analysis = JSON.parse(completion.choices[0]?.message?.content || '{}');
+        const result = await generativeModel.generateContent(prompt);
+        const text = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+
+        let analysis;
+        try {
+            analysis = JSON.parse(text);
+        } catch {
+            // Handle markdown code blocks if Gemini wraps it
+            const clean = text.replace(/^```json/, '').replace(/```$/, '').trim();
+            analysis = JSON.parse(clean);
+        }
 
         return {
             intent: analysis.intent || 'unclear',

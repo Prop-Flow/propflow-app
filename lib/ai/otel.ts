@@ -1,7 +1,5 @@
 import { register } from "@arizeai/phoenix-otel";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
-import { OpenAIInstrumentation } from "@opentelemetry/instrumentation-openai";
-import { registerInstrumentations } from "@opentelemetry/instrumentation";
 
 /**
  * Initializes OpenTelemetry tracing for AI operations and 
@@ -12,11 +10,6 @@ export function initTracing() {
 
     // Initialize tracing provider
     const provider = new NodeTracerProvider();
-
-    // Register instrumentations
-    registerInstrumentations({
-        instrumentations: [new OpenAIInstrumentation()],
-    });
 
     provider.register();
 

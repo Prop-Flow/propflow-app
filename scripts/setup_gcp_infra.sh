@@ -19,6 +19,7 @@ gcloud services enable \
     cloudbuild.googleapis.com \
     artifactregistry.googleapis.com \
     secretmanager.googleapis.com \
+    documentai.googleapis.com \
     --project $PROJECT_ID
 
 # 2. Setup Artifact Registry
