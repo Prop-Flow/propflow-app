@@ -32,8 +32,9 @@ The AI agents are now powered by Google's Gemini models, offering native multimo
 - **Feature**: Integrated for robust server-side authentication and backend service orchestration.
 - **Cloud Connection**: Local development uses Application Default Credentials (ADC).
 
-### 🔍 Database & Memory Tools
-- **Persistence**: Remained consistent with Prisma and local memory storage, but adapted for Gemini's function calling format.
+### 🔍 Database & Memory
+- **Persistence**: Using Google Cloud Firestore as the primary database for property data, tenant information, and application state.
+- **Provider**: Standard Google Cloud project `propflow-ai-483621`.
 
 ### 🐞 Observability (Arize Phoenix)
 - **Tracing**: Full HTTP-level tracing of Every Gemini call, replacing the previous OpenAI-specific instrumentation.

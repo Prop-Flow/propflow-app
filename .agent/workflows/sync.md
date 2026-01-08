@@ -1,12 +1,11 @@
 ---
-description: Pull latest changes, integrate local work, verify build, and push to GitHub
+description: Pull latest changes, integrate local work, verify build, and push to GitHub (Triggers Deployment)
 ---
 
 // turbo
 1. Stage all changes
    `git add .`
 
-// turbo
 2. Commit local changes (if any)
    `git commit -m "chore: local updates before sync" || echo "No local changes to commit"`
 
@@ -27,5 +26,7 @@ description: Pull latest changes, integrate local work, verify build, and push t
    `/lint`
 
 // turbo
-7. Push the synced and verified changes to GitHub
+7. Push the synced and verified changes to GitHub (This will trigger a deployment)
    `git push origin main`
+
+8. Notify the user that the sync is complete and deployment has been triggered.

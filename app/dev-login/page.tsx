@@ -16,7 +16,7 @@ export default function DevLoginPage() {
         setIsLoading(true);
         setError('');
 
-        if (password === 'sharktank101!') {
+        if (password === 'Sharktank101!') {
             // Set cookies for server-side auth bypass
             document.cookie = "propflow_dev_mode=true; path=/; max-age=31536000";
             document.cookie = "propflow_dev_role=owner; path=/; max-age=31536000";
