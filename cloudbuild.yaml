@@ -1,4 +1,13 @@
 steps:
+  # 0. Ensure Artifact Registry exists (Self-Healing)
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      [
+        "-c",
+        "gcloud artifacts repositories create cloud-run-source-deploy --location=us-east4 --description='Docker repository for Cloud Run' --repository-format=docker --project=$PROJECT_ID || echo 'Repository likely exists or permission denied'",
+      ]
+
   # 1. Build the container image
   - name: "gcr.io/cloud-builders/docker"
     args:
