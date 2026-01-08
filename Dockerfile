@@ -21,6 +21,17 @@ COPY . .
 # Disabling linting during build to speed it up and avoid breaking on minor issues
 # (Linting should be done in CI/CD pipeline separately)
 ENV NEXT_TELEMETRY_DISABLED 1
+
+# Build args
+ARG NEXT_PUBLIC_GCP_PROJECT_ID
+ARG GCP_REGION
+ARG NEXT_PUBLIC_GCP_REGION
+
+# Persist as env vars for build time
+ENV NEXT_PUBLIC_GCP_PROJECT_ID=$NEXT_PUBLIC_GCP_PROJECT_ID
+ENV GCP_REGION=$GCP_REGION
+ENV NEXT_PUBLIC_GCP_REGION=$GCP_REGION
+
 RUN npm run build
 
 # Production image, copy all the files and run next
