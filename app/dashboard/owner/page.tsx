@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState, useEffect } from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import { Users, Building, Loader2, TrendingUp, AlertCircle, Percent } from 'lucide-react';

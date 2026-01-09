@@ -37,7 +37,7 @@ export async function sendSecurityAlert(alert: SecurityAlert): Promise<void> {
     // requests if not awaited. Best to await but with timeout.
     // For simplicity, we await.
     try {
-        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
         await fetch(`${baseUrl}/api/security/alert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

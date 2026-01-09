@@ -1,5 +1,6 @@
 'use client';
 
+
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PropertiesClient from '@/components/properties/PropertiesClient';

@@ -88,7 +88,7 @@ function TenantOnboardingContent() {
         }
 
         try {
-            const res = await fetch('/api/auth/register-tenant', {
+            const res = await fetch('/api/tenants/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(validation.data)
