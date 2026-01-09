@@ -35,36 +35,7 @@ steps:
         "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621",
       ]
 
-  # 4. Terraform Init & Apply (Firestore Rules)
-  - name: "hashicorp/terraform:light"
-    dir: "terraform"
-    args: ["init"]
-  - name: "hashicorp/terraform:light"
-    dir: "terraform"
-    args:
-      [
-        "apply",
-        "-auto-approve",
-        "-var",
-        "project_id=${PROJECT_ID}",
-        "-var",
-        "region=${_REGION}",
-      ]
-
-  # 4. Apply Terraform changes (with lifecycle policy to handle existing resources)
-  - name: "hashicorp/terraform:light"
-    dir: "terraform"
-    args:
-      [
-        "apply",
-        "-auto-approve",
-        "-var",
-        "project_id=${PROJECT_ID}",
-        "-var",
-        "region=${_REGION}",
-      ]
-
-  # 5. Deploy to Cloud Run
+  # 4. Deploy to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
     args:
