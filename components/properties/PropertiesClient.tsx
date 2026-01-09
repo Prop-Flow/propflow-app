@@ -22,7 +22,7 @@ interface PropertiesClientProps {
 }
 
 export default function PropertiesClient({ initialProperties }: PropertiesClientProps) {
-    const { user, loading: authLoading } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [properties, setProperties] = useState<Property[]>(initialProperties);
     const [loading, setLoading] = useState(initialProperties.length === 0);
     const [isUploadMode, setUploadMode] = useState<boolean | 'rent_roll' | 'property'>(false);
@@ -88,7 +88,8 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
         )
     }
 
-    const currentRole = (user?.role === 'property_manager' ? 'manager' : user?.role as "tenant" | "owner" | "manager") || 'owner';
+    const userRole = (profile?.role || 'owner').toLowerCase();
+    const currentRole = (userRole === 'property_manager' ? 'manager' : userRole as "tenant" | "owner" | "manager");
 
     if (error) {
         return (

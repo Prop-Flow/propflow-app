@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function UserDropdown() {
-    const { user, logout } = useAuth();
+    const { user, profile, loading, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -23,16 +23,21 @@ export default function UserDropdown() {
         };
     }, [dropdownRef]);
 
-    if (!user) return null; // Don't show if not logged in
+    if (loading || !user) return null; // Don't show if not logged in
 
-    const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
-    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || user.email;
+    // Fallback to displayName or email if profile not ready
+    const firstName = profile?.firstName || user.displayName?.split(' ')[0] || '';
+    const lastName = profile?.lastName || user.displayName?.split(' ')[1] || '';
+    const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase() || user.email?.[0].toUpperCase() || 'U';
+    const fullName = `${firstName} ${lastName}`.trim() || user.email;
 
     // Map database role to display name
     let roleDisplay = 'User';
-    if (user.role === 'OWNER') roleDisplay = 'Owner';
-    else if (user.role === 'PROPERTY_MANAGER') roleDisplay = 'Property Manager';
-    else if (user.role === 'TENANT') roleDisplay = 'Tenant';
+    const activeRole = (profile?.role || 'TENANT').toUpperCase();
+
+    if (activeRole === 'OWNER') roleDisplay = 'Owner';
+    else if (activeRole === 'PROPERTY_MANAGER') roleDisplay = 'Property Manager';
+    else if (activeRole === 'TENANT') roleDisplay = 'Tenant';
 
     return (
         <div className="relative" ref={dropdownRef}>

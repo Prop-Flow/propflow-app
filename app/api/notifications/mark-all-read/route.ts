@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/services/firebase-admin';
+import { verifyAuth } from '@/lib/auth/session';
 
 export async function PUT(req: Request) {
     try {
-        const body = await req.json();
-        const { userId } = body;
-
-        if (!userId) {
-            return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+        const decodedToken = await verifyAuth(req);
+        if (!decodedToken) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+        const userId = decodedToken.uid;
 
         const snapshot = await db.collection('notifications')
             .where('userId', '==', userId)

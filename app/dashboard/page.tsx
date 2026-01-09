@@ -1,42 +1,42 @@
+'use client';
+
+import React from 'react';
 import Link from 'next/link';
-import { Building2, Users, Activity } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Building2, Users } from 'lucide-react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import AIInsightCard from '@/components/dashboard/AIInsightCard';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import RevenueChart from '@/components/dashboard/RevenueChart';
+import { useAuth } from '@/hooks/useAuth';
 
-// import { db } from '@/lib/services/firebase-admin'; // Removed for MVP build to avoid build errors if credentials missing
+export default function DashboardPage() {
+    const { user, loading } = useAuth();
+    const router = useRouter();
 
-export const dynamic = 'force-dynamic';
-
-async function getDashboardStats(userId: string) {
-    // Mock data for MVP build/preview if DB connection fails or for speed
-    return {
-        properties: 12,
-        tenants: 8,
-    };
-}
-
-export default async function DashboardPage() {
-    const { auth } = await import('@/auth');
-    const session = await auth();
-
-    if (!session?.user?.id) {
+    if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen">
-                <p>Please sign in to view your dashboard.</p>
-                <Link href="/login" className="text-blue-600 hover:underline mt-4">Sign In</Link>
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
 
-    const userId = session.user.id;
-    const stats = await getDashboardStats(userId);
+    if (!user) {
+        router.push('/login');
+        return null; // or loading
+    }
+
+    // Mock stats for MVP
+    const stats = {
+        properties: 12,
+        tenants: 8,
+    };
 
     return (
         <DashboardShell role="owner">
             {/* Main Grid Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8 animate-in fade-in duration-500">
 
                 {/* Left Column: Stats & Financials (Span 8) */}
                 <div className="md:col-span-8 flex flex-col gap-6">

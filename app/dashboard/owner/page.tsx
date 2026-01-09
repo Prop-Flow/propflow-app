@@ -4,6 +4,7 @@ import DashboardShell from '@/components/layout/DashboardShell';
 import { Users, Building, Loader2, TrendingUp, AlertCircle, Percent } from 'lucide-react';
 import Link from 'next/link';
 import { FinancialSummaryCard } from '@/components/dashboard/FinancialSummaryCard';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DashboardStats {
     properties: number;
@@ -19,19 +20,35 @@ interface DashboardStats {
 export default function OwnerDashboard() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
 
     useEffect(() => {
-        fetch('/api/owner/stats')
-            .then(res => res.json())
-            .then(data => {
-                setStats(data);
-                setLoading(false);
-            })
-            .catch(err => {
+        const fetchStats = async () => {
+            if (!user) return;
+
+            try {
+                const token = await user.getIdToken();
+                const res = await fetch('/api/owner/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data);
+                }
+            } catch (err) {
                 console.error('Failed to fetch dashboard stats:', err);
+            } finally {
                 setLoading(false);
-            });
-    }, []);
+            }
+        };
+
+        if (user) {
+            fetchStats();
+        }
+    }, [user]);
 
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);

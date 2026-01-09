@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/services/firebase-admin';
+import { verifyAuth } from '@/lib/auth/session';
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        const decodedToken = await verifyAuth(req);
+        if (!decodedToken) {
+            return new NextResponse('Unauthorized', { status: 401 });
+        }
+
         const propertiesSnapshot = await db.collection('properties').count().get();
         const tenantsSnapshot = await db.collection('tenants').count().get();
 

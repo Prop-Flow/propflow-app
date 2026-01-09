@@ -3,10 +3,17 @@
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase-client';
 import { Eye, EyeOff } from 'lucide-react';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { Input } from '@/components/ui/Input';
+
+interface AuthError {
+    code?: string;
+    message?: string;
+}
 
 export default function LoginPage() {
     const [formData, setFormData] = useState({
@@ -20,18 +27,6 @@ export default function LoginPage() {
 
     const router = useRouter();
     const [devMode, setDevMode] = useState(false);
-
-    // Clear any potential Developer Mode artifacts on mount
-    // but only if we're not already in dev mode state
-    useEffect(() => {
-        const isCurrentlyDev = document.cookie.includes('propflow_dev_mode=true');
-
-        if (!isCurrentlyDev && !devMode) {
-            document.cookie = "propflow_dev_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-            document.cookie = "propflow_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-            localStorage.removeItem('propflow_user');
-        }
-    }, [devMode]);
 
     // Clear email when entering Dev Mode
     useEffect(() => {
@@ -72,68 +67,47 @@ export default function LoginPage() {
             const loginPassword = password.trim();
             console.log(`[Login] Attempting sign-in for ${loginEmail} (DevMode: ${devMode})`);
 
-            const result = await signIn('credentials', {
-                email: loginEmail,
-                password: loginPassword,
-                redirect: false,
-            });
+            // Firebase Auth
+            const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+            const user = userCredential.user;
+            console.log('[Login] Firebase Auth Successful:', user.uid);
 
-            if (result?.error) {
-                console.error('[Login] SignIn Result Error:', result.error);
-                setError(devMode ? 'Invalid security key' : 'Invalid credentials');
-                setLoading(false);
-            } else if (result?.ok) {
-                // Explicit success check to differentiate from error cases that might be ambiguous
-                // ... proceed to success logic in else block ...
+            let role = 'OWNER'; // Default fallback
 
-                if (devMode) {
-                    document.cookie = "propflow_dev_mode=true; path=/; max-age=31536000";
-                    document.cookie = "propflow_dev_role=owner; path=/; max-age=31536000";
-                    localStorage.setItem('propflow_user', JSON.stringify({
-                        id: 'dev-mode-user',
-                        email: 'dev@propflow.ai',
-                        name: 'Developer Mode',
-                        role: 'OWNER',
-                    }));
-                } else {
-                    // Standard login: Clear ANY leftover dev mode artifacts
-                    document.cookie = "propflow_dev_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                    document.cookie = "propflow_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                    localStorage.removeItem('propflow_user');
-                    // Also clear potential session cookies if they exist to force clean state
-                    sessionStorage.clear();
-                }
-
-                // Successful login - fetch user role to determine redirect
+            if (loginEmail === 'dev@propflow.ai') {
+                role = 'OWNER';
+            } else {
                 try {
-                    const response = await fetch('/api/user/me');
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        console.error('Error fetching user profile:', errorData);
-                        // Even if profile fetch fails, we are logged in, but let's redirect to owner by default
-                        router.push('/dashboard/owner');
-                        return;
-                    }
-                    const userData = await response.json();
-
-                    const roundedRole = (userData.role || '').toUpperCase();
-
-                    if (roundedRole === 'OWNER') {
-                        router.push('/dashboard/owner');
-                    } else if (roundedRole === 'PROPERTY_MANAGER') {
-                        router.push('/dashboard/manager');
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        role = (userData.role || 'TENANT').toUpperCase();
                     } else {
-                        router.push('/dashboard/tenant');
+                        console.warn('User authenticated but no Firestore profile found.');
+                        role = 'TENANT'; // Safe default
                     }
-                } catch (err) {
-                    console.error('Error fetching user role:', err);
-                    // Fallback to owner dashboard
-                    router.push('/dashboard/owner');
+                } catch (profileErr) {
+                    console.error('Error fetching profile:', profileErr);
                 }
             }
-        } catch (err) {
+
+            // Redirect
+            if (role === 'OWNER') {
+                router.push('/dashboard/owner');
+            } else if (role === 'PROPERTY_MANAGER') {
+                router.push('/dashboard/manager');
+            } else {
+                router.push('/dashboard/tenant');
+            }
+
+        } catch (err: unknown) {
             console.error('Login error:', err);
-            setError('An error occurred during login');
+            let msg = 'An error occurred during login';
+            const authError = err as AuthError;
+            if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found' || authError.code === 'auth/wrong-password') {
+                msg = devMode ? 'Invalid security key' : 'Invalid credentials';
+            }
+            setError(msg);
             setLoading(false);
         }
     };
@@ -152,7 +126,7 @@ export default function LoginPage() {
                     <p className="text-muted-foreground">
                         {devMode ? 'Enter security key to bypass authentication' : 'Enter your credentials to access your dashboard.'}
                     </p>
-                    <p className="text-[10px] text-slate-500 mt-2">v1.0.debug-shark-9000</p>
+                    <p className="text-[10px] text-slate-500 mt-2">v2.0.firebase-core</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500" noValidate>
@@ -162,7 +136,7 @@ export default function LoginPage() {
                             label="Email Address"
                             placeholder="john@example.com"
                             value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
                             required
                             error={errors.email}
                             className="bg-white/5 border-white/10"
@@ -190,7 +164,7 @@ export default function LoginPage() {
                                 type={showPassword ? "text" : "password"}
                                 placeholder={devMode ? "••••••••" : "••••••••"}
                                 value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, password: e.target.value })}
                                 required
                                 className={`mt-0 bg-white/5 border-white/10 pr-10 ${devMode ? 'text-lg font-mono tracking-widest' : ''}`}
                                 error={errors.password}
@@ -223,7 +197,7 @@ export default function LoginPage() {
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                {devMode ? 'Authenticating...' : 'Signing In...'}
+                                {devMode ? 'Authenticating...' : 'Sign In...'}
                             </span>
                         ) : (
                             devMode ? "Authenticate" : "Sign In"
@@ -249,11 +223,7 @@ export default function LoginPage() {
                         </button>
                     </div>
                 </div>
-
-
             </div>
-
-
         </AuthLayout >
     );
 }

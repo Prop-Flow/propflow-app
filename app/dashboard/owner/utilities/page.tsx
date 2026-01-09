@@ -10,7 +10,7 @@ import { ReadingsTable } from '@/components/utilities/ReadingsTable';
 import { AddReadingModal } from '@/components/utilities/AddReadingModal';
 
 export default function UtilitiesPage() {
-    const { user, loading } = useAuth();
+    const { user, profile, loading } = useAuth();
     const [isAddReadingOpen, setIsAddReadingOpen] = useState(false);
 
     if (loading) {
@@ -21,7 +21,8 @@ export default function UtilitiesPage() {
         );
     }
 
-    const currentRole = (user?.role === 'property_manager' ? 'manager' : user?.role as "tenant" | "owner" | "manager") || 'owner';
+    const userRole = (profile?.role || 'owner').toLowerCase();
+    const currentRole = (userRole === 'property_manager' ? 'manager' : userRole as "tenant" | "owner" | "manager") || 'owner';
 
     // Mock aggregate metrics
     const metrics = {

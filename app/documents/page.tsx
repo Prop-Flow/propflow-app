@@ -5,7 +5,7 @@ import { FileText, Upload, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function DocumentsPage() {
-    const { user, loading } = useAuth();
+    const { user, profile, loading } = useAuth();
 
     if (loading) {
         return (
@@ -14,7 +14,8 @@ export default function DocumentsPage() {
             </div>
         );
     }
-    const currentRole = (user?.role === 'property_manager' ? 'manager' : user?.role as "tenant" | "owner" | "manager") || 'owner';
+    const userRole = (profile?.role || 'owner').toLowerCase();
+    const currentRole = (userRole === 'property_manager' ? 'manager' : userRole as "tenant" | "owner" | "manager") || 'owner';
 
     return (
         <DashboardShell role={currentRole}>

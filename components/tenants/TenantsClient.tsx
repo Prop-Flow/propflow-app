@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSearchParams } from 'next/navigation';
 
 export default function TenantsClient() {
-    const { user, loading: authLoading } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     interface Tenant {
         id: string;
@@ -66,7 +66,8 @@ export default function TenantsClient() {
         );
     }
 
-    const currentRole = (user?.role === 'property_manager' ? 'manager' : user?.role as "tenant" | "owner" | "manager") || 'owner';
+    const userRole = (profile?.role || 'owner').toLowerCase();
+    const currentRole = (userRole === 'property_manager' ? 'manager' : userRole as "tenant" | "owner" | "manager");
 
     if (error) {
         return (

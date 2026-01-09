@@ -34,16 +34,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // Initial fetch
     useEffect(() => {
-        if (user?.id) {
+        if (user?.uid) {
             refreshNotifications();
         }
-    }, [user?.id]);
+    }, [user?.uid]);
 
     const refreshNotifications = async () => {
-        if (!user?.id) return;
+        if (!user) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/notifications?userId=${user.id}`);
+            const token = await user.getIdToken();
+            const res = await fetch(`/api/notifications`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (res.ok) {
                 const data = await res.json();
                 setNotifications(data);
@@ -60,7 +65,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
 
         try {
-            await fetch(`/api/notifications/${id}/read`, { method: 'PUT' });
+            if (user) {
+                const token = await user.getIdToken();
+                await fetch(`/api/notifications/${id}/read`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            }
         } catch (err) {
             console.error('Failed to mark read', err);
             // Revert on fail? For now, keep optimistic
@@ -72,11 +83,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
         try {
-            await fetch('/api/notifications/mark-all-read', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user?.id })
-            });
+            if (user) {
+                const token = await user.getIdToken();
+                await fetch('/api/notifications/mark-all-read', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({}) // userId is now in token
+                });
+            }
         } catch (err) {
             console.error('Failed to mark all read', err);
         }
@@ -85,7 +102,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // Helper for parts of the app to locally "push" a notification purely for UI feedback
     // Real persistence would need the POST endpoint.
     const addNotification = async (n: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
-        if (!user?.id) return;
+        if (!user?.uid) return;
 
         const tempId = Math.random().toString(36).substring(7);
         const newNotif: Notification = {
@@ -99,14 +116,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         // Persist
         try {
-            await fetch('/api/notifications', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: user.id,
-                    ...n
-                })
-            });
+            if (user) {
+                const token = await user.getIdToken();
+                await fetch('/api/notifications', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        ...n
+                        // userId extracted from token on server
+                    })
+                });
+            }
             // In ideal world, we swap tempId with real ID here
             refreshNotifications();
         } catch (err) {
