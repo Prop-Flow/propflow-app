@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase-client';
+import { auth, db } from '@/lib/firebase';
 
 interface AuthError {
     code?: string;

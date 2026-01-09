@@ -278,7 +278,8 @@ export default function PropertyReviewModal({ isOpen, onClose, onSave, data }: P
     );
 }
 
-function SectionHeader({ icon: Icon, title }: { icon: any, title: string }) {
+
+function SectionHeader({ icon: Icon, title }: { icon: React.ElementType, title: string }) {
     return (
         <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2 pb-2 mb-2 border-b border-white/10">
             <Icon className="w-4 h-4 text-blue-400" /> {title}
@@ -286,7 +287,14 @@ function SectionHeader({ icon: Icon, title }: { icon: any, title: string }) {
     );
 }
 
-function TabButton({ active, onClick, icon: Icon, label }: any) {
+interface TabButtonProps {
+    active: boolean;
+    onClick: () => void;
+    icon: React.ElementType;
+    label: string;
+}
+
+function TabButton({ active, onClick, icon: Icon, label }: TabButtonProps) {
     return (
         <button
             onClick={onClick}
@@ -299,6 +307,7 @@ function TabButton({ active, onClick, icon: Icon, label }: any) {
         </button>
     );
 }
+
 
 interface ReviewFieldProps {
     label: string;

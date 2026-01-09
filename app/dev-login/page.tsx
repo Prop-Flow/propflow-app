@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { Shield, ArrowRight, Lock } from 'lucide-react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase-client';
+import { auth } from '@/lib/firebase';
 
 export default function DevLoginPage() {
     const [password, setPassword] = useState('');

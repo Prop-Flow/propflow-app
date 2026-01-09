@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PropertiesClient from '@/components/properties/PropertiesClient';
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
 

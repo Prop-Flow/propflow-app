@@ -13,7 +13,7 @@ This guide outlines the tech stack, dependencies, and local environment configur
 
 ### Backend & Services
 
-- **Authentication**: [NextAuth.js](https://next-auth.js.org/) (v5 beta / Auth.js)
+- **Authentication**: [Firebase Authentication](https://firebase.google.com/docs/auth) (Replaced NextAuth.js)
 - **Database**: Google Firebase (Firestore)
 - **AI Integration**: [Google Vertex AI](https://cloud.google.com/vertex-ai) (Model: **Gemma**)
 - **Visualization**: [Recharts](https://recharts.org/) (for Dashboard charts)
@@ -28,7 +28,11 @@ This guide outlines the tech stack, dependencies, and local environment configur
 - **npm**: v9.0.0 or higher
 - **Git**: Latest version
 
-### 2. Google Cloud SDK (Critical for AI Features)
+### 2. Google Cloud SDK (CRITICAL - MISSING)
+
+> [!IMPORTANT]
+> **The Google Cloud CLI (`gcloud`) is currently NOT installed in your environment.**
+> You MUST install this to use AI features and for MCPs to function correctly.
 
 To make the AI features (e.g., Gemma Insight Card, AI Composer) work locally, you must authenticate with Google Cloud using Application Default Credentials (ADC).
 
@@ -50,7 +54,16 @@ To make the AI features (e.g., Gemma Insight Card, AI Composer) work locally, yo
 
     *This will open a browser window. Sign in with your authorized Google account.*
 
-### 3. Repository Setup
+### 3. Firebase Setup
+
+Since we are using Firebase, ensure you are logged in to the Firebase CLI:
+
+```bash
+# Using the project's local dependency
+npm run firebase -- login
+```
+
+### 4. Repository Setup
 
 1. **Clone the repository**:
 
