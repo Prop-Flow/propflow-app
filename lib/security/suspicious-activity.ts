@@ -56,7 +56,7 @@ export async function checkSuspiciousActivity(
 
 /**
  * Report a failed authentication attempt
- * To be called by /api/auth/login or similar
+ * To be called by login handler or similar
  */
 export async function reportFailedAuth(ip: string, email?: string) {
     const entry = failedAuthMap.get(ip) || { count: 0, lastAttempt: Date.now() };

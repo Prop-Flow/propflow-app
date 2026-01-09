@@ -31,6 +31,9 @@ export default function DashboardPage() {
     const stats = {
         properties: 12,
         tenants: 8,
+        revenue: 42500,
+        expenses: 12800,
+        netIncome: 29700,
     };
 
     return (
@@ -67,7 +70,12 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Financial Overview */}
-                    <RevenueChart />
+                    {/* Financial Overview */}
+                    <RevenueChart
+                        revenue={stats.revenue}
+                        expenses={stats.expenses}
+                        netIncome={stats.netIncome}
+                    />
                 </div>
 
                 {/* Right Column: AI & Activity (Span 4) */}

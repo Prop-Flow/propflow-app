@@ -72,33 +72,8 @@ export default function LoginPage() {
             const user = userCredential.user;
             console.log('[Login] Firebase Auth Successful:', user.uid);
 
-            let role = 'OWNER'; // Default fallback
-
-            if (loginEmail === 'dev@propflow.ai') {
-                role = 'OWNER';
-            } else {
-                try {
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        role = (userData.role || 'TENANT').toUpperCase();
-                    } else {
-                        console.warn('User authenticated but no Firestore profile found.');
-                        role = 'TENANT'; // Safe default
-                    }
-                } catch (profileErr) {
-                    console.error('Error fetching profile:', profileErr);
-                }
-            }
-
             // Redirect
-            if (role === 'OWNER') {
-                router.push('/dashboard/owner');
-            } else if (role === 'PROPERTY_MANAGER') {
-                router.push('/dashboard/manager');
-            } else {
-                router.push('/dashboard/tenant');
-            }
+            router.push('/dashboard');
 
         } catch (err: unknown) {
             console.error('Login error:', err);
