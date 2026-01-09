@@ -1,132 +1,106 @@
-# Propflow AI - Property Management Automation System
+# Propflow (Core Application Hub)
 
-AI-powered property management system that automates tenant follow-ups, document collection, and compliance monitoring. Reduce landlord admin time from 15-20 hours/month to <2 hours.
+**High-Efficiency Property Management Automation on Google Cloud**
 
-## 🚀 Live Demo
+Propflow is a next-generation property management platform built natively on the Google Cloud Ecosystem. It leverages AI and automation to drastically reduce administrative time for property managers, tenants, and owners.
 
-[Live App](https://propflow-ai-483621.web.app/)
-(Hosted on Firebase Hosting & Cloud Run)
+This repository (`propflow-app`) serves as the **Core Application Hub**, containing the user interface (Next.js) and Firebase Cloud Functions. Shared operational workflows and infrastructure configurations reside in the `propflow-shared-ops` repository.
 
-## Features
+## 🚀 Tech Stack (Google-Native)
 
-- **AI Agent Communication**: Automated multi-channel follow-ups (SMS, email, voice) using OpenAI GPT-4
-- **Document Tracking**: Automatically detect missing compliance documents (W-9s, insurance certificates, leases)
-- **Compliance Monitoring**: Track lease renewals and inspection deadlines with auto-alerts
-- **Centralized Dashboard**: Single view of all properties, tenants, pending actions, and compliance status
-- **Intelligent Escalation**: AI handles 5+ auto-follow-ups before escalating to human intervention
+We have pivoted to a fully Google-native architecture to ensure scalability, security, and seamless integration.
 
-## Tech Stack
+-   **Frontend**: [Next.js 15](https://nextjs.org/) (React 19)
+-   **Core Backend & Database**:
+    -   [Firebase Authentication](https://firebase.google.com/docs/auth) (Identity Platform)
+    -   [Cloud Firestore](https://firebase.google.com/docs/firestore) (NoSQL Database)
+    -   [Cloud Functions for Firebase](https://firebase.google.com/docs/functions) (Serverless Backend)
+-   **AI & Logic**:
+    -   [Google Vertex AI](https://cloud.google.com/vertex-ai) running **Gemma** models.
+-   **Hosting & CI/CD**:
+    -   [Firebase App Hosting](https://firebase.google.com/docs/app-hosting) (Next.js Native/Containerized)
+    -   [Firebase Hosting](https://firebase.google.com/docs/hosting) (Static Assets)
 
-- **Frontend**: Next.js 15, React 19, TypeScript, TailwindCSS
-- **Database/Hosting**: Firebase Hosting & Cloud Firestore
-- **Authentication**: NextAuth.js (Firebase adapter / Firestore)
-- **AI/LLM**: OpenAI GPT-4 for intelligent responses
-- **Vector Storage**: Pinecone for tenant/property context
-- **Communication**: Twilio (SMS + Voice), Resend (Email)
-- **Workflow Orchestration**: n8n (optional)
+## 📂 Project Structure
 
-## Getting Started
+```bash
+propflow-app/
+├── app/                  # Next.js App Router (Pages & Layouts)
+├── components/           # Reusable UI Components
+├── lib/                  # Application Logic
+│   ├── ai/               # Vertex AI & Gemma Integration
+│   ├── auth/             # Firebase Auth Wrappers
+│   ├── gcp/              # Direct Google Cloud Platform Clients
+│   ├── firebase-client.ts # Client-side Firebase Initialization
+│   └── ...
+├── public/               # Static Assets
+├── scripts/              # Utility Scripts
+├── firestore.rules       # Security Rules for Firestore
+└── firebase.json         # Firebase Configuration
+```
+
+## 🛠️ Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Firebase Project
-- API keys for:
-  - OpenAI
-  - Twilio (for SMS/voice)
-  - Resend (for email)
-  - Pinecone (for vector storage)
+-   **Node.js**: v18+ recommended
+-   **Firebase CLI**: Install globally via `npm install -g firebase-tools`
+-   **Google Cloud Project**: You need access to the Propflow GCP project.
 
-### Installation
+### Setup
 
-1. **Clone and install dependencies**
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-org/propflow-app.git
+    cd propflow-app
+    ```
 
-```bash
-npm install
-```
+2.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
 
-1. **Set up environment variables**
+3.  **Firebase & Google Cloud Authentication:**
+    Propflow uses OIDC-based flows and local Application Default Credentials (ADC) for development.
 
-Copy `.env.example` to `.env` and fill in your API keys:
+    ```bash
+    # Login to Firebase CLI
+    firebase login
 
-```bash
-cp .env.example .env
-```
+    # Initialize / Configure Project (if needed)
+    firebase init hosting:github
+    ```
 
-Required environment variables:
+4.  **Environment Configuration:**
+    Ensure you have the necessary `.env.local` variables for client-side Firebase keys.
+    *(See `.env.example` for the required keys)*
 
-- `FIREBASE_PROJECT_ID`: Your Firebase Project ID
-- `FIREBASE_CLIENT_EMAIL`: Your Firebase Service Account Email
-- `FIREBASE_PRIVATE_KEY`: Your Firebase Private Key
-- `OPENAI_API_KEY`: OpenAI API key
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`: Twilio credentials
-- `RESEND_API_KEY`: Resend API key for email
-- `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`: Pinecone credentials
-- `NEXT_PUBLIC_APP_URL`: Your app URL (e.g., `http://localhost:3000`)
+    ```bash
+    cp .env.example .env.local
+    ```
 
-1. **Run the development server**
+5.  **Run Development Server:**
+    ```bash
+    npm run dev
+    ```
+    Access the app at `http://localhost:3000`.
 
-```bash
-npm run dev
-```
+## 📦 Deployment
 
-Open [http://localhost:3000](http://localhost:3000) to see the dashboard.
+Deployment is handled via Firebase App Hosting or Firebase Hosting, typically triggered by merging into `main`.
 
-## Deployment
-
-### Firebase Hosting (Recommended)
-
-1. Authenticate with Firebase:
-
-```bash
-npx firebase login
-```
-
-1. Deploy:
+To deploy manually (if you have permissions):
 
 ```bash
-npx firebase deploy
+firebase deploy
 ```
 
-## Project Structure
+## 🤝 Contribution Guidelines
 
-```'
-propflow/
-├── app/
-│   ├── api/
-│   │   ├── properties/          # Property CRUD endpoints
-│   │   ├── tenants/             # Tenant CRUD endpoints
-│   │   ├── workflows/           # Workflow trigger endpoints
-│   │   └── webhooks/            # Twilio webhooks
-│   ├── properties/              # Properties pages
-│   ├── tenants/                 # Tenants pages
-│   ├── compliance/              # Compliance dashboard
-│   └── page.tsx                 # Main dashboard
-├── lib/
-│   ├── ai/
-│   │   ├── agent-engine.ts      # Core AI agent logic
-│   │   ├── prompts.ts           # AI prompt templates
-│   │   └── vector-store.ts      # Pinecone integration
-│   ├── communication/
-│   │   ├── sms-service.ts       # Twilio SMS
-│   │   ├── voice-service.ts     # Twilio Voice
-│   │   ├── email-service.ts     # Resend email
-│   │   └── channel-router.ts    # Multi-channel routing
-│   ├── services/
-│   │   └── firebase-admin.ts    # Firebase Admin SDK initialization
-│   └── utils/                   # Utility functions
-├── firebase.json                # Firebase configuration
-└── package.json
-```
-
-## License
-
-MIT
-
-## Support
-
-For questions or issues, please open a GitHub issue or contact support.
+1.  **Feature Branches**: Create a branch for your feature (`feat/my-feature`).
+2.  **Google-Native Context**: Ensure new features utilize Firebase or GCP native services where possible.
+3.  **Lint & Test**: Run `npm run lint` before committing.
 
 ---
 
-Built with ❤️ using Next.js, Vertex AI, and Twilio
+*Propflow - streamlining property management with the power of Google Cloud.*

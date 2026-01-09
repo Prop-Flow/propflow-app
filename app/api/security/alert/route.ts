@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { sendEmail } from '@/lib/communication/email-service';
+
 
 export async function POST(req: Request) {
     try {
@@ -14,15 +14,8 @@ export async function POST(req: Request) {
 
         // 2. Send Email if critical/warning
         if (severity === 'CRITICAL' || severity === 'WARNING') {
-            const devEmails = process.env.DEVELOPER_EMAILS?.split(',') || ['admin@propflow.ai'];
-            if (devEmails.length > 0) {
-                await sendEmail(
-                    devEmails[0].trim(),
-                    `[${severity}] Security Alert: ${type}`,
-                    description,
-                    'system_security'
-                );
-            }
+            // TODO: Integrate new notification system
+            console.warn(`[Mock Notification] Sending critical alert to admins: ${description}`);
         }
 
         return NextResponse.json({ success: true });

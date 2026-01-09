@@ -1,5 +1,5 @@
 import { db } from '@/lib/services/firebase-admin';
-import { sendWithFallback } from '@/lib/communication/channel-router';
+
 
 export type CreateMaintenanceRequestInput = {
     propertyId: string;
@@ -35,16 +35,8 @@ export async function createMaintenanceRequest(input: CreateMaintenanceRequestIn
             const tenant = tenantDoc.data()!;
             request.tenant = { id: tenantDoc.id, ...tenant };
 
-            const message = `We've received your maintenance request "${request.title}" (Ticket #${request.ticketNumber}). We'll update you soon.`;
-
-            await sendWithFallback({
-                tenantId: tenantDoc.id,
-                tenantName: tenant.name,
-                phone: tenant.phone || undefined,
-                email: tenant.email || undefined,
-                message,
-                subject: `Maintenance Request Received: ${request.ticketNumber}`,
-            });
+            // TODO: Re-integrate notifications with new system
+            console.log(`[Mock Notification] Maintenance request received for tenant ${tenant.name}`);
         }
     }
 
@@ -57,7 +49,7 @@ export async function createMaintenanceRequest(input: CreateMaintenanceRequestIn
 export async function updateMaintenanceRequestStatus(
     requestId: string,
     status: 'pending' | 'in_progress' | 'resolved' | 'closed',
-    note?: string
+    _note?: string
 ) {
     const docRef = db.collection('maintenanceRequests').doc(requestId);
 
@@ -76,19 +68,8 @@ export async function updateMaintenanceRequestStatus(
         if (tenantDoc.exists) {
             const tenant = tenantDoc.data()!;
 
-            let message = `Your maintenance request #${request.ticketNumber} status has been updated to: ${status.replace('_', ' ').toUpperCase()}.`;
-            if (note) {
-                message += ` Note: ${note}`;
-            }
-
-            await sendWithFallback({
-                tenantId: tenantDoc.id,
-                tenantName: tenant.name,
-                phone: tenant.phone || undefined,
-                email: tenant.email || undefined,
-                message,
-                subject: `Update on Ticket #${request.ticketNumber}`,
-            });
+            // TODO: Re-integrate notifications with new system
+            console.log(`[Mock Notification] Maintenance status updated for tenant ${tenant.name}: ${status}`);
         }
     }
 
