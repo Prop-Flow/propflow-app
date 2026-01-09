@@ -12,11 +12,25 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Use this to debug if env vars are loading
-console.log("Firebase Config:", { ...firebaseConfig, apiKey: "HIDDEN" });
+if (typeof window === 'undefined') {
+    console.log('Firebase Client Init (Server): API Key exists?', !!firebaseConfig.apiKey);
+}
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Initialize Firebase (Singleton)
+let app: any = null;
+let auth: any = null;
+let db: any = null;
+
+if (firebaseConfig.apiKey) {
+    try {
+        app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+        auth = getAuth(app);
+        db = getFirestore(app);
+    } catch (error) {
+        console.error('Firebase initialization error:', error);
+    }
+} else {
+    console.warn('Firebase API Key missing. Skipping initialization (Build/Server Mode).');
+}
 
 export { app, auth, db };
