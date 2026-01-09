@@ -15,7 +15,16 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     },
     providers: [
         Credentials({
+            credentials: {
+                email: { label: "Email", type: "email" },
+                password: { label: "Password", type: "password" }
+            },
             async authorize(credentials) {
+                console.log('[Auth] Authorizing credentials:', {
+                    email: (credentials as any)?.email,
+                    hasPassword: !!(credentials as any)?.password
+                });
+
                 const parsedCredentials = z
                     .object({ email: z.string().email(), password: z.string().min(6) })
                     .safeParse(credentials);
@@ -23,10 +32,10 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                 if (parsedCredentials.success) {
                     const { email: rawEmail, password } = parsedCredentials.data;
                     const email = rawEmail.toLowerCase().trim();
-                    logger.auth(`Attempting login for: ${email}`);
 
                     // Special case for Developer Mode
                     if (email === 'dev@propflow.ai' && password === 'Sharktank101!') {
+                        console.log('[Auth] Developer Mode bypass triggered successfully');
                         logger.auth('Developer Mode bypass triggered');
                         return {
                             id: 'dev-mode-user',
@@ -39,6 +48,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     const userSnapshot = await db.collection('users').where('email', '==', email).limit(1).get();
 
                     if (userSnapshot.empty) {
+                        console.log(`[Auth] User not found: ${email}`);
                         logger.auth('User not found');
                         return null;
                     }
@@ -47,14 +57,16 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     const user = userDoc.data();
 
                     if (!user.passwordHash) {
+                        console.log(`[Auth] No password hash for user: ${email}`);
                         logger.auth(`No password hash for user: ${email}`);
                         return null;
                     }
 
-                    logger.auth(`User found, verifying password for ${email}`);
+                    console.log(`[Auth] Verifying password for ${email}`);
                     const passwordsMatch = await bcrypt.compare(password, user.passwordHash);
 
                     if (passwordsMatch) {
+                        console.log(`[Auth] authentication successful for ${email}`);
                         logger.auth(`Password verified successfully for ${email}`);
                         const returnUser = {
                             id: userDoc.id,
@@ -62,12 +74,13 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                             name: user.name,
                             role: user.role as any,
                         };
-                        logger.debug('Returning user object', returnUser);
                         return returnUser;
                     }
 
+                    console.log(`[Auth] Password mismatch for ${email}`);
                     logger.auth(`Password mismatch for ${email}`);
                 } else {
+                    console.error('[Auth] Zod validation failed:', parsedCredentials.error);
                     logger.auth('Credential validation failed');
                 }
 
