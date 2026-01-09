@@ -1,0 +1,19 @@
+.git
+.gitignore
+.next
+node_modules
+tools/google-cloud-sdk
+# terraform is needed for Cloud Build step 4
+# terraform
+README.md
+# Dockerfile must be uploaded
+
+.dockerignore
+.gcloudignore
+.env
+.env.local
+.env.production
+.env.development
+npm-debug.log
+yarn-error.log
+.DS_Store

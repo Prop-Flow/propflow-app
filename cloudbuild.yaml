@@ -1,0 +1,77 @@
+steps:
+  # 1. Self-healing: Create AR Repo if missing
+  - name: "gcr.io/cloud-builders/gcloud"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        gcloud artifacts repositories describe propflow-repo --location=us-east4 || \
+        gcloud artifacts repositories create propflow-repo --repository-format=docker \
+        --location=us-east4 --description="Docker repository"
+
+  # 2. Build Docker Image (passing build args)
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "--build-arg",
+        "NEXT_PUBLIC_GCP_PROJECT_ID=${_PROJECT_ID}",
+        "--build-arg",
+        "GCP_REGION=${_REGION}",
+        "--build-arg",
+        "NEXT_PUBLIC_GCP_REGION=${_REGION}",
+        "--build-arg",
+        "NEXT_PUBLIC_APP_URL=${_APP_URL}",
+        "-t",
+        "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621",
+        ".",
+      ]
+
+  # 3. Push Docker Image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621",
+      ]
+
+  # 4. Terraform Init & Apply (Firestore Rules)
+  - name: "hashicorp/terraform:light"
+    dir: "terraform"
+    args: ["init"]
+  - name: "hashicorp/terraform:light"
+    dir: "terraform"
+    args:
+      [
+        "apply",
+        "-auto-approve",
+        "-var",
+        "project_id=${PROJECT_ID}",
+        "-var",
+        "region=${_REGION}",
+      ]
+
+  # 5. Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "ssrpropflowai483621"
+      - "--image"
+      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621"
+      - "--region"
+      - "${_REGION}"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+      - "--set-env-vars"
+      - "NEXT_PUBLIC_GCP_PROJECT_ID=${_PROJECT_ID},GCP_REGION=${_REGION},NEXT_PUBLIC_GCP_REGION=${_REGION},NEXT_PUBLIC_APP_URL=${_APP_URL}"
+
+substitutions:
+  _REGION: us-east4
+  _PROJECT_ID: propflow-ai-483621
+  _APP_URL: https://propflow-ai-483621.web.app
+
+images:
+  - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621"
