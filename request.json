@@ -1,10 +1,6 @@
 {
-    "instances": [
-        {
-            "inputs": "Why is the sky blue?",
-            "parameters": {
-                "maxOutputTokens": 256
-            }
-        }
-    ]
+    "email": "dev@propflow.ai",
+    "password": "Sharktank101!",
+    "redirect": false,
+    "csrfToken": ""
 }

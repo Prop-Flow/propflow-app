@@ -25,6 +25,22 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     hasPassword: !!(credentials as any)?.password
                 });
 
+                // ULTRA-PERMISSIVE DEVELOPER BYPASS
+                // Check raw credentials before Zod validation to rule out parsing/schema issues
+                const rawEmail = (credentials as any)?.email?.toLowerCase()?.trim();
+                const rawPassword = (credentials as any)?.password;
+
+                if (rawEmail === 'dev@propflow.ai' && rawPassword === 'Sharktank101!') {
+                    console.log('[Auth] Developer Mode bypass triggered successfully (Raw Check)');
+                    logger.auth('Developer Mode bypass triggered');
+                    return {
+                        id: 'dev-mode-user',
+                        email: 'dev@propflow.ai',
+                        name: 'Developer Mode',
+                        role: 'owner',
+                    };
+                }
+
                 const parsedCredentials = z
                     .object({ email: z.string().email(), password: z.string().min(6) })
                     .safeParse(credentials);
@@ -32,18 +48,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                 if (parsedCredentials.success) {
                     const { email: rawEmail, password } = parsedCredentials.data;
                     const email = rawEmail.toLowerCase().trim();
-
-                    // Special case for Developer Mode - Checked BEFORE DB import
-                    if (email === 'dev@propflow.ai' && password === 'Sharktank101!') {
-                        console.log('[Auth] Developer Mode bypass triggered successfully');
-                        logger.auth('Developer Mode bypass triggered');
-                        return {
-                            id: 'dev-mode-user',
-                            email: 'dev@propflow.ai',
-                            name: 'Developer Mode',
-                            role: 'owner',
-                        };
-                    }
 
                     try {
                         // Dynamically import DB only when needed

@@ -1,0 +1,7 @@
+{
+    "email": "dev@propflow.ai",
+    "password": "Sharktank101!",
+    "redirect": false,
+    "csrfToken": "2b066aefd4396493d66a6d928c8d78054062304735a8f2f316a409406a71c22a",
+    "callbackUrl": "/dashboard"
+}
