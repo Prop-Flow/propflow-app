@@ -16,4 +16,8 @@ resource "google_firebaserules_release" "firestore" {
   name         = "cloud.firestore"
   ruleset_name = google_firebaserules_ruleset.firestore.name
   project      = var.project_id
+
+  lifecycle {
+    ignore_changes = [name]
+  }
 }
