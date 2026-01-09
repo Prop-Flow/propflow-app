@@ -14,6 +14,7 @@ const project = process.env.NEXT_PUBLIC_GCP_PROJECT_ID || 'propflow-ai-483621';
 const location = process.env.VERTEX_AI_REGION || 'us-central1';
 
 // Initialize Vertex AI with API key or credentials
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const vertexConfig: any = {
     project,
     location,
@@ -71,6 +72,7 @@ export class VertexService {
         });
 
         // Initialize Google Auth for custom endpoint calls
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const authOptions: any = {
             scopes: ['https://www.googleapis.com/auth/cloud-platform']
         };

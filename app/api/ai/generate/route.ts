@@ -21,10 +21,12 @@ export async function POST(req: NextRequest) {
         const result = await vertexService.generateText(prompt, useGemma);
 
         return NextResponse.json({ result });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('AI Generation Error:', error);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const errorMessage = (error as any).message || 'Internal Server Error';
         return NextResponse.json(
-            { error: error.message || 'Internal Server Error' },
+            { error: errorMessage },
             { status: 500 }
         );
     }

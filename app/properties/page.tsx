@@ -42,6 +42,7 @@ export default async function PropertiesPage() {
                 }
             };
         }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("Error fetching properties:", error);
         // If index is missing, firestore throws FAILED_PRECONDITION

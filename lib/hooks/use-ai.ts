@@ -55,8 +55,9 @@ export function useAI(): UseAIResult {
 
             setResult(data.result);
             return data.result;
-        } catch (err: any) {
-            const message = err.message || 'An unexpected error occurred';
+        } catch (err: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const message = (err as any).message || 'An unexpected error occurred';
             setError(message);
             throw err;
         } finally {

@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 export default function DebugAuthPage() {
     const { data: session, status } = useSession();
     const [cookies, setCookies] = useState<string>('');
-    const [envInfo, setEnvInfo] = useState<any>(null);
+    const [envInfo, setEnvInfo] = useState<unknown>(null);
 
     useEffect(() => {
         setCookies(document.cookie);
@@ -16,7 +16,7 @@ export default function DebugAuthPage() {
         fetch('/api/auth/session')
             .then(res => res.json())
             .then(data => setEnvInfo(data))
-            .catch(err => setEnvInfo({ error: err.message }));
+            .catch(err => setEnvInfo({ error: (err as Error).message }));
     }, []);
 
     return (
@@ -45,7 +45,7 @@ export default function DebugAuthPage() {
                 <ul className="list-disc ml-6 space-y-2 text-gray-300">
                     <li>If <strong>Client Session</strong> is `null` or `unauthenticated`, you are not logged in.</li>
                     <li>If <strong>Cookies</strong> does not contain `next-auth.session-token` (or `__Secure-`), the cookie is not being set.</li>
-                    <li>If <strong>Server Session</strong> is empty object `{ }`, the server doesn't see your cookie.</li>
+                    <li>If <strong>Server Session</strong> is empty object `{ }`, the server doesn&apos;t see your cookie.</li>
                 </ul>
             </div>
         </div>
