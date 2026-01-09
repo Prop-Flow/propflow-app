@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { Shield, ArrowRight, Lock } from 'lucide-react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase-client';
 
 export default function DevLoginPage() {
     const [password, setPassword] = useState('');
@@ -11,27 +13,21 @@ export default function DevLoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
 
-    const handleDevLogin = (e: React.FormEvent) => {
+    const handleDevLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError('');
 
         if (password === 'Sharktank101!') {
-            // Set cookies for server-side auth bypass
-            document.cookie = "propflow_dev_mode=true; path=/; max-age=31536000";
-            document.cookie = "propflow_dev_role=owner; path=/; max-age=31536000";
-
-            // Set localStorage for client-side useAuth hook
-            localStorage.setItem('propflow_user', JSON.stringify({
-                id: 'dev-user-id',
-                firstName: 'Developer',
-                lastName: '(Mode)',
-                email: 'dev@propflow.ai',
-                role: 'owner'
-            }));
-
-            // Redirect to owner dashboard
-            router.push('/dashboard/owner');
+            try {
+                // Real Auth
+                await signInWithEmailAndPassword(auth, 'dev@propflow.ai', 'Sharktank101!');
+                router.push('/dashboard/owner');
+            } catch (err) {
+                console.error('Dev auth failed:', err);
+                setError('Dev Auth Failed (Check Console)');
+                setIsLoading(false);
+            }
         } else {
             setError('Invalid Developer Password');
             setIsLoading(false);
@@ -41,7 +37,6 @@ export default function DevLoginPage() {
     return (
         <AuthLayout maxWidth="max-w-md">
             <div className="w-full bg-slate-900/40 backdrop-blur-2xl border border-white/10 p-8 py-10 rounded-3xl shadow-2xl relative overflow-hidden group">
-                {/* Top decorative glow */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent blur-sm group-hover:via-blue-500/80 transition-all duration-500" />
 
                 <div className="text-center mb-8 space-y-3">
@@ -98,7 +93,6 @@ export default function DevLoginPage() {
                     </button>
                 </form>
 
-                {/* Bottom subtle detail */}
                 <div className="mt-8 pt-6 border-t border-white/5 flex justify-center">
                     <div className="flex items-center gap-1.5 opacity-40">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-500" />

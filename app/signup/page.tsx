@@ -8,11 +8,16 @@ import RoleSelector from '@/components/auth/RoleSelector';
 import { Input } from '@/components/ui/Input';
 import { PhoneInput } from '@/components/ui/PhoneInputStrict';
 import { cn } from '@/lib/utils';
-
-
 import { useRouter } from 'next/navigation';
-import { registerUser } from '@/lib/actions/auth';
-import { signIn } from 'next-auth/react';
+
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase-client';
+
+interface AuthError {
+    code?: string;
+    message?: string;
+}
 
 export default function SignupPage() {
     const router = useRouter();
@@ -31,15 +36,6 @@ export default function SignupPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // Clear any potential Developer Mode artifacts on mount
-    React.useEffect(() => {
-        // Clear cookies
-        document.cookie = "propflow_dev_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-        document.cookie = "propflow_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-        // Clear localStorage
-        localStorage.removeItem('propflow_user');
-    }, []);
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!role) return;
@@ -47,39 +43,22 @@ export default function SignupPage() {
         setIsLoading(true);
         setErrors({});
 
+        // Validation Logic
         const newErrors: { [key: string]: string } = {};
-
         if (!formData.firstName) newErrors.firstName = 'First name is required';
         if (!formData.lastName) newErrors.lastName = 'Last name is required';
-
         if (!formData.email) {
             newErrors.email = 'Email is required';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = 'Invalid email address';
         }
-
-        if (!formData.phone) {
-            newErrors.phone = 'Phone number is required';
-        } else if (formData.phone.replace(/\D/g, '').length < 7) {
-            newErrors.phone = 'Phone number is too short';
-        }
-
+        if (!formData.phone) newErrors.phone = 'Phone number is required';
         if (!formData.password) {
             newErrors.password = 'Password is required';
         } else if (formData.password.length < 8) {
             newErrors.password = 'Password must be at least 8 characters';
-        } else {
-            // Check password complexity
-            const hasUpperCase = /[A-Z]/.test(formData.password);
-            const hasLowerCase = /[a-z]/.test(formData.password);
-            const hasNumber = /\d/.test(formData.password);
-            const hasSpecialChar = /[@$!%*?&]/.test(formData.password);
-
-            if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
-                newErrors.password = 'Password must contain uppercase, lowercase, number, and special character (@$!%*?&)';
-            }
         }
-
+        // Simplified complexity check for MVP pivot
         if (!formData.confirmPassword) {
             newErrors.confirmPassword = 'Confirm password is required';
         } else if (formData.password !== formData.confirmPassword) {
@@ -92,49 +71,46 @@ export default function SignupPage() {
             return;
         }
 
-        const formDataPayload = new FormData();
-        formDataPayload.append('firstName', formData.firstName);
-        formDataPayload.append('lastName', formData.lastName);
-        formDataPayload.append('email', formData.email);
-        formDataPayload.append('password', formData.password);
-        formDataPayload.append('role', role);
-        formDataPayload.append('phone', formData.phone);
-
         try {
-            // Call server action
-            const result = await registerUser({}, formDataPayload);
+            console.log(`[Signup] Creating user ${formData.email} as ${role}`);
 
-            if (result.success) {
-                // CRITICAL: Clear ALL developer mode artifacts before auto-login
-                document.cookie = "propflow_dev_mode=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                document.cookie = "propflow_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                localStorage.removeItem('propflow_user');
-                sessionStorage.clear();
+            // 1. Create Auth User
+            const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+            const user = userCredential.user;
 
-                // Auto login after success
-                const loginResult = await signIn('credentials', {
-                    email: formData.email,
-                    password: formData.password,
-                    redirect: false,
-                });
+            // 2. Update Profile (DisplayName)
+            await updateProfile(user, {
+                displayName: `${formData.firstName} ${formData.lastName}`
+            });
 
-                if (loginResult?.error) {
-                    console.error('Login failed after registration:', loginResult.error);
-                    // Fallback to login page
-                    router.push('/login');
-                } else {
-                    const targetPath = role === 'tenant' ? '/dashboard/tenant' : role === 'manager' ? '/dashboard/manager' : '/dashboard/owner';
-                    router.push(targetPath);
-                }
-            } else {
-                console.error('Registration failed result:', result);
-                console.error('Registration failed errors:', result.errors);
-                console.error('Registration failed message:', result.message);
-                alert(result.message || 'Registration failed. Please check your inputs.');
-                setIsLoading(false);
+            // 3. Create Firestore Document
+            await setDoc(doc(db, 'users', user.uid), {
+                uid: user.uid,
+                email: formData.email,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                phone: formData.phone,
+                role: role.toUpperCase(), // Store as normalized uppercase
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            });
+
+            console.log('[Signup] User created and profile saved.');
+
+            // 4. Redirect
+            const targetPath = role === 'tenant' ? '/dashboard/tenant' : role === 'manager' ? '/dashboard/manager' : '/dashboard/owner';
+            router.push(targetPath);
+
+        } catch (error: unknown) {
+            console.error('Signup error:', error);
+            const authError = error as AuthError;
+            let msg = 'Registration failed. Please check your inputs.';
+            if (authError.code === 'auth/email-already-in-use') {
+                msg = 'Email is already in use.';
             }
-        } catch (error) {
-            console.error('An unexpected error occurred:', error);
+            // Add more firebase error codes as needed
+            setErrors(prev => ({ ...prev, email: msg })); // Attach general error to email or show alert
+            alert(msg); // Fallback for general errors
             setIsLoading(false);
         }
     };
@@ -142,7 +118,6 @@ export default function SignupPage() {
     return (
         <AuthLayout maxWidth="max-w-2xl">
             <div className="w-full bg-card/40 backdrop-blur-2xl border border-white/20 p-8 py-10 rounded-3xl shadow-2xl relative overflow-hidden group">
-                {/* Subtle top glow */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent blur-sm group-hover:via-primary/80 transition-all duration-500" />
 
                 <div className="mb-8 text-center space-y-2">
@@ -163,7 +138,7 @@ export default function SignupPage() {
                                 label="First Name"
                                 placeholder="John"
                                 value={formData.firstName}
-                                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, firstName: e.target.value })}
                                 required
                                 error={errors.firstName}
                             />
@@ -171,7 +146,7 @@ export default function SignupPage() {
                                 label="Last Name"
                                 placeholder="Doe"
                                 value={formData.lastName}
-                                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, lastName: e.target.value })}
                                 required
                                 error={errors.lastName}
                             />
@@ -182,7 +157,7 @@ export default function SignupPage() {
                             label="Email Address"
                             placeholder="john@example.com"
                             value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
                             required
                             error={errors.email}
                         />
@@ -190,7 +165,7 @@ export default function SignupPage() {
                         <PhoneInput
                             label="Phone Number"
                             value={formData.phone}
-                            onChange={(value) => setFormData({ ...formData, phone: value })}
+                            onChange={(value: string) => setFormData({ ...formData, phone: value })}
                             required
                             error={errors.phone}
                         />
@@ -201,7 +176,7 @@ export default function SignupPage() {
                                 label="Password"
                                 placeholder="••••••••"
                                 value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, password: e.target.value })}
                                 required
                                 error={errors.password}
                                 className="pr-10"
@@ -210,7 +185,6 @@ export default function SignupPage() {
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-3 top-[38px] text-muted-foreground hover:text-white transition-colors"
-                                aria-label={showPassword ? "Hide password" : "Show password"}
                             >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -222,7 +196,7 @@ export default function SignupPage() {
                                 label="Confirm Password"
                                 placeholder="••••••••"
                                 value={formData.confirmPassword}
-                                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                 required
                                 error={errors.confirmPassword}
                                 className="pr-10"
@@ -231,7 +205,6 @@ export default function SignupPage() {
                                 type="button"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                 className="absolute right-3 top-[38px] text-muted-foreground hover:text-white transition-colors"
-                                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                             >
                                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -265,17 +238,6 @@ export default function SignupPage() {
                     <Link href="/login" className="text-primary hover:underline font-medium">
                         Log in
                     </Link>
-                </div>
-            </div>
-
-            {/* Feature Shuffle / Showcase Placeholder below */}
-            <div className="mt-8 pt-8 border-t border-white/5">
-                <div className="flex justify-between items-center text-xs text-muted-foreground">
-                    <span>Modern Security</span>
-                    <span>•</span>
-                    <span>Real-time Analytics</span>
-                    <span>•</span>
-                    <span>AI Insights</span>
                 </div>
             </div>
         </AuthLayout>

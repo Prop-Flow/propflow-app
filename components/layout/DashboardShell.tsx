@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import UserDropdown from './UserDropdown';
 import { LayoutDashboard, Building2, Users, FileText, Settings, MessageSquare, AlertCircle, Receipt, Activity, Hammer } from 'lucide-react';
-import { cn } from '@/lib/utils'; // Assuming standard Shadcn utils location.
+import { cn } from '@/lib/utils';
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
 import DevRoleSwitcher from '@/components/dev/DevRoleSwitcher';
 
@@ -20,9 +20,23 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardShell({ children, role = 'owner' }: DashboardShellProps) {
     const pathname = usePathname();
-    const { user, loading } = useAuth(role);
+    const { user, loading } = useAuth(); // useAuth does not accept role verification arguments
 
-    if (loading || !user) return null;
+    // Optional: Validate role matches expected role? 
+    // For now we assume the page wraps appropriate role check or we just show links given by prop.
+
+    // We don't block render here if loading, we render skeleton or just wait?
+    // If we return null, the entire shell disappears.
+    if (loading) return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
+
+    if (!user) {
+        // Should handle redirect component or similar, but layout usually only renders protected
+        return null;
+    }
 
     const ownerLinks = [
         { href: '/dashboard/owner', label: 'Dashboard', icon: LayoutDashboard },

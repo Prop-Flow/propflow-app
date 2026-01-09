@@ -1,17 +1,31 @@
+'use client';
+
+import React from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
-import { auth } from '@/auth';
-import { redirect } from 'next/navigation';
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 
-export default async function CompliancePage() {
-    const session = await auth();
+export default function CompliancePage() {
+    const { user, profile, loading } = useAuth();
+    const router = useRouter();
 
-    if (!session?.user) {
-        redirect('/login');
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-background">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        );
     }
 
-    // Default to owner role if not specified, similar to other pages logic
-    const currentRole = (session.user.role === 'property_manager' ? 'manager' : session.user.role as "tenant" | "owner" | "manager") || 'owner';
+    if (!user) {
+        // middleware or client redirect
+        router.push('/login');
+        return null;
+    }
+
+    const userRole = (profile?.role || 'owner').toLowerCase();
+    const currentRole = (userRole === 'property_manager' ? 'manager' : userRole as "tenant" | "owner" | "manager") || 'owner';
 
     return (
         <DashboardShell role={currentRole}>

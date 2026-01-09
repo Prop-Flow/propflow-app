@@ -5,7 +5,7 @@ import { Hammer, AlertCircle, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function MaintenancePage() {
-    const { user, loading } = useAuth();
+    const { user, profile, loading } = useAuth();
 
     if (loading) {
         return (
@@ -15,7 +15,7 @@ export default function MaintenancePage() {
         );
     }
 
-    const normalizedRole = user?.role?.toLowerCase();
+    const normalizedRole = (profile?.role || 'owner').toLowerCase();
     const role = (normalizedRole === 'property_manager' ? 'manager' : normalizedRole) as "tenant" | "owner" | "manager" | undefined || 'owner';
 
     // Mock maintenance requests

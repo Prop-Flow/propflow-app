@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/services/firebase-admin';
-import { auth } from '@/auth';
+import { verifyAuth } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        const session = await auth();
-
-        if (!session?.user?.id) {
+        // Verify authentication
+        const decodedToken = await verifyAuth(request);
+        if (!decodedToken) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
-
-        const userId = session.user.id;
+        const userId = decodedToken.uid;
 
         // Fetch properties owned by the user
         const propertiesSnapshot = await db.collection('properties')
@@ -42,9 +41,7 @@ export async function GET() {
 
             totalActiveTenants += tenantsSnapshot.data().count;
 
-            // Financials are usually subcollections or embedded in Firestore
-            // Assuming they are either embedded or in a 'financials' subcollection
-            // For now, let's check if it's embedded as 'financials' field
+            // Financials
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const financials = (property as any).financials;
 
@@ -67,11 +64,12 @@ export async function GET() {
                 .where('status', '==', 'active')
                 .get();
 
-            // Filter by property owner if necessary, but we already have property IDs
+            // Filter by property owner
             const propertyIds = properties.map(p => p.id);
             const tenantsForOwner = activeTenantsSnapshot.docs.filter(doc => propertyIds.includes(doc.data().propertyId));
 
-            totalRevenue = tenantsForOwner.reduce((sum, doc) => sum + (doc.data().rentAmount || 0), 0);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            totalRevenue = tenantsForOwner.reduce((sum, doc) => sum + ((doc.data() as any).rentAmount || 0), 0);
             totalNetIncome = totalRevenue;
         }
 

@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 export default function PropertyFinancialsPage() {
     const params = useParams();
     const propertyId = params.id as string;
-    const { user, loading: authLoading } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [refreshKey, setRefreshKey] = useState(0);
 
     // Financial State
@@ -258,8 +258,8 @@ export default function PropertyFinancialsPage() {
         );
     }
 
-    const normalizedRole = user?.role?.toLowerCase();
-    const currentRole = (normalizedRole === 'property_manager' ? 'manager' : normalizedRole) as "tenant" | "owner" | "manager" | undefined || 'owner';
+    const userRole = (profile?.role || 'owner').toLowerCase();
+    const currentRole = (userRole === 'property_manager' ? 'manager' : userRole as "tenant" | "owner" | "manager") || 'owner';
 
     return (
         <DashboardShell role={currentRole}>

@@ -12,7 +12,8 @@ export const metadata: Metadata = {
 
 import { NotificationProvider } from '@/context/NotificationContext';
 import DeveloperToolbar from '@/components/dev/DeveloperToolbar';
-import SessionProvider from '@/components/providers/SessionProvider';
+import AuthProvider from '@/components/providers/AuthProvider';
+
 
 export default function RootLayout({
     children,
@@ -22,12 +23,12 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={`${inter.className} ${outfit.variable}`} suppressHydrationWarning>
-                <SessionProvider>
+                <AuthProvider>
                     <NotificationProvider>
                         {children}
                         <DeveloperToolbar />
                     </NotificationProvider>
-                </SessionProvider>
+                </AuthProvider>
             </body>
         </html>
     );

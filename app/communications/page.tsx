@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import AIComposer from '@/components/communications/AIComposer';
 
 export default function CommunicationsPage() {
-    const { user, loading } = useAuth();
+    const { user, profile, loading } = useAuth();
 
     if (loading) {
         return (
@@ -17,7 +17,7 @@ export default function CommunicationsPage() {
         );
     }
 
-    const normalizedRole = user?.role?.toLowerCase();
+    const normalizedRole = (profile?.role || 'owner').toLowerCase();
     const role = (normalizedRole === 'property_manager' ? 'manager' : normalizedRole) as "tenant" | "owner" | "manager" | undefined || 'owner';
 
     return (
