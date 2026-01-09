@@ -6,10 +6,16 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "frameworksBackend": {
-      "region": "us-east4"
-    },
-    "source": ".",
+    "public": "public",
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "ssrpropflowai483621",
+          "region": "us-east4"
+        }
+      }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
