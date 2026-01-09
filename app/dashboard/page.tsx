@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Building2, Users, Activity } from 'lucide-react';
 import DashboardShell from '@/components/layout/DashboardShell';
-import AIInsightCard from '@/components/dashboard/AIInsightCard'; // Import AI Component
+import AIInsightCard from '@/components/dashboard/AIInsightCard';
+import RecentActivity from '@/components/dashboard/RecentActivity';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 
 // import { db } from '@/lib/services/firebase-admin'; // Removed for MVP build to avoid build errors if credentials missing
@@ -71,31 +72,8 @@ export default async function DashboardPage() {
 
                 {/* Right Column: AI & Activity (Span 4) */}
                 <div className="md:col-span-4 flex flex-col gap-6">
-                    {/* AI Insight Card */}
                     <AIInsightCard />
-
-                    {/* Recent Activity (Mocked) */}
-                    <div className="flex-1 rounded-xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-sm">
-                        <h3 className="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wider">Recent Activity</h3>
-                        <div className="space-y-4">
-                            {[
-                                { action: 'Rent Received', unit: 'Unit 4B', time: '2h ago', type: 'success' },
-                                { action: 'Maintenance req', unit: 'Unit 2A', time: '5h ago', type: 'warning' },
-                                { action: 'Lease Signed', unit: 'Unit 1C', time: '1d ago', type: 'info' }
-                            ].map((item, i) => (
-                                <div key={i} className="flex items-start gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors block">
-                                    <div className={`mt-1 h-2 w-2 rounded-full ${item.type === 'success' ? 'bg-emerald-400' : item.type === 'warning' ? 'bg-amber-400' : 'bg-blue-400'}`} />
-                                    <div>
-                                        <p className="text-sm font-medium text-slate-200">{item.action}</p>
-                                        <p className="text-xs text-slate-500">{item.unit} • {item.time}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <Link href="/notifications" className="mt-4 block text-center text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
-                            View All Activity
-                        </Link>
-                    </div>
+                    <RecentActivity />
                 </div>
             </div>
         </DashboardShell>
