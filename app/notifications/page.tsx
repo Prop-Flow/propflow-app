@@ -9,7 +9,7 @@ export default function NotificationsPage() {
                     <Bell className="h-8 w-8 text-slate-400" />
                 </div>
                 <h1 className="text-xl font-semibold text-slate-200">Notifications</h1>
-                <p className="text-slate-500">You're all caught up! Check back later for updates.</p>
+                <p className="text-slate-500">You&apos;re all caught up! Check back later for updates.</p>
             </div>
         </DashboardShell>
     );
