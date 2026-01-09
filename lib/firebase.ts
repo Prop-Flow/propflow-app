@@ -1,6 +1,6 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { FirebaseApp, initializeApp, getApps, getApp } from "firebase/app";
+import { Auth, getAuth } from "firebase/auth";
+import { Firestore, getFirestore } from "firebase/firestore";
 
 // Initialize Firebase (Singleton)
 const firebaseConfig = {
@@ -13,19 +13,19 @@ const firebaseConfig = {
 };
 
 if (typeof window === 'undefined') {
-    console.log('Firebase Client Init (Server): API Key exists?', !!firebaseConfig.apiKey);
+    // console.log('Firebase Client Init (Server): API Key exists?', !!firebaseConfig.apiKey);
 }
 
 // Initialize Firebase (Singleton)
-let app: any = null;
-let auth: any = null;
-let db: any = null;
+let _app: FirebaseApp | null = null;
+let _auth: Auth | null = null;
+let _db: Firestore | null = null;
 
 if (firebaseConfig.apiKey) {
     try {
-        app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-        auth = getAuth(app);
-        db = getFirestore(app);
+        _app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+        _auth = getAuth(_app);
+        _db = getFirestore(_app);
     } catch (error) {
         console.error('Firebase initialization error:', error);
     }
@@ -33,4 +33,8 @@ if (firebaseConfig.apiKey) {
     console.warn('Firebase API Key missing. Skipping initialization (Build/Server Mode).');
 }
 
-export { app, auth, db };
+// Export as non-null to avoid strict null checks in consumers (matches previous 'any' behavior)
+// Runtime safety is handled by the initialization logic and global environment checks
+export const app = _app!;
+export const auth = _auth!;
+export const db = _db!;

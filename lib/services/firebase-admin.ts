@@ -4,7 +4,9 @@ if (!admin.apps.length) {
     try {
         const projectId = process.env.NEXT_PUBLIC_GCP_PROJECT_ID || process.env.GCP_PROJECT_ID;
         const clientEmail = process.env.GCP_CLIENT_EMAIL;
-        const privateKey = process.env.GCP_PRIVATE_KEY?.replace(/\\n/g, '\n');
+        const privateKey = process.env.GCP_PRIVATE_KEY
+            ? process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n')
+            : undefined;
 
         if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
             admin.initializeApp({

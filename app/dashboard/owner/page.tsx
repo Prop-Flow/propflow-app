@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import { Users, Building, Loader2, TrendingUp, AlertCircle, Percent } from 'lucide-react';
 import Link from 'next/link';
-import { FinancialSummaryCard } from '@/components/dashboard/FinancialSummaryCard';
+import RevenueChart from '@/components/dashboard/RevenueChart';
 import { useAuth } from '@/hooks/useAuth';
 
 interface DashboardStats {
@@ -126,9 +126,11 @@ export default function OwnerDashboard() {
 
                 {/* Middle Row: Detailed Financials & Insights */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+
                     {/* Financial Summary (Spans 2 cols) */}
                     <div className="lg:col-span-2">
-                        <FinancialSummaryCard
+                        <RevenueChart
                             revenue={stats?.financials.revenue || 0}
                             expenses={stats?.financials.expenses || 0}
                             netIncome={stats?.financials.netIncome || 0}
