@@ -2,7 +2,7 @@
 Date: January 7, 2026 Version: 1.1.0
 
 ## Overview
-This document outlines the migration of Propflow's AI backend from OpenAI to Google Vertex AI. We have transitioned to Gemini 1.5 (Pro/Flash) for advanced multimodal document analysis and agent reasoning, integrated Firebase Admin SDK for unified GCP management, and updated our vector embedding model to `text-embedding-004`.
+This document outlines the migration of Propflow's AI backend to Google Vertex AI. We have transitioned to Gemini 1.5 (Pro/Flash) for advanced multimodal document analysis and agent reasoning, integrated Firebase Admin SDK for unified GCP management.
 
 ## 1. New Dependencies & Tech Stack Additions
 We have replaced OpenAI with Google Cloud's unified AI platform:
@@ -24,9 +24,8 @@ The AI agents are now powered by Google's Gemini models, offering native multimo
 - **Location**: `lib/ai/vertex.ts` (Unified service wrapper).
 
 ### 📐 Text Embeddings (Vertex-based)
-- **Feature**: Switched from OpenAI to `text-embedding-004` (768 dimensions).
-- **Benefit**: Improved semantic retrieval for tenant-specific context within the Google ecosystem.
-- **Location**: `lib/ai/vector-store.ts`.
+- **Feature**: Using Google `text-embedding-004`.
+- **Location**: `lib/ai/embeddings.ts` (Planned).
 
 ### 💾 Firebase Admin SDK
 - **Feature**: Integrated for robust server-side authentication and backend service orchestration.
@@ -47,13 +46,8 @@ Updated environment keys (`.env.local`):
 NEXT_PUBLIC_GCP_PROJECT_ID=propflow-...
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 
-# Required for Vector Store (Pinecone)
-PINECONE_API_KEY=...
-PINECONE_INDEX_NAME=...
-```
-
 > [!IMPORTANT]
-> Since we changed embedding models, existing vectors in Pinecone (1536d) are incompatible with the new 768d vectors. The index must be recreated or cleared.
+> Ensure your Google Cloud Project has the Vertex AI API enabled.
 
 ## 4. How to Verify
 1. **Gemini Reasoning**: Ask the agent a complex property management question. 

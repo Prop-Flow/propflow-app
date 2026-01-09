@@ -9,7 +9,7 @@ AI-powered property management system that automates tenant follow-ups, document
 
 ## Features
 
-- **AI Agent Communication**: Automated multi-channel follow-ups (SMS, email, voice) using OpenAI GPT-4
+- **AI Agent Communication**: Automated chat interactions using Google Vertex AI (Gemini 1.5)
 - **Document Tracking**: Automatically detect missing compliance documents (W-9s, insurance certificates, leases)
 - **Compliance Monitoring**: Track lease renewals and inspection deadlines with auto-alerts
 - **Centralized Dashboard**: Single view of all properties, tenants, pending actions, and compliance status
@@ -19,11 +19,10 @@ AI-powered property management system that automates tenant follow-ups, document
 
 - **Frontend**: Next.js 15, React 19, TypeScript, TailwindCSS
 - **Database/Hosting**: Firebase Hosting & Cloud Firestore
-- **Authentication**: NextAuth.js (Firebase adapter / Firestore)
-- **AI/LLM**: OpenAI GPT-4 for intelligent responses
-- **Vector Storage**: Pinecone for tenant/property context
-- **Communication**: Twilio (SMS + Voice), Resend (Email)
-- **Workflow Orchestration**: n8n (optional)
+- **Authentication**: Firebase Authentication (with Next.js middleware)
+- **AI/LLM**: Google Vertex AI (Gemini 1.5 Pro/Flash) for intelligent reasoning and parsing
+- **Vector Storage**: Firebase Firestore (Vector Search) or Vertex AI Vector Search
+- **Communication**: Custom Google Cloud Functions (Architecture ready)
 
 ## Getting Started
 
@@ -31,11 +30,7 @@ AI-powered property management system that automates tenant follow-ups, document
 
 - Node.js 18+ and npm
 - Firebase Project
-- API keys for:
-  - OpenAI
-  - Twilio (for SMS/voice)
-  - Resend (for email)
-  - Pinecone (for vector storage)
+- Google Cloud Project with Vertex AI API enabled
 
 ### Installation
 
@@ -58,10 +53,8 @@ Required environment variables:
 - `FIREBASE_PROJECT_ID`: Your Firebase Project ID
 - `FIREBASE_CLIENT_EMAIL`: Your Firebase Service Account Email
 - `FIREBASE_PRIVATE_KEY`: Your Firebase Private Key
-- `OPENAI_API_KEY`: OpenAI API key
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`: Twilio credentials
-- `RESEND_API_KEY`: Resend API key for email
-- `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`: Pinecone credentials
+- `NEXT_PUBLIC_GCP_PROJECT_ID`: Primary Google Cloud Project ID
+- `VERTEX_AI_API_KEY`: Google Cloud API Key for Vertex AI (if using client-side fallback)
 - `NEXT_PUBLIC_APP_URL`: Your app URL (e.g., `http://localhost:3000`)
 
 1. **Run the development server**
@@ -104,14 +97,10 @@ propflow/
 │   └── page.tsx                 # Main dashboard
 ├── lib/
 │   ├── ai/
-│   │   ├── agent-engine.ts      # Core AI agent logic
-│   │   ├── prompts.ts           # AI prompt templates
-│   │   └── vector-store.ts      # Pinecone integration
+│   │   ├── agent-engine.ts      # Core AI agent logic (Vertex AI)
+│   │   └── vertex.ts            # Google Gemini integration
 │   ├── communication/
-│   │   ├── sms-service.ts       # Twilio SMS
-│   │   ├── voice-service.ts     # Twilio Voice
-│   │   ├── email-service.ts     # Resend email
-│   │   └── channel-router.ts    # Multi-channel routing
+│   │   └── (Architecture ready for future Google Cloud Pub/Sub integration)
 │   ├── services/
 │   │   └── firebase-admin.ts    # Firebase Admin SDK initialization
 │   └── utils/                   # Utility functions
@@ -129,4 +118,4 @@ For questions or issues, please open a GitHub issue or contact support.
 
 ---
 
-Built with ❤️ using Next.js, Vertex AI, and Twilio
+Built with ❤️ using Next.js and Google Vertex AI
