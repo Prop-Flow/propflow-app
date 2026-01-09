@@ -27,6 +27,7 @@ export const AuthContext = createContext<AuthContextType>({
     profile: null,
     loading: true,
     error: null,
+    logout: async () => { },
 });
 
 export default function AuthProvider({ children }: { children: ReactNode }) {

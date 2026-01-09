@@ -3,14 +3,23 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PropertiesClient from '@/components/properties/PropertiesClient';
-import { auth, db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase-client';
 import { useAuth } from '@/hooks/useAuth';
-import { collection, query, where, getDocs, orderBy, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
+
+interface Property {
+    id: string;
+    name: string;
+    type: string | null;
+    address: string;
+    _count: { tenants: number };
+    [key: string]: unknown;
+}
 
 export default function PropertiesPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
-    const [properties, setProperties] = useState<any[]>([]);
+    const [properties, setProperties] = useState<Property[]>([]);
     const [fetching, setFetching] = useState(true);
 
     useEffect(() => {
@@ -56,11 +65,14 @@ export default function PropertiesPage() {
             }));
 
             // Sort manually if orderBy fails or index missing
-            mappedProperties.sort((a: any, b: any) => {
-                return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+            const props = mappedProperties as Property[];
+            props.sort((a, b) => {
+                const aSeconds = (a.createdAt as { seconds: number } | undefined)?.seconds || 0;
+                const bSeconds = (b.createdAt as { seconds: number } | undefined)?.seconds || 0;
+                return bSeconds - aSeconds;
             });
 
-            setProperties(mappedProperties);
+            setProperties(props);
         } catch (error) {
             console.error("Error fetching properties:", error);
         } finally {

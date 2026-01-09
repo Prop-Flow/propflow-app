@@ -1,8 +1,5 @@
 {
     "recommendations": [
-        "Prisma.prisma",
-        "Neon.neon",
-        "Netlify.netlify-vscode-extension",
         "GitHub.vscode-pull-request-github",
         "arize.arize-phoenix"
     ]

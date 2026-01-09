@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/services/firebase-admin';
-import { storePropertyInfo } from '@/lib/ai/vector-store';
+
 import { getSessionUser } from '@/lib/auth/session';
 import { UnauthorizedError } from '@/lib/errors/custom-errors';
 
@@ -88,11 +88,7 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        await storePropertyInfo(propertyId, {
-            name: propertyData.name,
-            address: propertyData.address,
-            details: `Property - ${body.property?.beds || 0} Beds, ${body.property?.baths || 0} Baths`,
-        });
+
 
         return NextResponse.json({ property: { id: propertyId, ...propertyData } }, { status: 201 });
     } catch (error) {
