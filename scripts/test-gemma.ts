@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { vertexService } from '../lib/ai/vertex';
+import { vertexService } from '@/lib/ai/vertex';
 
 async function testGemma() {
     console.log('--- Testing Gemma Integration ---');

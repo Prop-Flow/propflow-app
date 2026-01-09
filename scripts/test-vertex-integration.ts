@@ -1,4 +1,4 @@
-import { vertexService } from '../lib/ai/vertex';
+import { vertexService } from '@/lib/ai/vertex';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
