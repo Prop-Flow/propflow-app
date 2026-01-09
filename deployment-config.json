@@ -14,6 +14,13 @@
         "instance": "propflow-db-east",
         "region": "us-east4"
     },
+    "vertexAI": {
+        "region": "us-central1",
+        "predictionRegion": "us-east4",
+        "endpointId": "mg-endpoint-338f24d8-b8c2-4074-b24d-9462cda606ad",
+        "predictionHost": "mg-endpoint-338f24d8-b8c2-4074-b24d-9462cda606ad.us-east4-697138495010.prediction.vertexai.goog",
+        "comment": "Gemini in us-central1, Gemma in us-east4 with dedicated endpoint"
+    },
     "cloudRun": {
         "memory": "512Mi",
         "allowUnauthenticated": true,

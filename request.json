@@ -1,0 +1,10 @@
+{
+    "instances": [
+        {
+            "inputs": "Why is the sky blue?",
+            "parameters": {
+                "maxOutputTokens": 256
+            }
+        }
+    ]
+}

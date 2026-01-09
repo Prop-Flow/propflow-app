@@ -2,7 +2,8 @@ import { Pinecone } from '@pinecone-database/pinecone';
 import { VertexAI } from '@google-cloud/vertexai';
 
 const project = process.env.NEXT_PUBLIC_GCP_PROJECT_ID || 'propflow-ai-483621';
-const location = process.env.GCP_REGION || 'us-east4';
+// Use us-central1 for Vertex AI (same as vertex.ts)
+const location = process.env.VERTEX_AI_REGION || 'us-central1';
 const vertexAI = new VertexAI({ project, location });
 
 let pineconeClient: Pinecone | null = null;

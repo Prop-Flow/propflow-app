@@ -4,6 +4,8 @@ import DashboardShell from '@/components/layout/DashboardShell';
 import { MessageSquare, Mail, Phone, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
+import AIComposer from '@/components/communications/AIComposer';
+
 export default function CommunicationsPage() {
     const { user, loading } = useAuth();
 
@@ -25,17 +27,17 @@ export default function CommunicationsPage() {
                     <h1 className="text-3xl font-bold text-foreground">Communications</h1>
                     <p className="text-muted-foreground mt-1">Manage tenant communications and logs</p>
                 </div>
-                <button className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all">
-                    + New Message
-                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2">
-                    <div className="bg-card/30 backdrop-blur-sm rounded-xl border border-dashed border-white/10 p-12 text-center h-96 flex flex-col items-center justify-center">
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Integrated AI Composer */}
+                    <AIComposer onSend={(msg) => console.log('Sending message:', msg)} />
+
+                    <div className="bg-card/30 backdrop-blur-sm rounded-xl border border-dashed border-white/10 p-12 text-center h-[calc(100%-250px)] flex flex-col items-center justify-center">
                         <MessageSquare className="w-16 h-16 text-muted-foreground/30 mb-4" />
-                        <h3 className="text-xl font-semibold text-foreground mb-2">No messages selected</h3>
-                        <p className="text-muted-foreground">Select a conversation to view details</p>
+                        <h3 className="text-xl font-semibold text-foreground mb-2">Select a conversation</h3>
+                        <p className="text-muted-foreground">Or start a new one using the AI Composer above</p>
                     </div>
                 </div>
 

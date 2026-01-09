@@ -6,20 +6,28 @@ import { db } from '@/lib/services/firebase-admin';
 export const dynamic = 'force-dynamic';
 
 export default async function BillingPage() {
-    const propsSnapshot = await db.collection('properties').get();
+    let properties: any[] = [];
 
-    const properties = await Promise.all(propsSnapshot.docs.map(async doc => {
-        const data = doc.data();
-        const tenantsSnapshot = await db.collection('tenants')
-            .where('propertyId', '==', doc.id)
-            .get();
+    try {
+        const propsSnapshot = await db.collection('properties').get();
+        if (!propsSnapshot.empty) {
+            properties = await Promise.all(propsSnapshot.docs.map(async doc => {
+                const data = doc.data();
+                const tenantsSnapshot = await db.collection('tenants')
+                    .where('propertyId', '==', doc.id)
+                    .get();
 
-        return {
-            id: doc.id,
-            ...data,
-            tenants: tenantsSnapshot.docs.map(t => ({ id: t.id, ...t.data() }))
-        };
-    }));
+                return {
+                    id: doc.id,
+                    ...data,
+                    tenants: tenantsSnapshot.docs.map(t => ({ id: t.id, ...t.data() }))
+                };
+            }));
+        }
+    } catch (error) {
+        console.error("Error fetching billing data:", error);
+        // Fallback to empty array
+    }
 
     return (
         <DashboardShell role="owner">
