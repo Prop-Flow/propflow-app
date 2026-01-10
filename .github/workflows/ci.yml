@@ -67,7 +67,7 @@ jobs:
         uses: "google-github-actions/setup-gcloud@v2"
       
       - name: Configure Docker
-        run: gcloud auth configure-docker us-east4-docker.pkg.dev
+        run: gcloud auth configure-docker us-east4-docker.pkg.dev --quiet
 
       - name: Build and Push Container
         run: |
@@ -103,3 +103,29 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars NEXT_PUBLIC_APP_URL="${{ secrets.NEXT_PUBLIC_APP_URL }}"
+
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          NEXT_PUBLIC_BUILD_SHA: ${{ github.sha }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_GCP_PROJECT_ID: "propflow-ai-483621"
+          NEXT_PUBLIC_GCP_REGION: "us-east4"
+
+      - name: Deploy to Firebase Hosting
+        run: npx firebase-tools deploy --only hosting --project propflow-ai-483621 --force

@@ -30,6 +30,9 @@ export default function RootLayout({
                     <NotificationProvider>
                         {children}
                         <DeveloperToolbar />
+                        <div className="fixed bottom-0 right-0 p-1 text-xs text-gray-500 opacity-50 pointer-events-none z-50">
+                            BUILD: {process.env.NEXT_PUBLIC_BUILD_SHA || 'DEV'}
+                        </div>
                     </NotificationProvider>
                 </AuthProvider>
             </body>
