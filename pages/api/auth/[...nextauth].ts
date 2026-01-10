@@ -15,6 +15,7 @@ export const authOptions: NextAuthOptions = {
 
     // CRITICAL: Trust proxy headers from Firebase Hosting
     // This allows NextAuth to work correctly when behind Firebase Hosting proxy
+    // @ts-ignore
     trustHost: true,
 
     // Use JWT for sessions (no database required)
@@ -98,6 +99,7 @@ export const authOptions: NextAuthOptions = {
         async session({ session, token }) {
             // Send properties to the client
             if (session.user && token.id) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (session.user as any).id = token.id;
             }
             return session;
