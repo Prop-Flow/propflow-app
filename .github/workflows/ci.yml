@@ -7,26 +7,85 @@ on:
     branches: ["main"]
 
 jobs:
+  # Inline Security Scan (simplified)
   security:
-    uses: Prop-Flow/propflow-shared-ops/.github/workflows/security-codeql.yml@v1
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
       security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
 
+  # Inline Build & Test
   ci:
     needs: security
-    uses: Prop-Flow/propflow-shared-ops/.github/workflows/reusable-ci.yml@d2052b544081e7da8788e1c491f6bcba2d66879d
-    with:
-      run-lint: true
-      run-build: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          # Add mock values for build-time validation if needed
+          NEXT_PUBLIC_GCP_PROJECT_ID: "mock-project-id"
+          GOOGLE_APPLICATION_CREDENTIALS: "/dev/null"
 
+  # Inline Deployment
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: ci
-    uses: Prop-Flow/propflow-shared-ops/.github/workflows/deploy-cloudrun.yml@d2052b544081e7da8788e1c491f6bcba2d66879d
-    with:
-      service_name: propflow-app
-    secrets:
-      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: "read"
+      id-token: "write"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Google Auth
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: "${{ secrets.GCP_SA_KEY }}"
+      
+      - name: Set up Cloud SDK
+        uses: "google-github-actions/setup-gcloud@v2"
+      
+      - name: Build and Deploy (Inline)
+        run: |
+          # Inline deploy script logic
+          PROJECT_ID="propflow-ai-483621"
+          SERVICE_NAME="propflow-app"
+          REGION="us-east4"
+          REPO="propflow-repo"
+          IMAGE="us-east4-docker.pkg.dev/$PROJECT_ID/$REPO/cloud-run-source-deploy/$SERVICE_NAME:${{ github.sha }}"
+          
+          # Create Artifact Registry repo if missing (idempotent check)
+          gcloud artifacts repositories describe $REPO --location=$REGION --project=$PROJECT_ID || \
+          gcloud artifacts repositories create $REPO --repository-format=docker --location=$REGION --description="PropFlow Docker repository" --project=$PROJECT_ID
+
+          # Build container using Cloud Build (faster than local docker build in GitHub Actions)
+          gcloud builds submit --tag $IMAGE .
+
+          # Deploy to Cloud Run
+          gcloud run deploy $SERVICE_NAME \
+            --image $IMAGE \
+            --region $REGION \
+            --platform managed \
+            --allow-unauthenticated \
+            --check-traffic-is-100
