@@ -66,21 +66,35 @@ jobs:
       - name: Set up Cloud SDK
         uses: "google-github-actions/setup-gcloud@v2"
       
-      - name: Build and Deploy (Inline)
+      - name: Configure Docker
+        run: gcloud auth configure-docker us-east4-docker.pkg.dev
+
+      - name: Build and Push Container
         run: |
-          # Inline deploy script logic
           PROJECT_ID="propflow-ai-483621"
           SERVICE_NAME="propflow-app"
           REGION="us-east4"
           REPO="propflow-repo"
           IMAGE="us-east4-docker.pkg.dev/$PROJECT_ID/$REPO/cloud-run-source-deploy/$SERVICE_NAME:${{ github.sha }}"
           
-          # Create Artifact Registry repo if missing (idempotent check)
+          # Create Artifact Registry repo if missing
           gcloud artifacts repositories describe $REPO --location=$REGION --project=$PROJECT_ID || \
           gcloud artifacts repositories create $REPO --repository-format=docker --location=$REGION --description="PropFlow Docker repository" --project=$PROJECT_ID
 
-          # Build container using Cloud Build (faster than local docker build in GitHub Actions)
-          gcloud builds submit --tag $IMAGE .
+          # Build using Docker (passing secrets as build args)
+          docker build \
+            --build-arg NEXT_PUBLIC_FIREBASE_API_KEY="${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}" \
+            --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}" \
+            --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}" \
+            --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}" \
+            --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}" \
+            --build-arg NEXT_PUBLIC_FIREBASE_APP_ID="${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}" \
+            --build-arg NEXT_PUBLIC_APP_URL="${{ secrets.NEXT_PUBLIC_APP_URL }}" \
+            --build-arg NEXT_PUBLIC_GCP_PROJECT_ID="$PROJECT_ID" \
+            --build-arg NEXT_PUBLIC_GCP_REGION="$REGION" \
+            -t $IMAGE .
+
+          docker push $IMAGE
 
           # Deploy to Cloud Run
           gcloud run deploy $SERVICE_NAME \
@@ -88,4 +102,4 @@ jobs:
             --region $REGION \
             --platform managed \
             --allow-unauthenticated \
-            --check-traffic-is-100
+            --set-env-vars NEXT_PUBLIC_APP_URL="${{ secrets.NEXT_PUBLIC_APP_URL }}"
