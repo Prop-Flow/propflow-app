@@ -16,7 +16,7 @@ jobs:
 
   ci:
     needs: security
-    uses: Prop-Flow/propflow-shared-ops/.github/workflows/reusable-ci.yml@v1
+    uses: Prop-Flow/propflow-shared-ops/.github/workflows/reusable-ci.yml@main
     with:
       run-lint: true
       run-build: true
@@ -24,7 +24,7 @@ jobs:
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: ci
-    uses: Prop-Flow/propflow-shared-ops/.github/workflows/deploy-cloudrun.yml@v1
+    uses: Prop-Flow/propflow-shared-ops/.github/workflows/deploy-cloudrun.yml@main
     with:
       service_name: propflow-app
     secrets:
