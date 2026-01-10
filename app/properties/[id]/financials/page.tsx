@@ -17,7 +17,11 @@ export const dynamic = 'force-dynamic';
 
 export default function PropertyFinancialsPage() {
     const params = useParams();
+<<<<<<< HEAD
     const propertyId = params?.id as string;
+=======
+    const propertyId = params.id as string;
+>>>>>>> 7cfe1418 (fix: resolve deployment warnings and linter errors)
     const { profile, loading: authLoading } = useAuth();
     const [refreshKey, setRefreshKey] = useState(0);
 

@@ -134,7 +134,7 @@ export default function RevenueChart({ revenue, expenses, netIncome, loading }: 
                                 backdropFilter: 'blur(12px)'
                             }}
                             itemStyle={{ color: '#e2e8f0' }}
-                            formatter={(value: string | number | undefined) => [formatCurrency(Number(value || 0)), 'Revenue']}
+                            formatter={(value: number | undefined) => [formatCurrency(Number(value || 0)), 'Revenue']}
                             labelStyle={{ color: '#94a3b8', marginBottom: '0.25rem' }}
                         />
                         <Area

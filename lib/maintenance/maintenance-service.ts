@@ -48,7 +48,9 @@ export async function createMaintenanceRequest(input: CreateMaintenanceRequestIn
  */
 export async function updateMaintenanceRequestStatus(
     requestId: string,
-    status: 'pending' | 'in_progress' | 'resolved' | 'closed'
+    status: 'pending' | 'in_progress' | 'resolved' | 'closed',
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _note?: string
 ) {
     const docRef = db.collection('maintenanceRequests').doc(requestId);
 

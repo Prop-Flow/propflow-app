@@ -71,6 +71,10 @@ jobs:
         run: |
           echo "🚀 Submitting build to Cloud Build (Async)..."
 
+          # Get short SHA for tagging
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "Commit SHA: $SHORT_SHA"
+
           # Submit build asynchronously to avoid log streaming timeouts
           # Pass secrets via environment variables
           BUILD_ID=$(gcloud builds submit \
@@ -78,7 +82,7 @@ jobs:
             --config=cloudbuild.yaml \
             --project=$PROJECT_ID \
             --region=$REGION \
-            --substitutions=_REGION=$REGION,_PROJECT_ID=$PROJECT_ID,_APP_URL=https://$PROJECT_ID.web.app,_FIREBASE_API_KEY=$FIREBASE_API_KEY,_FIREBASE_AUTH_DOMAIN=$FIREBASE_AUTH_DOMAIN,_FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID,_FIREBASE_STORAGE_BUCKET=$FIREBASE_STORAGE_BUCKET,_FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_MESSAGING_SENDER_ID,_FIREBASE_APP_ID=$FIREBASE_APP_ID \
+            --substitutions=SHORT_SHA=$SHORT_SHA,_REGION=$REGION,_PROJECT_ID=$PROJECT_ID,_APP_URL=https://$PROJECT_ID.web.app,_FIREBASE_API_KEY=$FIREBASE_API_KEY,_FIREBASE_AUTH_DOMAIN=$FIREBASE_AUTH_DOMAIN,_FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID,_FIREBASE_STORAGE_BUCKET=$FIREBASE_STORAGE_BUCKET,_FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_MESSAGING_SENDER_ID,_FIREBASE_APP_ID=$FIREBASE_APP_ID \
             --format='value(id)')
 
           echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT

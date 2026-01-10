@@ -18,10 +18,6 @@
         "messagingSenderId": "${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}",
         "appId": "${NEXT_PUBLIC_FIREBASE_APP_ID}"
     },
-    "cloudSql": {
-        "instance": "propflow-db-east",
-        "region": "us-east4"
-    },
     "vertexAI": {
         "region": "us-central1",
         "predictionRegion": "us-east4",
