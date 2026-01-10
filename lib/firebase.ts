@@ -28,11 +28,18 @@ if (firebaseConfig.apiKey) {
         _app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
         _auth = getAuth(_app);
         _db = getFirestore(_app);
+        if (typeof window !== 'undefined') {
+            console.log('[Firebase] Client initialized successfully for project:', firebaseConfig.projectId);
+        }
     } catch (error) {
-        console.error('Firebase initialization error:', error);
+        if (typeof window !== 'undefined') {
+            console.error('[Firebase] Initialization error:', error);
+        }
     }
 } else {
-    console.warn('Firebase API Key missing. Skipping initialization (Build/Server Mode).');
+    if (typeof window !== 'undefined') {
+        console.warn('[Firebase] API Key missing. Skipping initialization. Check environment variables.');
+    }
 }
 
 // Export as non-null to avoid strict null checks in consumers (matches previous 'any' behavior)

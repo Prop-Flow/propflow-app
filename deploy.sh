@@ -15,6 +15,16 @@ REGION="us-east4"
 ARTIFACT_REGISTRY="us-east4-docker.pkg.dev/$PROJECT_ID/propflow-repo"
 IMAGE_TAG="$ARTIFACT_REGISTRY/$IMAGE_NAME:latest"
 
+# Firebase Public Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSyD-MpLQYzlBruNZYcZUiEBIxZRWFMJ6MoU"
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="propflow-ai-483621.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="propflow-ai-483621"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="propflow-ai-483621.firebasestorage.app"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="638502512734"
+NEXT_PUBLIC_FIREBASE_APP_ID="1:638502512734:web:d5a6d20ddbec647f91eccf"
+NEXT_PUBLIC_GCP_PROJECT_ID="propflow-ai-483621"
+NEXT_PUBLIC_APP_URL="https://ssrpropflowai483621-697138495010.us-east4.run.app"
+
 echo "🚀 Starting Deployment for $PROJECT_ID..."
 
 # 1. Ensure Artifact Registry exists
