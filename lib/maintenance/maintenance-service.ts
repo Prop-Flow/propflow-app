@@ -48,8 +48,7 @@ export async function createMaintenanceRequest(input: CreateMaintenanceRequestIn
  */
 export async function updateMaintenanceRequestStatus(
     requestId: string,
-    status: 'pending' | 'in_progress' | 'resolved' | 'closed',
-    _note?: string
+    status: 'pending' | 'in_progress' | 'resolved' | 'closed'
 ) {
     const docRef = db.collection('maintenanceRequests').doc(requestId);
 

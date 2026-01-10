@@ -6,7 +6,7 @@ import { Hammer, AlertCircle, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function MaintenancePage() {
-    const { user, profile, loading } = useAuth();
+    const { profile, loading } = useAuth();
 
     if (loading) {
         return (

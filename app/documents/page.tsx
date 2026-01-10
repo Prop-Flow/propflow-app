@@ -6,7 +6,7 @@ import { FileText, Upload, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function DocumentsPage() {
-    const { user, profile, loading } = useAuth();
+    const { profile, loading } = useAuth();
 
     if (loading) {
         return (

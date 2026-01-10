@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     } catch (error: unknown) {
         console.error('AI Generation Error:', error);
-        const errorMessage = (error as any).message || 'Internal Server Error';
+        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
         return NextResponse.json(
             { error: errorMessage },
             { status: 500 }

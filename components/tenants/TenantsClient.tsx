@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSearchParams } from 'next/navigation';
 
 export default function TenantsClient() {
-    const { user, profile, loading: authLoading } = useAuth();
+    const { profile, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     interface Tenant {
         id: string;

@@ -10,7 +10,7 @@ import { ReadingsTable } from '@/components/utilities/ReadingsTable';
 import { AddReadingModal } from '@/components/utilities/AddReadingModal';
 
 export default function UtilitiesPage() {
-    const { user, profile, loading } = useAuth();
+    const { profile, loading } = useAuth();
     const [isAddReadingOpen, setIsAddReadingOpen] = useState(false);
 
     if (loading) {

@@ -22,7 +22,7 @@ interface PropertiesClientProps {
 }
 
 export default function PropertiesClient({ initialProperties }: PropertiesClientProps) {
-    const { user, profile, loading: authLoading } = useAuth();
+    const { profile, loading: authLoading } = useAuth();
     const [properties, setProperties] = useState<Property[]>(initialProperties);
     const [loading, setLoading] = useState(initialProperties.length === 0);
     const [isUploadMode, setUploadMode] = useState<boolean | 'rent_roll' | 'property'>(false);

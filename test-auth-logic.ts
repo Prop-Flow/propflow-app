@@ -13,7 +13,8 @@ async function testAuth() {
         const user = await getSessionUser(mockRequest);
         console.log('User retrieved:', user);
     } catch (error) {
-        console.error('Expected error or unexpected failure:', error.message);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Expected error or unexpected failure:', errorMessage);
     }
 }
 

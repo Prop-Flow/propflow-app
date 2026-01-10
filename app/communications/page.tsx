@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import AIComposer from '@/components/communications/AIComposer';
 
 export default function CommunicationsPage() {
-    const { user, profile, loading } = useAuth();
+    const { profile, loading } = useAuth();
 
     if (loading) {
         return (

@@ -19,7 +19,7 @@ export async function parseDocument(
     try {
         const response = await fetch(`${AI_CORE_URL}/parse`, {
             method: 'POST',
-            body: fileBuffer as any,
+            body: new Uint8Array(fileBuffer),
             headers: {
                 'Content-Type': mimeType,
                 'X-Source-Repo': 'propflow-app'
