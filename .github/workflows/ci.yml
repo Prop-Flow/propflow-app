@@ -115,4 +115,6 @@ jobs:
         run: npm ci
 
       - name: Deploy to Firebase Hosting
-        run: npx firebase-tools deploy --only hosting --project propflow-ai-483621 --force
+        env:
+          FIREBASE_PROJECT_ID: propflow-ai-483621
+        run: npx firebase-tools deploy --only hosting --project "$FIREBASE_PROJECT_ID" --force
