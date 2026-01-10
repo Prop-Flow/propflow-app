@@ -22,6 +22,16 @@ export default function DashboardShell({ children, role = 'owner' }: DashboardSh
     const pathname = usePathname();
     const { user, loading } = useAuth(); // useAuth does not accept role verification arguments
 
+    // Debug logging for hosted environment
+    React.useEffect(() => {
+        if (!loading) {
+            console.log('[DashboardShell] Auth State:', { user: user?.uid, email: user?.email, pathname });
+            if (!user) {
+                console.warn('[DashboardShell] No user found, expected redirect or 401');
+            }
+        }
+    }, [user, loading, pathname]);
+
     // Optional: Validate role matches expected role? 
     // For now we assume the page wraps appropriate role check or we just show links given by prop.
 
@@ -34,6 +44,7 @@ export default function DashboardShell({ children, role = 'owner' }: DashboardSh
     );
 
     if (!user) {
+        console.error('[DashboardShell] Redirecting to login due to missing user session');
         // Should handle redirect component or similar, but layout usually only renders protected
         return null;
     }

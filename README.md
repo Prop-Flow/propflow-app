@@ -44,9 +44,8 @@ We utilize a modern, fully typed stack designed for reliability.
 *   **Compute**: Cloud Run (Serverless Containers)
 *   **Database**: Google Cloud Firestore (NoSQL)
 *   **Auth**: Firebase Authentication (Identity Platform)
-*   **AI**: Google Vertex AI (Gemma 2 models for text/reasoning)
-*   **Vector Search**: Pinecone (for RAG/Knowledge Base)
-*   **Automation**: N8N (Workflow automation), Twilio (SMS/Notifications)
+*   **AI**: Google Vertex AI (Gemma 2 models via `propflow-ai-core`)
+*   **Automation**: N8N (Workflow automation)
 
 ### Infrastructure & DevOps
 *   **IaC**: Terraform

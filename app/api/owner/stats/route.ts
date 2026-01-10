@@ -9,8 +9,12 @@ export async function GET(request: Request) {
         // Verify authentication
         const decodedToken = await verifyAuth(request);
         if (!decodedToken) {
+            console.error('[API/Owner/Stats] Unauthorized: No valid token found in request headers');
+            const authHeader = request.headers.get('Authorization');
+            console.log('[API/Owner/Stats] Auth Header exists?', !!authHeader);
             return new NextResponse('Unauthorized', { status: 401 });
         }
+        console.log('[API/Owner/Stats] Authorized user:', decodedToken.uid);
         const userId = decodedToken.uid;
 
         // Fetch properties owned by the user

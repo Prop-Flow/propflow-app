@@ -135,7 +135,7 @@ export default function RentRollReviewModal({ isOpen, onClose, onSave, data }: R
                                                 <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 w-3 h-3" />
                                                 <input
                                                     type="date"
-                                                    value={unit.leaseEndDate instanceof Date ? unit.leaseEndDate.toISOString().split('T')[0] : (typeof unit.leaseEndDate === 'string' ? unit.leaseEndDate : '')}
+                                                    value={typeof unit.leaseEndDate === 'string' ? unit.leaseEndDate : ''}
                                                     onChange={(e) => handleUnitChange(index, 'leaseEndDate', e.target.value)}
                                                     className="w-32 pl-7 bg-transparent border border-transparent hover:border-slate-700/50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded py-1 text-sm text-white transition-all"
                                                 />

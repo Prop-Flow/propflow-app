@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { vertexService } from '@/lib/ai/vertex';
 
 export async function POST(req: NextRequest) {
+    const AI_CORE_URL = process.env.AI_CORE_SERVICE_URL || 'http://localhost:8080';
+
     try {
         const body = await req.json();
         const { prompt, model = 'gemini' } = body;
@@ -13,17 +14,21 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Determine which model to use
-        // Defaults to 'gemma' as it is the enabled model
-        const useGemma = model !== 'gemini';
+        const response = await fetch(`${AI_CORE_URL}/generate`, {
+            method: 'POST',
+            body: JSON.stringify({ prompt, model }),
+            headers: { 'Content-Type': 'application/json' }
+        });
 
-        // Call VertexService
-        const result = await vertexService.generateText(prompt, useGemma);
+        if (!response.ok) {
+            throw new Error(`AI Core responded with ${response.status}`);
+        }
 
-        return NextResponse.json({ result });
+        const data = await response.json();
+        return NextResponse.json(data);
+
     } catch (error: unknown) {
         console.error('AI Generation Error:', error);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const errorMessage = (error as any).message || 'Internal Server Error';
         return NextResponse.json(
             { error: errorMessage },

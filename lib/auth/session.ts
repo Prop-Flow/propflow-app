@@ -31,14 +31,39 @@ export async function verifyAuth(request: Request | NextRequest): Promise<Decode
 }
 
 /**
- * @deprecated Use verifyAuth instead for API routes. 
- * This is kept for compatibility during migration but returns null.
+ * Retrieves the session user by verifying the token and fetching their Firestore profile.
+ * Used in API routes to get full user context.
  */
-export async function getSession(request: NextRequest): Promise<{ user: SessionUser } | null> {
-    console.warn('Called deprecated getSession.');
-    return null;
-}
-
 export async function getSessionUser(request: NextRequest): Promise<SessionUser> {
-    throw new Error('Authentication migration in progress: Server-side component not supported yet.');
+    const decodedToken = await verifyAuth(request);
+    if (!decodedToken) {
+        throw new Error('Unauthorized: Invalid or missing token');
+    }
+
+    try {
+        const { db } = await import('@/lib/services/firebase-admin');
+        const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+
+        if (!userDoc.exists) {
+            console.error(`[Auth] User profile not found for UID: ${decodedToken.uid}`);
+            // Fallback for dev mode or new users if necessary, but typically we want a profile
+            return {
+                id: decodedToken.uid,
+                email: decodedToken.email || '',
+                role: 'owner', // Default fallback
+            };
+        }
+
+        const userData = userDoc.data();
+        return {
+            id: decodedToken.uid,
+            email: decodedToken.email || userData?.email || '',
+            role: userData?.role || 'owner',
+            firstName: userData?.firstName,
+            lastName: userData?.lastName,
+        };
+    } catch (error) {
+        console.error('[Auth] Error fetching session user:', error);
+        throw new Error('Internal Server Error: Failed to retrieve user session');
+    }
 }
