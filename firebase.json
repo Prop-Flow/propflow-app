@@ -1,12 +1,11 @@
 {
-  "firestore": {
-    "database": "(default)",
-    "location": "us-east4",
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
   "hosting": {
     "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
       {
         "source": "**",
@@ -15,12 +14,6 @@
           "region": "us-east4"
         }
       }
-    ],
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "cleanUrls": true
+    ]
   }
 }
