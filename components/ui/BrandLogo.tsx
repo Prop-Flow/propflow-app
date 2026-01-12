@@ -27,7 +27,7 @@ export default function BrandLogo({ variant = 'large', className }: BrandLogoPro
                 )}
             >
                 <Image
-                    src="/propflow_logo_new.png"
+                    src={isLarge ? "/propflow_logo_new.png" : "/propflow_logo_icon.png"}
                     alt="PropFlow Logo"
                     fill
                     className="object-contain drop-shadow-xl"
