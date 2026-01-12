@@ -30,27 +30,45 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
 
     useEffect(() => {
         if (initialProperties.length === 0) {
-            fetch('/api/properties')
-                .then(async res => {
+            // Wait for auth to be ready
+            if (authLoading) return;
+
+            const fetchProperties = async () => {
+                try {
+                    // Get token if user is logged in
+                    const auth = (await import('@/lib/firebase')).auth;
+                    const token = await auth.currentUser?.getIdToken();
+
+                    const headers: HeadersInit = {
+                        'Content-Type': 'application/json',
+                    };
+
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+
+                    const res = await fetch('/api/properties', { headers });
+
                     if (!res.ok) {
                         const errorData = await res.json();
                         throw new Error(errorData.error || 'Failed to load properties');
                     }
-                    return res.json();
-                })
-                .then(data => {
+
+                    const data = await res.json();
                     if (data.properties) {
                         setProperties(data.properties);
                     }
                     setLoading(false);
-                })
-                .catch(err => {
+                } catch (err: any) {
                     console.error("Failed to fetch properties", err);
                     setError(err.message || 'Unable to load properties. Please try again.');
                     setLoading(false);
-                });
+                }
+            };
+
+            fetchProperties();
         }
-    }, [initialProperties.length]);
+    }, [initialProperties.length, authLoading]);
 
     const handleSave = async (data: WizardData) => {
         try {
