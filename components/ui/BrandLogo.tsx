@@ -30,7 +30,7 @@ export default function BrandLogo({ variant = 'large', className }: BrandLogoPro
                     src="/propflow_logo_new.png"
                     alt="PropFlow Logo"
                     fill
-                    className="object-contain brightness-0 invert drop-shadow-xl"
+                    className="object-contain drop-shadow-xl"
                     priority
                 />
             </div>
