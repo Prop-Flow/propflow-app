@@ -59,9 +59,10 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
                         setProperties(data.properties);
                     }
                     setLoading(false);
-                } catch (err: any) {
+                } catch (err: unknown) {
                     console.error("Failed to fetch properties", err);
-                    setError(err.message || 'Unable to load properties. Please try again.');
+                    const errorMessage = err instanceof Error ? err.message : 'Unable to load properties. Please try again.';
+                    setError(errorMessage);
                     setLoading(false);
                 }
             };
