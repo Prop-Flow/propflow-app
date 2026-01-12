@@ -32,7 +32,7 @@ function TenantOnboardingContent() {
 
     // Auto-fill code from URL
     useEffect(() => {
-        const codeFromUrl = searchParams.get('code');
+        const codeFromUrl = searchParams?.get('code');
         if (codeFromUrl && step === 1) {
             setBuildingCode(codeFromUrl);
             // Optionally auto-submit if you want valid-checking right away

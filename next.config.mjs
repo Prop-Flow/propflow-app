@@ -1,9 +1,5 @@
-import type { NextConfig } from "next";
-
-
-const nextConfig: NextConfig = {
-    output: 'standalone',
-    // @ts-ignore
+/** @type {import('next').NextConfig} */
+const nextConfig = {
     eslint: {
         ignoreDuringBuilds: true,
     },

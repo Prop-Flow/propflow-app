@@ -27,8 +27,8 @@ export default function TenantsClient() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const propertyId = searchParams.get('propertyId');
-    const status = searchParams.get('status');
+    const propertyId = searchParams?.get('propertyId');
+    const status = searchParams?.get('status');
 
     useEffect(() => {
         let url = '/api/tenants';

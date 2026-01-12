@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 export default function PropertyFinancialsPage() {
     const params = useParams();
-    const propertyId = params.id as string;
+    const propertyId = params?.id as string;
     const { profile, loading: authLoading } = useAuth();
     const [refreshKey, setRefreshKey] = useState(0);
 

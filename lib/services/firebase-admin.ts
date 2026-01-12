@@ -37,6 +37,17 @@ if (!admin.apps.length) {
     }
 }
 
-export const db = admin.firestore();
-export const auth = admin.auth();
-export const storage = admin.storage();
+// Helper to prevent crash during build/import if initialization failed
+const safeInit = <T>(initFn: () => T, fallbackName: string): T => {
+    try {
+        if (!admin.apps.length) return {} as T;
+        return initFn();
+    } catch (e) {
+        console.warn(`[FirebaseAdmin] Failed to initialize ${fallbackName}:`, e);
+        return {} as T;
+    }
+};
+
+export const db = safeInit(() => admin.firestore(), 'firestore');
+export const auth = safeInit(() => admin.auth(), 'auth');
+export const storage = safeInit(() => admin.storage(), 'storage');
