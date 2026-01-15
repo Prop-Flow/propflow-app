@@ -5,6 +5,8 @@ import { Users, Wrench, MessageSquare, Building, Bell, FileSignature, Activity }
 import React, { useState } from 'react';
 import DocumentSigningModal from '@/components/documents/DocumentSigningModal';
 import Link from 'next/link';
+import { auth } from '@/lib/firebase'; // Import auth
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function ManagerDashboard() {
     const [stats, setStats] = useState({
@@ -17,17 +19,44 @@ export default function ManagerDashboard() {
     const [isSigningOpen, setIsSigningOpen] = useState(false);
 
     React.useEffect(() => {
-        // Fetch stats
-        fetch('/api/manager/stats')
-            .then(res => res.json())
-            .then(data => {
+        const fetchStats = async (user: any) => {
+            try {
+                if (!user) {
+                    console.log('No user found, skipping stats fetch');
+                    setLoading(false);
+                    return;
+                }
+                const token = await user.getIdToken();
+                const res = await fetch('/api/manager/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (res.status === 401) {
+                    console.error('Unauthorized fetch stats');
+                    setLoading(false);
+                    return;
+                }
+
+                const data = await res.json();
                 setStats(data);
                 setLoading(false);
-            })
-            .catch(err => {
-                console.error(err);
+            } catch (err) {
+                console.error('Failed to fetch stats:', err);
                 setLoading(false);
-            });
+            }
+        };
+
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                fetchStats(user);
+            } else {
+                setLoading(false);
+            }
+        });
+
+        return () => unsubscribe();
     }, []);
 
     return (

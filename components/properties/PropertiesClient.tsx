@@ -73,11 +73,16 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
 
     const handleSave = async (data: WizardData) => {
         try {
+            const auth = (await import('@/lib/firebase')).auth;
+            const token = await auth.currentUser?.getIdToken();
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const response = await fetch('/api/properties', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers,
                 body: JSON.stringify(data),
             });
 
@@ -89,7 +94,7 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
             // Reset state and refresh list
             setUploadMode(false);
             setLoading(true); // Show loading state while refreshing
-            const res = await fetch('/api/properties');
+            const res = await fetch('/api/properties', { headers });
             const newData = await res.json();
             setProperties(newData.properties || []);
             setLoading(false);

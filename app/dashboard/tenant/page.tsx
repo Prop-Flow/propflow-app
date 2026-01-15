@@ -90,17 +90,28 @@ function ManagerContactWidget() {
     const [manager, setManager] = React.useState<any>(null);
 
     React.useEffect(() => {
-        if (user?.email) {
-            fetch(`/api/tenants/me/managers?email=${user.email}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.managers && data.managers.length > 0) {
-                        setManager(data.managers[0]);
+        const fetchManager = async () => {
+            if (user?.email) {
+                try {
+                    const token = await user.getIdToken();
+                    const res = await fetch(`/api/tenants/me/managers?email=${user.email}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.managers && data.managers.length > 0) {
+                            setManager(data.managers[0]);
+                        }
                     }
-                })
-                .catch(err => console.error(err));
-        }
-    }, [user?.email]);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        };
+        fetchManager();
+    }, [user]);
 
     if (!manager) return null;
 

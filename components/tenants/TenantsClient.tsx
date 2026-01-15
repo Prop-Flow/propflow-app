@@ -38,25 +38,38 @@ export default function TenantsClient() {
 
         if (params.toString()) url += `?${params.toString()}`;
 
-        fetch(url)
-            .then(async res => {
+        const fetchTenants = async () => {
+            try {
+                // Get token
+                const auth = (await import('@/lib/firebase')).auth;
+                const token = await auth.currentUser?.getIdToken();
+                const headers: HeadersInit = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const res = await fetch(url, { headers });
+
                 if (!res.ok) {
                     const errorData = await res.json();
                     throw new Error(errorData.error || 'Failed to load tenants');
                 }
-                return res.json();
-            })
-            .then(data => {
+                const data = await res.json();
                 const list = Array.isArray(data) ? data : data.tenants || [];
                 setTenants(list);
                 setLoading(false);
-            })
-            .catch(err => {
+            } catch (err: any) {
                 console.error("Failed to fetch tenants", err);
                 setError(err.message || 'Unable to load tenants. Please try again.');
                 setLoading(false);
-            });
-    }, [propertyId, status]);
+            }
+        };
+
+        if (!authLoading) {
+            fetchTenants();
+        }
+
+    }, [propertyId, status, authLoading]);
 
     if (loading || authLoading) {
         return (
