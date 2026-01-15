@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "propflow-ai-483621"
+  },
+  "targets": {},
+  "etags": {
+    "propflow-ai-483621": {
+      "extensionInstances": {
+        "firestore-genai-chatbot": "15f460fccdbaad429c8a714d87ae68110655b84a429052cb74d9a33231e7dea2",
+        "firestore-multimodal-genai": "044dbad81a2c6b6fd7c2eb21d9be5f41222282a9c04ce8c5cd81c694df9fa8cb"
+      }
+    }
   }
 }
