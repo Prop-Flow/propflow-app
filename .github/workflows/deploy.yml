@@ -51,18 +51,64 @@ jobs:
       - name: Mock Auth
         run: echo "Simulating Google Auth..."
 
-      # Simulated Cloud Run
-      - run: gcloud run deploy propflow-app --region=us-east4 --source . --quiet
+      # Setup Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Configure Docker to use gcloud as a credential helper
+      - name: Configure Docker
+        run: gcloud auth configure-docker us-east4-docker.pkg.dev --quiet
+
+      # Build and push Docker image
+      - name: Build and Push Docker Image
+        env:
+          PROJECT_ID: propflow-ai-483621
+          REGION: us-east4
+          SERVICE_NAME: propflow-app
+          IMAGE_TAG: us-east4-docker.pkg.dev/propflow-ai-483621/propflow-repo/propflow-app:${{ github.sha }}
+        run: |
+          docker buildx build --platform linux/amd64 \
+            --build-arg NEXT_PUBLIC_BUILD_SHA=${{ github.sha }} \
+            --build-arg NEXT_PUBLIC_GCP_PROJECT_ID=propflow-ai-483621 \
+            --build-arg GCP_REGION=us-east4 \
+            --build-arg NEXT_PUBLIC_GCP_REGION=us-east4 \
+            --build-arg NEXT_PUBLIC_APP_URL=https://propflow-ai-483621.web.app \
+            --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyD-MpLQYzlBruNZYcZUiEBIxZRWFMJ6MoU \
+            --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=propflow-ai-483621.firebaseapp.com \
+            --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=propflow-ai-483621 \
+            --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=propflow-ai-483621.firebasestorage.app \
+            --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=638502512734 \
+            --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=1:638502512734:web:d5a6d20ddbec647f91eccf \
+            -t $IMAGE_TAG \
+            --push \
+            .
+
+      # Deploy to Cloud Run
+      - name: Deploy to Cloud Run
+        env:
+          PROJECT_ID: propflow-ai-483621
+          REGION: us-east4
+          SERVICE_NAME: propflow-app
+          IMAGE_TAG: us-east4-docker.pkg.dev/propflow-ai-483621/propflow-repo/propflow-app:${{ github.sha }}
+        run: |
+          gcloud run deploy $SERVICE_NAME \
+            --image $IMAGE_TAG \
+            --platform managed \
+            --region $REGION \
+            --project $PROJECT_ID \
+            --allow-unauthenticated \
+            --memory 512Mi \
+            --cpu 1 \
+            --max-instances 10 \
+            --min-instances 0 \
+            --timeout 300 \
+            --set-env-vars NEXT_PUBLIC_BUILD_SHA=${{ github.sha }},NEXT_PUBLIC_GCP_PROJECT_ID=propflow-ai-483621,GCP_PROJECT_ID=propflow-ai-483621,GOOGLE_CLOUD_PROJECT=propflow-ai-483621,GCP_REGION=us-east4,NEXT_PUBLIC_GCP_REGION=us-east4,NEXT_PUBLIC_APP_URL=https://propflow-ai-483621.web.app,NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyD-MpLQYzlBruNZYcZUiEBIxZRWFMJ6MoU,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=propflow-ai-483621.firebaseapp.com,NEXT_PUBLIC_FIREBASE_PROJECT_ID=propflow-ai-483621,NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=propflow-ai-483621.firebasestorage.app,NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=638502512734,NEXT_PUBLIC_FIREBASE_APP_ID=1:638502512734:web:d5a6d20ddbec647f91eccf,TRUST_HOST=true
+
       - name: Debug build stamp env
         run: echo "NEXT_PUBLIC_BUILD_SHA=$NEXT_PUBLIC_BUILD_SHA"
 
-      - name: Mock Cloud Run Deploy
-        run: echo "Simulating Cloud Run Deploy..."
-
-      # Simulated Firebase Hosting
+      # Firebase Hosting Deploy
       - run: npx firebase-tools deploy --only hosting --project propflow-ai-483621 --force
-      - name: Mock Firebase Hosting Deploy
-        run: echo "Simulating Firebase Hosting Deploy..."
 
       # Optional Post-Deploy Smoke Check
       - name: Smoke check BUILD stamp
