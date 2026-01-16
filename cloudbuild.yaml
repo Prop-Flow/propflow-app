@@ -24,7 +24,7 @@ steps:
     args:
       - "build"
       - "--cache-from"
-      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621:latest"
+      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/propflow-app:latest"
       - "--build-arg"
       - "NEXT_PUBLIC_GCP_PROJECT_ID=${_PROJECT_ID}"
       - "--build-arg"
@@ -46,9 +46,9 @@ steps:
       - "--build-arg"
       - "NEXT_PUBLIC_FIREBASE_APP_ID=${_FIREBASE_APP_ID}"
       - "-t"
-      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621:latest"
+      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/propflow-app:latest"
       - "-t"
-      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621:${SHORT_SHA}"
+      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/propflow-app:${SHORT_SHA}"
       - "."
     timeout: 1200s
 
@@ -58,7 +58,7 @@ steps:
     args:
       - "push"
       - "--all-tags"
-      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621"
+      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/propflow-app"
     timeout: 600s
 
   # Step 4: Deploy to Cloud Run with Full Configuration
@@ -68,9 +68,9 @@ steps:
     args:
       - "run"
       - "deploy"
-      - "ssrpropflowai483621"
+      - "propflow-app"
       - "--image"
-      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621:${SHORT_SHA}"
+      - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/propflow-app:${SHORT_SHA}"
       - "--region"
       - "${_REGION}"
       - "--platform"
@@ -114,5 +114,5 @@ options:
 timeout: 3600s
 
 images:
-  - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621:latest"
-  - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/ssrpropflowai483621:${SHORT_SHA}"
+  - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/propflow-app:latest"
+  - "us-east4-docker.pkg.dev/${PROJECT_ID}/propflow-repo/propflow-app:${SHORT_SHA}"
