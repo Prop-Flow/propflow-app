@@ -15,7 +15,7 @@ export const authOptions: NextAuthOptions = {
 
     // CRITICAL: Trust proxy headers from Firebase Hosting
     // This allows NextAuth to work correctly when behind Firebase Hosting proxy
-    // @ts-ignore
+    // @ts-expect-error - specific for next-auth v4 config
     trustHost: true,
 
     // Use JWT for sessions (no database required)

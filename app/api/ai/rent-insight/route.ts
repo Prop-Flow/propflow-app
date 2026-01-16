@@ -88,8 +88,9 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ insight: text });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Vertex AI Error:', error);
-        return NextResponse.json({ error: 'Failed to generate insight', details: error.message }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json({ error: 'Failed to generate insight', details: errorMessage }, { status: 500 });
     }
 }

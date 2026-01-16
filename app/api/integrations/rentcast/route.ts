@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/services/firebase-admin';
 import { verifyAuth } from '@/lib/auth/session';
 import { rentcastClient } from '@/lib/integrations/rentcast';
-import { Timestamp } from 'firebase-admin/firestore';
+
 
 export async function GET(request: NextRequest) {
     try {

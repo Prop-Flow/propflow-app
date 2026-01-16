@@ -9,8 +9,8 @@
 
 // Simple logger fallback if @/lib/logger doesn't exist yet, or use console
 const logger = {
-    info: (msg: string, data?: any) => console.log(`[RentCast] ${msg}`, data || ''),
-    error: (msg: string, data?: any) => console.error(`[RentCast] ${msg}`, data || ''),
+    info: (msg: string, data?: unknown) => console.log(`[RentCast] ${msg}`, data || ''),
+    error: (msg: string, data?: unknown) => console.error(`[RentCast] ${msg}`, data || ''),
 };
 
 // ============================================
@@ -57,11 +57,8 @@ export interface RentComparable {
     latitude: number;
     longitude: number;
     propertyType: string;
-    rent: number; // API might return 'price' for listings, but let's check comparable structure. 
-    // The log showed "price": 3695. 
-    // Wait, the comparable in the log had "price", not "rent".
-    // "price": 3695.
-    price: number;
+    rent: number;
+    price?: number;
     bedrooms: number;
     bathrooms: number;
     squareFootage: number;
@@ -217,37 +214,6 @@ export class RentCastClient {
      */
     async getRentEstimate(params: RentEstimateParams): Promise<RentEstimateResponse> {
         try {
-            const response = await fetch(`${this.baseUrl}/avm/rent/long-term`, {
-                method: 'GET', // Changed to GET as per docs usually (or POST if client specified?). 
-                // Docs typically use GET with query params for public APIs, but let's check the client code provided.
-                // The provided client code used POST for /avm/rent/long-term? Wait, looking at the docs viewed earlier...
-                // Chunk 1 says "Making Requests".
-                // Let's trust the USERS provided client code which had POST.
-                // Actually, let me double check the docs I read in step 9. 
-                // "Search Queries", "Property Recordsget". 
-                // RentCast usually uses GET parameters. 
-                // Let's assume the user provided code might be slightly off or using a specific endpoint.
-                // Wait, standard RentCast is GET /v1/avm/rent/long-term?address=...
-                // I will use GET to be safe with standard REST practices unless forced otherwise.
-                // BUT the user explicitly gave me code. I should probably stick to it unless I know it's wrong.
-                // Let's checking the docs from the URL content I read.
-                // It didn't specify method.
-                // I will stick to query params style for safety as that is most common for GET requests.
-                // If the user's code had POST, I'll switch to GET and query params as that is safer for RentCast (I happen to know this external knowledge, but I should rely on context).
-                // Let's look at the user provided code again: `method: 'POST', body: JSON.stringify({...})`.
-                // If I write this and it fails, I can fix it.
-                // However, standard RentCast is GET. I'll use GET.
-            });
-
-            // RE-READING USER PROMPT CODE:
-            // The user provided code uses POST. 
-            // "import { logger } from '@/lib/logger';"
-            // "method: 'POST',"
-
-            // I will respect the user's provided code structure but I will use the correct HTTP method if I suspect POST is wrong. 
-            // Actually, I'll try to find if I can verify the method.
-            // Let's assume the user knows what they are doing with the provided code, maybe they have a proxy or a specific version.
-            // BUT, I will make it robust. Use URLSearchParams for GET which is 99% likely correct for RentCast.
 
             const queryParams = new URLSearchParams();
             if (params.address) queryParams.append('address', params.address);
@@ -326,7 +292,11 @@ export class RentCastClient {
      */
     async getMarketData(params: MarketDataParams): Promise<MarketDataResponse> {
         try {
-            const queryString = new URLSearchParams(params as any).toString();
+            const queryString = new URLSearchParams(
+                Object.entries(params)
+                    .filter(([, v]) => v !== undefined)
+                    .reduce((acc, [k, v]) => ({ ...acc, [k]: String(v) }), {})
+            ).toString();
             const response = await fetch(`${this.baseUrl}/markets?${queryString}`, {
                 headers: {
                     'X-Api-Key': this.apiKey,
@@ -360,7 +330,7 @@ export class RentCastClient {
         try {
             const queryString = new URLSearchParams(
                 Object.entries(params)
-                    .filter(([_, v]) => v !== undefined)
+                    .filter(([, v]) => v !== undefined)
                     .reduce((acc, [k, v]) => ({ ...acc, [k]: String(v) }), {})
             ).toString();
 
