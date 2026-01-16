@@ -88,7 +88,7 @@ export const authOptions: NextAuthOptions = {
 
     // Callbacks for session and JWT handling
     callbacks: {
-        async jwt({ token, account, profile }) {
+        async jwt({ token, account, profile }: any) {
             // Persist the OAuth access_token and user info to the token right after signin
             if (account) {
                 token.accessToken = account.access_token;
@@ -96,7 +96,7 @@ export const authOptions: NextAuthOptions = {
             }
             return token;
         },
-        async session({ session, token }) {
+        async session({ session, token }: any) {
             // Send properties to the client
             if (session.user && token.id) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any

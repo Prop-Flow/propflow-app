@@ -103,7 +103,7 @@ jobs:
               exit 1
             fi
 
-            STATUS=$(gcloud builds describe $BUILD_ID --project=$PROJECT_ID --format='value(status)')
+            STATUS=$(gcloud builds describe $BUILD_ID --project=$PROJECT_ID --region=$REGION --format='value(status)')
             
             if [[ "$STATUS" == "SUCCESS" ]]; then
               echo "✅ Build Succeeded"
