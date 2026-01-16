@@ -71,6 +71,23 @@ export default function LoginPage() {
             const user = userCredential.user;
             console.log('[Login] Firebase Auth Successful:', user.uid);
 
+            // If dev mode, set cookies for DeveloperToolbar
+            if (devMode) {
+                document.cookie = 'propflow_dev_mode=true; path=/; max-age=31536000';
+                document.cookie = 'propflow_dev_role=owner; path=/; max-age=31536000';
+
+                // Set localStorage for useAuth
+                const mockUser = {
+                    id: 'dev-user-id',
+                    firstName: 'Developer',
+                    lastName: '(Mode)',
+                    email: 'dev@propflow.ai',
+                    role: 'owner'
+                };
+                localStorage.setItem('propflow_user', JSON.stringify(mockUser));
+                console.log('[Login] Dev mode cookies and localStorage set');
+            }
+
             // Redirect
             router.push('/dashboard');
 
