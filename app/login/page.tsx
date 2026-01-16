@@ -71,6 +71,23 @@ export default function LoginPage() {
             const user = userCredential.user;
             console.log('[Login] Firebase Auth Successful:', user.uid);
 
+            // If dev mode, set cookies for DeveloperToolbar
+            if (devMode) {
+                document.cookie = 'propflow_dev_mode=true; path=/; max-age=31536000';
+                document.cookie = 'propflow_dev_role=owner; path=/; max-age=31536000';
+
+                // Set localStorage for useAuth
+                const mockUser = {
+                    id: 'dev-user-id',
+                    firstName: 'Developer',
+                    lastName: '(Mode)',
+                    email: 'dev@propflow.ai',
+                    role: 'owner'
+                };
+                localStorage.setItem('propflow_user', JSON.stringify(mockUser));
+                console.log('[Login] Dev mode cookies and localStorage set');
+            }
+
             // Redirect
             router.push('/dashboard');
 
@@ -163,7 +180,7 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full h-12 text-white font-bold rounded-md transition-all mt-6 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-lg ${devMode ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20' : 'bg-red-600 hover:bg-red-500 shadow-red-500/20'}`}
+                        className={`w-full h-12 text-white font-bold rounded-md transition-all mt-6 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed shadow-lg bg-blue-600 hover:bg-blue-500 shadow-blue-500/20`}
                     >
                         {loading ? (
                             <span className="flex items-center">

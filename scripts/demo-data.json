@@ -1,0 +1,65 @@
+{
+    "users": {
+        "MciPtCS843NeGNpDkU21eQr0EKn2": {
+            "email": "demo-tenant@propflow.com",
+            "firstName": "Alex",
+            "lastName": "Rivera",
+            "phone": "+15551234569",
+            "role": "TENANT",
+            "uid": "MciPtCS843NeGNpDkU21eQr0EKn2",
+            "createdAt": "2026-01-12T18:00:00.000Z",
+            "updatedAt": "2026-01-12T18:00:00.000Z",
+            "properties": {}
+        },
+        "g7FS978xSIZduRmw377lHOo8AU82": {
+            "properties": {
+                "property1": {
+                    "name": "Sunset Apartments",
+                    "address": "123 Main St, San Francisco, CA 94102",
+                    "type": "MULTI_FAMILY",
+                    "units": 12,
+                    "status": "ACTIVE",
+                    "purchasePrice": 2500000,
+                    "currentValue": 2800000,
+                    "monthlyIncome": 18000,
+                    "monthlyExpenses": 8500,
+                    "ownerId": "g7FS978xSIZduRmw377lHOo8AU82",
+                    "createdAt": "2026-01-12T18:00:00.000Z",
+                    "updatedAt": "2026-01-12T18:00:00.000Z"
+                },
+                "property2": {
+                    "name": "Downtown Office Complex",
+                    "address": "456 Market St, San Francisco, CA 94103",
+                    "type": "COMMERCIAL",
+                    "units": 8,
+                    "status": "ACTIVE",
+                    "purchasePrice": 4200000,
+                    "currentValue": 4600000,
+                    "monthlyIncome": 32000,
+                    "monthlyExpenses": 15000,
+                    "ownerId": "g7FS978xSIZduRmw377lHOo8AU82",
+                    "createdAt": "2026-01-12T18:00:00.000Z",
+                    "updatedAt": "2026-01-12T18:00:00.000Z"
+                }
+            }
+        },
+        "SFoyLi8r7dbM4YPFBVOP1Mgpyrq2": {
+            "properties": {
+                "property1": {
+                    "name": "Riverside Condos",
+                    "address": "789 River Rd, Oakland, CA 94601",
+                    "type": "MULTI_FAMILY",
+                    "units": 24,
+                    "status": "ACTIVE",
+                    "purchasePrice": 3800000,
+                    "currentValue": 4100000,
+                    "monthlyIncome": 28000,
+                    "monthlyExpenses": 14000,
+                    "ownerId": "SFoyLi8r7dbM4YPFBVOP1Mgpyrq2",
+                    "createdAt": "2026-01-12T18:00:00.000Z",
+                    "updatedAt": "2026-01-12T18:00:00.000Z"
+                }
+            }
+        }
+    }
+}
