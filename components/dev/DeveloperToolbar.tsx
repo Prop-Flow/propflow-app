@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Briefcase, Home, Shield, X, ChevronRight, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +11,7 @@ export default function DeveloperToolbar() {
     const [isOpen, setIsOpen] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         setIsMounted(true);
@@ -35,7 +36,10 @@ export default function DeveloperToolbar() {
         return () => clearInterval(interval);
     }, []);
 
-    if (!isMounted || !isDevMode) return null;
+    // Only show on dashboard routes, not on landing page or login
+    const isOnDashboard = pathname?.startsWith('/dashboard');
+
+    if (!isMounted || !isDevMode || !isOnDashboard) return null;
 
     const switchRole = (role: 'owner' | 'tenant' | 'manager') => {
         // Set cookies
