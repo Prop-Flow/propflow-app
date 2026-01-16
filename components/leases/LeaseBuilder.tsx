@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Loader2, FileText, CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Loader2, FileText, CheckCircle, ChevronRight, ChevronLeft, TrendingUp, RefreshCw, Info } from 'lucide-react';
 import { LeaseDocument } from './LeaseDocument';
 
 interface LeaseBuilderProps {
@@ -13,7 +13,59 @@ interface LeaseBuilderProps {
 export function LeaseBuilder({ propertyId, tenants, onComplete }: LeaseBuilderProps) {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [insight, setInsight] = useState<string | null>(null);
+    const [loadingInsight, setLoadingInsight] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Market Data State
+    const [marketRentData, setMarketRentData] = useState<{
+        rent: number;
+        rentRangeLow: number;
+        rentRangeHigh: number;
+        isCached: boolean;
+        daysOld?: number;
+    } | null>(null);
+    const [fetchingMarketData, setFetchingMarketData] = useState(false);
+
+    const fetchInsight = async () => {
+        if (!marketRentData) return;
+        setLoadingInsight(true);
+        try {
+            // Need property address - finding it from tenants is hard if we don't have property object.
+            // Using ID implies backend fetches it. 
+            // We pass marketData to save a lookup or just rely on backend to re-fetch if needed.
+            // Let's pass the raw data we have plus propertyId.
+
+            const res = await fetch('/api/ai/rent-insight', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    propertyId,
+                    marketData: marketRentData
+                })
+            });
+            const data = await res.json();
+            if (data.insight) setInsight(data.insight);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingInsight(false);
+        }
+    };
+
+    const fetchMarketRent = async () => {
+        setFetchingMarketData(true);
+        try {
+            const res = await fetch(`/api/integrations/rentcast?propertyId=${propertyId}`);
+            if (!res.ok) throw new Error('Failed to fetch market data');
+            const data = await res.json();
+            setMarketRentData(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setFetchingMarketData(false);
+        }
+    };
 
     // Form State
     const [formData, setFormData] = useState({
@@ -167,6 +219,81 @@ export function LeaseBuilder({ propertyId, tenants, onComplete }: LeaseBuilderPr
             {/* Step 2: Financials & Terms */}
             {step === 2 && (
                 <div className="space-y-4 animate-in slide-in-from-right-4">
+                    {/* Market Rent Data */}
+                    <div className="bg-gradient-to-r from-indigo-900/30 to-purple-900/30 border border-indigo-500/20 rounded-xl p-4 mb-4">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-sm font-bold text-white flex items-center">
+                                    <TrendingUp className="w-4 h-4 mr-2 text-indigo-400" />
+                                    Market Rent Estimate
+                                </h3>
+                                <p className="text-xs text-indigo-300 mt-1 max-w-sm">
+                                    {marketRentData
+                                        ? `Est. Range: $${marketRentData.rentRangeLow.toLocaleString()} - $${marketRentData.rentRangeHigh.toLocaleString()}`
+                                        : "Get AI-powered rent estimates from RentCast based on current market data."}
+                                </p>
+                            </div>
+                            <button
+                                onClick={fetchMarketRent}
+                                disabled={fetchingMarketData}
+                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center disabled:opacity-50 shadow-lg shadow-indigo-500/20"
+                            >
+                                {fetchingMarketData ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                                {marketRentData ? 'Refresh' : 'Get Estimate'}
+                            </button>
+                        </div>
+
+                        {marketRentData && (
+                            <div className="mt-3 flex items-center justify-between bg-black/20 rounded-lg p-3 border border-white/5">
+                                <div>
+                                    <span className="text-xs text-muted-foreground uppercase font-semibold">Average Rent</span>
+                                    <div className="text-lg font-bold text-white">${marketRentData.rent.toLocaleString()}</div>
+                                    {marketRentData.isCached && (
+                                        <span className="text-[10px] text-orange-400 flex items-center mt-0.5">
+                                            <Info className="w-3 h-3 mr-1" />
+                                            Cached {marketRentData.daysOld} days ago
+                                        </span>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setFormData({ ...formData, rentAmount: marketRentData.rent.toString() })}
+                                    className="text-xs text-indigo-400 hover:text-indigo-300 underline font-medium"
+                                >
+                                    Apply to Rent
+                                </button>
+                            </div>
+                        )}
+
+                        {/* AI Insight Section */}
+                        {marketRentData && (
+                            <div className="mt-3">
+                                {!insight ? (
+                                    <button
+                                        onClick={fetchInsight}
+                                        disabled={loadingInsight}
+                                        className="w-full py-2 bg-gradient-to-r from-teal-500/20 to-emerald-500/20 border border-teal-500/30 rounded-lg text-teal-300 text-xs font-bold hover:bg-teal-500/30 transition-all flex items-center justify-center"
+                                    >
+                                        {loadingInsight ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <TrendingUp className="w-3 h-3 mr-2" />}
+                                        Get AI Market Insight
+                                    </button>
+                                ) : (
+                                    <div className="bg-black/40 rounded-lg p-3 border border-teal-500/30 animate-in fade-in slide-in-from-top-2">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="text-xs font-bold text-teal-400 flex items-center">
+                                                <TrendingUp className="w-3 h-3 mr-1" /> AI Analysis
+                                            </h4>
+                                            <button onClick={() => setInsight(null)} className="text-[10px] text-white/50 hover:text-white">Close</button>
+                                        </div>
+                                        <div className="text-xs text-gray-300 prose prose-invert max-w-none">
+                                            {/* Simple toggle for now, Markdown rendering would be better but keeping simple */}
+                                            <div className="whitespace-pre-wrap">{insight}</div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Monthly Rent ($)</label>
