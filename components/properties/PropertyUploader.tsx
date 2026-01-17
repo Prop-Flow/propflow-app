@@ -101,17 +101,19 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep, clas
         }
     }, [initialStep, rentRollData.units.length]);
 
-    // Auto-trigger file picker in demo mode
+    // Auto-trigger file picker in demo mode (runs once on mount)
+    const [hasTriggered, setHasTriggered] = useState(false);
     useEffect(() => {
-        if (demoMode && fileInputRef.current && !isAnalyzing) {
+        if (demoMode && fileInputRef.current && !isAnalyzing && !hasTriggered) {
             // Small delay to ensure DOM is ready
             const timer = setTimeout(() => {
-                console.log('[Demo Mode] Auto-triggering file picker');
+                console.log('[PropertyUploader] Auto-triggering file picker in demo mode');
                 fileInputRef.current?.click();
-            }, 300);
+                setHasTriggered(true);
+            }, 500);
             return () => clearTimeout(timer);
         }
-    }, [demoMode, isAnalyzing]); // Run only on mount or if props change
+    }, [demoMode, isAnalyzing, hasTriggered]);
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();

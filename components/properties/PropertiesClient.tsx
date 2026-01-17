@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Building2, Users, MapPin, Plus, Loader2, FileText } from 'lucide-react';
 import DashboardShell from '@/components/layout/DashboardShell';
@@ -27,6 +28,17 @@ export default function PropertiesClient({ initialProperties }: PropertiesClient
     const [loading, setLoading] = useState(initialProperties.length === 0);
     const [isUploadMode, setUploadMode] = useState<boolean | 'rent_roll' | 'property'>(false);
     const [error, setError] = useState<string | null>(null);
+    const searchParams = useSearchParams();
+
+    // Auto-trigger upload mode from URL parameter
+    useEffect(() => {
+        if (!searchParams) return;
+        const trigger = searchParams.get('trigger');
+        if (trigger === 'upload' && !isUploadMode) {
+            console.log('[PropertiesClient] Auto-triggering upload mode from URL parameter');
+            setUploadMode('property');
+        }
+    }, [searchParams, isUploadMode]);
 
     useEffect(() => {
         if (initialProperties.length === 0) {

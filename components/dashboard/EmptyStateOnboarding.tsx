@@ -32,7 +32,7 @@ export default function EmptyStateOnboarding() {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                     <Button
-                        onClick={() => router.push('/properties')}
+                        onClick={() => router.push('/properties?trigger=upload')}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg rounded-xl shadow-lg hover:shadow-blue-500/20 transition-all"
                     >
                         <Upload className="w-5 h-5" />
