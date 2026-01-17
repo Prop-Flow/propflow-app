@@ -143,6 +143,76 @@ gcloud builds submit --config cloudbuild.yaml .
 
 ---
 
+## 📋 Development Workflows
+
+Propflow includes automated workflow scripts to streamline common development tasks.
+
+### `npm run workflow:lint`
+**Purpose**: Run comprehensive code quality checks (TypeScript + ESLint)
+
+**When to use**: Before committing code or as part of pre-commit hooks
+
+**What it does**:
+- Runs TypeScript type checking (`tsc --noEmit`)
+- Runs ESLint validation
+- Reports clear pass/fail status
+
+**Example**:
+```bash
+npm run workflow:lint
+```
+
+---
+
+### `npm run workflow:sync`
+**Purpose**: Pull latest changes, validate build, and push your work
+
+**When to use**: Sync local work with remote before starting new features
+
+**What it does**:
+1. Pulls latest changes from `origin/main`
+2. Checks for merge conflicts
+3. Runs TypeScript type check
+4. Runs full build validation
+5. Commits changes with "chore: sync with remote"
+6. Pushes to your **current branch** (not main)
+
+**Safety features**:
+- Exits on validation failures
+- Detects and reports merge conflicts
+- Skips commit if no changes
+
+**Example**:
+```bash
+npm run workflow:sync
+```
+
+---
+
+### `npm run workflow:deployment`
+**Purpose**: Deploy validated changes to production
+
+**When to use**: Deploy to production after all checks pass
+
+**What it does**:
+1. Checks for uncommitted changes (fails if dirty)
+2. Verifies you're on the `main` branch
+3. Shows current commit details
+4. Asks for explicit confirmation
+5. Pushes to `origin/main` (triggers GitHub Actions)
+
+**Safety features**:
+- Refuses to run with uncommitted changes
+- Refuses to run if not on main branch
+- Requires typing "yes" to confirm
+
+**Example**:
+```bash
+npm run workflow:deployment
+```
+
+---
+
 ## 🔧 Troubleshooting
 
 ### Common Issues

@@ -135,27 +135,16 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep, clas
 
                 setAnalysisStep('Activating demo account...');
 
-                
-                // Get user token for activation
-                const { getAuth } = await import('firebase/auth');
-                const auth = getAuth();
-                const currentUser = auth.currentUser;
-                if (!currentUser) {
-                    throw new Error('User not authenticated');
-                }
-                const token = await currentUser.getIdToken();
-
-                // Call demo activation API
-                const activateResponse = await fetch('/api/demo/activate', {
+                // Call demo seed API
+                const seedResponse = await fetch('/api/demo/seed', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
                 });
 
-                if (!activateResponse.ok) {
-                    throw new Error('Failed to activate demo');
+                if (!seedResponse.ok) {
+                    throw new Error('Failed to seed demo data');
                 }
+
+                const seedResult = await seedResponse.json();
 
                 setAnalysisStep('Success! Loading your dashboard...');
                 await new Promise(r => setTimeout(r, 1000));

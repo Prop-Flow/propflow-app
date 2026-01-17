@@ -6,7 +6,8 @@ import { Users, Building, Loader2, TrendingUp, AlertCircle, Percent } from 'luci
 import Link from 'next/link';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import { useAuth } from '@/hooks/useAuth';
-import { isDemoMode } from '@/lib/config/demo';
+import { isDemoMode, shouldShowEmptyState, type DemoUserProfile } from '@/lib/config/demo';
+import EmptyStateOnboarding from '@/components/dashboard/EmptyStateOnboarding';
 
 interface DashboardStats {
     properties: number;
@@ -22,6 +23,7 @@ interface DashboardStats {
 export default function OwnerDashboard() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [userProfile, setUserProfile] = useState<DemoUserProfile | null>(null);
     const { user } = useAuth();
 
     useEffect(() => {
@@ -30,6 +32,20 @@ export default function OwnerDashboard() {
 
             try {
                 const token = await user.getIdToken();
+
+                // Fetch user profile
+                const profileRes = await fetch('/api/user/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (profileRes.ok) {
+                    const profile = await profileRes.json();
+                    setUserProfile(profile);
+                }
+
+                // Fetch dashboard stats
                 const res = await fetch('/api/owner/stats', {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -54,6 +70,16 @@ export default function OwnerDashboard() {
 
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
+
+    // Show empty state if no properties or if MVP demo not activated
+    const hasProperties = (stats?.properties ?? 0) > 0;
+    if (!loading && shouldShowEmptyState(userProfile ?? undefined, hasProperties)) {
+        return (
+            <DashboardShell role="owner">
+                <EmptyStateOnboarding />
+            </DashboardShell>
+        );
+    }
 
     return (
         <DashboardShell role="owner">

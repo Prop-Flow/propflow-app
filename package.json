@@ -8,7 +8,10 @@
                 "start": "next start",
                 "lint": "next lint",
                 "type-check": "tsc --noEmit",
-                "prebuild": "npm run type-check"
+                "prebuild": "npm run type-check",
+                "workflow:sync": "./scripts/sync.sh",
+                "workflow:lint": "./scripts/lint.sh",
+                "workflow:deployment": "./scripts/deployment.sh"
         },
         "dependencies": {
                 "@arizeai/phoenix-otel": "^0.3.4",
