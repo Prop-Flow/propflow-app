@@ -99,7 +99,19 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep, clas
         } else if (initialStep === 'upload-property-doc') {
             setStep('upload-rent-roll'); // or occupancy check
         }
-    }, [initialStep, rentRollData.units.length]); // Run only on mount or if props change
+    }, [initialStep, rentRollData.units.length]);
+
+    // Auto-trigger file picker in demo mode
+    useEffect(() => {
+        if (demoMode && fileInputRef.current && !isAnalyzing) {
+            // Small delay to ensure DOM is ready
+            const timer = setTimeout(() => {
+                console.log('[Demo Mode] Auto-triggering file picker');
+                fileInputRef.current?.click();
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [demoMode, isAnalyzing]); // Run only on mount or if props change
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -135,7 +147,7 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep, clas
 
                 setAnalysisStep('Activating demo account...');
 
-                
+
                 // Get user token for activation
                 const { getAuth } = await import('firebase/auth');
                 const auth = getAuth();
