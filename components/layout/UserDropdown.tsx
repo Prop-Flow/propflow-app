@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, User, Settings, Mail, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { useAuth } from '@/hooks/useAuth';
 
 export default function UserDropdown() {
     const { user, profile, loading, logout } = useAuth();
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +40,11 @@ export default function UserDropdown() {
     if (activeRole === 'OWNER') roleDisplay = 'Owner';
     else if (activeRole === 'PROPERTY_MANAGER') roleDisplay = 'Property Manager';
     else if (activeRole === 'TENANT') roleDisplay = 'Tenant';
+
+    const handleLogout = async () => {
+        await logout();
+        router.push('/');
+    };
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -75,7 +82,7 @@ export default function UserDropdown() {
                         </Link>
                         <div className="h-px bg-border my-1" />
                         <button
-                            onClick={logout}
+                            onClick={handleLogout}
                             className="w-full flex items-center px-3 py-2 text-sm text-red-400 hover:bg-red-400/10 hover:text-red-500 rounded-md transition-colors"
                         >
                             <LogOut className="w-4 h-4 mr-3" />
