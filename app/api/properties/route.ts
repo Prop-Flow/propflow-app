@@ -8,12 +8,19 @@ export async function GET(request: NextRequest) {
     try {
         const user = await getSessionUser(request);
 
+        // Fetch properties without orderBy to avoid index requirement
         const snapshot = await db.collection('properties')
             .where('ownerUserId', '==', user.id)
-            .orderBy('createdAt', 'desc')
             .get();
 
-        const properties = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort in memory instead of in Firestore query
+        const properties = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a: any, b: any) => {
+                const aTime = a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0;
+                const bTime = b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0;
+                return bTime - aTime; // Descending order (newest first)
+            });
 
         // Manual count of tenants for each property if needed
         // For simplicity, we'll return the properties as is
