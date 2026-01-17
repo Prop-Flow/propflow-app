@@ -85,6 +85,11 @@ jobs:
             --substitutions=SHORT_SHA=$SHORT_SHA,_REGION=$REGION,_PROJECT_ID=$PROJECT_ID,_APP_URL=https://$PROJECT_ID.web.app,_FIREBASE_API_KEY=$FIREBASE_API_KEY,_FIREBASE_AUTH_DOMAIN=$FIREBASE_AUTH_DOMAIN,_FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID,_FIREBASE_STORAGE_BUCKET=$FIREBASE_STORAGE_BUCKET,_FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_MESSAGING_SENDER_ID,_FIREBASE_APP_ID=$FIREBASE_APP_ID \
             --format='value(id)')
 
+          if [ -z "$BUILD_ID" ]; then
+            echo "❌ Build submission failed: BUILD_ID not returned"
+            exit 1
+          fi
+
           echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
           echo "📋 Build ID: $BUILD_ID"
           echo "🔗 Logs: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=$PROJECT_ID"
@@ -92,7 +97,7 @@ jobs:
           # Poll for completion
           echo "⏳ Waiting for build to complete..."
           START_TIME=$(date +%s)
-          TIMEOUT=3600 # 1 hour timeout
+          TIMEOUT=5400 # 1.5 hours timeout
 
           while true; do
             CURRENT_TIME=$(date +%s)
@@ -110,6 +115,8 @@ jobs:
               break
             elif [[ "$STATUS" == "FAILURE" || "$STATUS" == "INTERNAL_ERROR" || "$STATUS" == "TIMEOUT" || "$STATUS" == "CANCELLED" ]]; then
               echo "❌ Build Failed with status: $STATUS"
+              echo "🔗 Logs: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=$PROJECT_ID"
+              gcloud builds log --limit=100 $BUILD_ID || true
               exit 1
             else
               echo "Status: $STATUS (Elapsed: ${ELAPSED_TIME}s)..."
