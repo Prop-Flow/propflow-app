@@ -27,3 +27,5 @@ jobs:
           NEXT_PUBLIC_FIREBASE_API_KEY: "mock_key"
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "mock_domain"
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: "mock_project"
+          # Inject build SHA for version tracking
+          NEXT_PUBLIC_BUILD_SHA: ${{ github.sha }}

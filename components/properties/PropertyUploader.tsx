@@ -20,6 +20,8 @@ import {
     ExtractedTenantData,
     RentRollData
 } from '@/lib/ai/document-parser';
+import { isDemoMode } from '@/lib/config/demo';
+import { useRouter } from 'next/navigation';
 
 // Interface matching the API expectation (see app/api/properties/route.ts)
 export interface WizardData {
@@ -70,6 +72,8 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep, clas
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
+    const router = useRouter();
+    const demoMode = isDemoMode();
 
     const [propertyData, setPropertyData] = useState<LocalPropertyData>({
         address: '',
@@ -114,6 +118,53 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep, clas
 
         let processedCount = 0;
         const totalFiles = files.length;
+
+        // Demo mode: simulate upload and seed data
+        if (demoMode) {
+            try {
+                // Simulate processing animation
+                for (let i = 0; i < totalFiles; i++) {
+                    setParsingProgress({
+                        current: i + 1,
+                        total: totalFiles,
+                        filename: files[i].name
+                    });
+                    setAnalysisStep(`Processing ${files[i].name}...`);
+                    await new Promise(r => setTimeout(r, 800)); // Simulate processing time
+                }
+
+                setAnalysisStep('Seeding demo data...');
+
+                // Call demo seed API
+                const seedResponse = await fetch('/api/demo/seed', {
+                    method: 'POST',
+                });
+
+                if (!seedResponse.ok) {
+                    throw new Error('Failed to seed demo data');
+                }
+
+                const seedResult = await seedResponse.json();
+
+                setAnalysisStep('Success! Redirecting to dashboard...');
+                await new Promise(r => setTimeout(r, 1000));
+
+                toast({
+                    title: "Demo Data Loaded",
+                    description: `Created ${seedResult.data.properties} properties with ${seedResult.data.tenants} tenants`,
+                });
+
+                // Redirect to dashboard
+                router.push('/dashboard/owner');
+                return;
+            } catch (err) {
+                console.error('Demo seed error:', err);
+                setError(err instanceof Error ? err.message : 'Failed to load demo data');
+                setIsAnalyzing(false);
+                setParsingProgress(null);
+                return;
+            }
+        }
 
         // Helper to merge new tenant data into existing rent roll
         const mergeTenantData = (newTenant: ExtractedTenantData) => {

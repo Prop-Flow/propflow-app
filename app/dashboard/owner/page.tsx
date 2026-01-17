@@ -6,6 +6,7 @@ import { Users, Building, Loader2, TrendingUp, AlertCircle, Percent } from 'luci
 import Link from 'next/link';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import { useAuth } from '@/hooks/useAuth';
+import { isDemoMode } from '@/lib/config/demo';
 
 interface DashboardStats {
     properties: number;
@@ -59,9 +60,16 @@ export default function OwnerDashboard() {
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                 {/* Header Welcome */}
-                <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Owner Overview</h1>
-                    <p className="text-muted-foreground">Welcome back. Here is your portfolio performance at a glance.</p>
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white mb-2">Owner Overview</h1>
+                        <p className="text-muted-foreground">Welcome back. Here is your portfolio performance at a glance.</p>
+                    </div>
+                    {isDemoMode() && (
+                        <div className="px-3 py-1.5 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+                            <span className="text-xs font-semibold text-amber-300 uppercase tracking-wide">Demo Mode</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Top Row: Key Metrics */}

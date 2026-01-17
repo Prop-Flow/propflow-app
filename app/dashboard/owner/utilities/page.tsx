@@ -8,6 +8,7 @@ import { UtilityKPICards } from '@/components/utilities/UtilityKPICards';
 import { ConsumptionChart } from '@/components/utilities/ConsumptionChart';
 import { ReadingsTable } from '@/components/utilities/ReadingsTable';
 import { AddReadingModal } from '@/components/utilities/AddReadingModal';
+import { isDemoMode } from '@/lib/config/demo';
 
 export default function UtilitiesPage() {
     const { profile, loading } = useAuth();
@@ -42,13 +43,20 @@ export default function UtilitiesPage() {
                         <h1 className="text-3xl font-bold text-foreground">Utility Management</h1>
                         <p className="text-muted-foreground mt-1">Monitor consumption, track RUBS recovery, and detect anomalies.</p>
                     </div>
-                    <button
-                        onClick={() => setIsAddReadingOpen(true)}
-                        className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Add Reading
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {isDemoMode() && (
+                            <div className="px-3 py-1.5 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+                                <span className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Demo Mode</span>
+                            </div>
+                        )}
+                        <button
+                            onClick={() => setIsAddReadingOpen(true)}
+                            className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-medium hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Add Reading
+                        </button>
+                    </div>
                 </div>
 
                 <UtilityKPICards metrics={metrics} />
