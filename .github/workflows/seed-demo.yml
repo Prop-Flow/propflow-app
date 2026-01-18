@@ -36,6 +36,9 @@ jobs:
           chmod 400 firebase-service-account-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/firebase-service-account-key.json" >> $GITHUB_ENV
 
+      - name: Print service account email (for IAM admin)
+        run: node scripts/get-sa-email.js firebase-service-account-key.json
+
       - name: Seed demo data
         if: ${{ github.event.inputs.action == 'seed' }}
         run: npm run seed:demo
