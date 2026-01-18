@@ -2,27 +2,181 @@
  * Manual Demo Data Seeding Script
  * 
  * Seeds realistic lease data directly into the MVP Demo account
- * Run with: npx tsx scripts/seed-demo-data.ts
+ * 
+ * Usage:
+ *   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+ *   npm run seed:demo
+ * 
+ * Or with inline JSON:
+ *   export FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
+ *   npm run seed:demo
  */
 
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import * as path from 'path';
+import * as fs from 'fs';
 
-// Initialize Firebase Admin
-if (getApps().length === 0) {
-    initializeApp({
-        credential: cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        }),
-    });
-}
-
-const db = getFirestore();
+// Target Firebase project
+const TARGET_PROJECT_ID = 'propflow-ai-483621';
 
 // MVP Demo user email
-const MVP_DEMO_EMAIL = 'demo@propflow.com';
+const MVP_DEMO_EMAIL = process.env.DEMO_EMAIL || 'demo@propflow.com';
+
+/**
+ * Initialize Firebase Admin with robust credential detection
+ */
+function initializeFirebaseAdmin() {
+    if (getApps().length > 0) {
+        console.log('✅ Firebase Admin already initialized');
+        return;
+    }
+
+    let credentialSource = 'unknown';
+    let projectId = TARGET_PROJECT_ID;
+
+    try {
+        // Priority 1: GOOGLE_APPLICATION_CREDENTIALS environment variable (file path)
+        if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+            const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+            console.log(`🔑 Using GOOGLE_APPLICATION_CREDENTIALS: ${credPath}`);
+
+            if (!fs.existsSync(credPath)) {
+                throw new Error(`Service account key file not found: ${credPath}`);
+            }
+
+            const serviceAccount = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+            projectId = serviceAccount.project_id || TARGET_PROJECT_ID;
+
+            initializeApp({
+                credential: cert(serviceAccount),
+                projectId,
+            });
+
+            credentialSource = 'GOOGLE_APPLICATION_CREDENTIALS (file)';
+        }
+        // Priority 2: FIREBASE_SERVICE_ACCOUNT_JSON environment variable (inline JSON)
+        else if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+            console.log('🔑 Using FIREBASE_SERVICE_ACCOUNT_JSON (inline)');
+
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+            projectId = serviceAccount.project_id || TARGET_PROJECT_ID;
+
+            initializeApp({
+                credential: cert(serviceAccount),
+                projectId,
+            });
+
+            credentialSource = 'FIREBASE_SERVICE_ACCOUNT_JSON (env var)';
+        }
+        // Priority 3: Local service account key file (fallback)
+        else {
+            const localKeyPath = path.join(__dirname, '..', 'firebase-service-account-key.json');
+
+            if (fs.existsSync(localKeyPath)) {
+                console.log(`🔑 Using local service account key: ${localKeyPath}`);
+
+                const serviceAccount = JSON.parse(fs.readFileSync(localKeyPath, 'utf8'));
+                projectId = serviceAccount.project_id || TARGET_PROJECT_ID;
+
+                initializeApp({
+                    credential: cert(serviceAccount),
+                    projectId,
+                });
+
+                credentialSource = 'Local firebase-service-account-key.json';
+            }
+            // Priority 4: Application Default Credentials (requires gcloud)
+            else {
+                console.log('⚠️  No explicit credentials found, attempting Application Default Credentials (ADC)');
+                console.log('   This requires: gcloud auth application-default login');
+
+                initializeApp({
+                    projectId: TARGET_PROJECT_ID,
+                });
+
+                credentialSource = 'Application Default Credentials (ADC)';
+            }
+        }
+
+        console.log(`✅ Firebase Admin initialized`);
+        console.log(`   Project ID: ${projectId}`);
+        console.log(`   Credential Source: ${credentialSource}`);
+
+    } catch (error) {
+        console.error('❌ Failed to initialize Firebase Admin');
+        console.error('   Error:', error instanceof Error ? error.message : error);
+        console.error('\n💡 Troubleshooting:');
+        console.error('   1. Set GOOGLE_APPLICATION_CREDENTIALS to a valid service account JSON file:');
+        console.error('      export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json');
+        console.error('   2. Or set FIREBASE_SERVICE_ACCOUNT_JSON with inline JSON:');
+        console.error('      export FIREBASE_SERVICE_ACCOUNT_JSON=\'{"type":"service_account",...}\'');
+        console.error('   3. Or place firebase-service-account-key.json in the project root');
+        console.error('   4. Generate a new service account key:');
+        console.error('      https://console.firebase.google.com/project/propflow-ai-483621/settings/serviceaccounts/adminsdk');
+        process.exit(1);
+    }
+}
+
+/**
+ * Preflight health check: verify Firestore credentials work
+ */
+async function preflightCheck(db: FirebaseFirestore.Firestore): Promise<boolean> {
+    try {
+        console.log('\n🏥 Running preflight health check...');
+
+        // Attempt to write and read a temporary document
+        const testDocRef = db.collection('_seed_preflight').doc(`test_${Date.now()}`);
+
+        await testDocRef.set({
+            timestamp: new Date(),
+            purpose: 'credential_validation',
+        });
+
+        const testDoc = await testDocRef.get();
+
+        if (!testDoc.exists) {
+            throw new Error('Preflight write succeeded but read failed');
+        }
+
+        // Clean up test document
+        await testDocRef.delete();
+
+        console.log('✅ Preflight check passed - Firestore credentials are valid');
+        return true;
+
+    } catch (error: any) {
+        console.error('❌ Preflight check failed - Firestore credentials are invalid');
+
+        if (error.code === 16 || error.message?.includes('UNAUTHENTICATED')) {
+            console.error('\n🔐 Authentication Error:');
+            console.error('   Your service account key may be:');
+            console.error('   - Revoked (key was deleted in GCP Console)');
+            console.error('   - Disabled (service account was disabled)');
+            console.error('   - Wrong project (key is for a different Firebase project)');
+            console.error('\n💡 Solutions:');
+            console.error('   1. Generate a new service account key:');
+            console.error('      https://console.firebase.google.com/project/propflow-ai-483621/settings/serviceaccounts/adminsdk');
+            console.error('   2. Or reuse your existing CI key (GitHub secret GCP_SA_KEY):');
+            console.error('      cat > firebase-service-account-key.json <<\'JSON\'');
+            console.error('      PASTE_YOUR_CI_KEY_JSON_HERE');
+            console.error('      JSON');
+            console.error('   3. Then run: export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/firebase-service-account-key.json');
+        } else if (error.code === 7 || error.message?.includes('PERMISSION_DENIED')) {
+            console.error('\n🚫 Permission Error:');
+            console.error('   The service account lacks Firestore permissions.');
+            console.error('   Grant "Cloud Datastore User" or "Firebase Admin" role in IAM.');
+        } else {
+            console.error('\n❌ Unexpected Error:', error.message || error);
+        }
+
+        return false;
+    }
+}
+
+// Initialize Firebase Admin
+initializeFirebaseAdmin();
+const db = getFirestore();
 
 // Realistic mock data for The Rise at State College
 const MOCK_PROPERTY = {
@@ -146,7 +300,14 @@ const MOCK_TENANTS = [
 
 async function seedDemoData() {
     try {
-        console.log('🔍 Finding MVP Demo user...');
+        // Run preflight health check
+        const healthCheckPassed = await preflightCheck(db);
+        if (!healthCheckPassed) {
+            console.error('\n❌ Aborting seeding due to failed preflight check');
+            process.exit(1);
+        }
+
+        console.log('\n🔍 Finding MVP Demo user...');
 
         // Find the demo user by email
         const usersSnapshot = await db.collection('users')

@@ -1,0 +1,138 @@
+name: Seed Demo (Production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - seed
+          - clear
+        default: 'seed'
+
+jobs:
+  seed-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup credentials
+        run: |
+          set +x  # Disable command echoing for security
+          trap 'rm -f firebase-service-account-key.json' EXIT
+          
+          cat > firebase-service-account-key.json <<'JSON'
+          ${{ secrets.GCP_SA_KEY }}
+          JSON
+          
+          export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/firebase-service-account-key.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/firebase-service-account-key.json" >> $GITHUB_ENV
+
+      - name: Seed demo data
+        if: ${{ github.event.inputs.action == 'seed' }}
+        run: npm run seed:demo
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      - name: Clear demo data
+        if: ${{ github.event.inputs.action == 'clear' }}
+        run: npm run seed:demo:clear
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
+
+      - name: Verify Firestore state
+        if: ${{ github.event.inputs.action == 'seed' }}
+        run: |
+          node - <<'NODE'
+          const admin = require('firebase-admin');
+          
+          const projectId = 'propflow-ai-483621';
+          const serviceAccount = require('./firebase-service-account-key.json');
+          
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            projectId
+          });
+          
+          const db = admin.firestore();
+          
+          (async () => {
+            try {
+              // Find demo user via Auth
+              const user = await admin.auth().getUserByEmail('demo@propflow.com');
+              const userId = user.uid;
+              
+              console.log('Demo user ID:', userId);
+              
+              // Count seeded documents
+              const propertiesSnap = await db.collection('properties')
+                .where('ownerUserId', '==', userId)
+                .get();
+              
+              const tenantsSnap = await db.collection('tenants')
+                .get();
+              
+              const leasesSnap = await db.collection('leases')
+                .get();
+              
+              // Filter tenants and leases by propertyId
+              const propertyIds = propertiesSnap.docs.map(d => d.id);
+              const tenants = tenantsSnap.docs.filter(d => propertyIds.includes(d.data().propertyId));
+              const leases = leasesSnap.docs.filter(d => propertyIds.includes(d.data().propertyId));
+              
+              const counts = {
+                projectId,
+                userId,
+                properties: propertiesSnap.size,
+                tenants: tenants.length,
+                leases: leases.length
+              };
+              
+              console.log(JSON.stringify(counts, null, 2));
+              
+              // Validate linkage integrity
+              for (const lease of leases) {
+                const data = lease.data();
+                const tenantExists = tenants.some(t => t.id === data.tenantId);
+                const propertyExists = propertyIds.includes(data.propertyId);
+                
+                if (!tenantExists || !propertyExists) {
+                  console.error('Linkage integrity failed for lease:', lease.id);
+                  process.exitCode = 2;
+                  return;
+                }
+              }
+              
+              // Hard assertions for demo requirements
+              if (counts.properties !== 1 || counts.tenants !== 5 || counts.leases !== 5) {
+                console.error('Expected: 1 property, 5 tenants, 5 leases');
+                console.error('Got:', counts);
+                process.exitCode = 2;
+                return;
+              }
+              
+              console.log('✅ Verification passed: All counts and linkages correct');
+              
+            } catch (error) {
+              console.error('Verification failed:', error.message);
+              process.exitCode = 1;
+            }
+          })();
+          NODE
+
+      - name: Cleanup credentials
+        if: always()
+        run: |
+          rm -f firebase-service-account-key.json
+          unset GOOGLE_APPLICATION_CREDENTIALS
