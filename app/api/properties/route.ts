@@ -3,10 +3,19 @@ import { db } from '@/lib/services/firebase-admin';
 
 import { getSessionUser } from '@/lib/auth/session';
 import { UnauthorizedError } from '@/lib/errors/custom-errors';
+import { isMVPDemoUser } from '@/lib/config/demo';
+import { getMockProperties } from '@/lib/services/demo-data';
 
 export async function GET(request: NextRequest) {
     try {
         const user = await getSessionUser(request);
+
+        // Return mock data for demo users (no Firestore queries)
+        if (isMVPDemoUser(user.email)) {
+            return NextResponse.json({
+                properties: getMockProperties()
+            });
+        }
 
         // Fetch properties without orderBy to avoid index requirement
         const snapshot = await db.collection('properties')

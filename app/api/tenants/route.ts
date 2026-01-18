@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/services/firebase-admin';
 import { getSessionUser } from '@/lib/auth/session';
+import { isMVPDemoUser } from '@/lib/config/demo';
+import { getMockTenants } from '@/lib/services/demo-data';
 
 export async function GET(request: NextRequest) {
     try {
         const user = await getSessionUser(request);
         const searchParams = request.nextUrl.searchParams;
         const propertyId = searchParams.get('propertyId');
+
+        // Return mock data for demo users (no Firestore queries)
+        if (isMVPDemoUser(user.email)) {
+            return NextResponse.json({
+                tenants: getMockTenants(propertyId || undefined)
+            });
+        }
 
         let query: FirebaseFirestore.Query = db.collection('tenants');
 

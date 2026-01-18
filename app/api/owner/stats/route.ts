@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/services/firebase-admin';
 import { verifyAuth } from '@/lib/auth/session';
 import { isMVPDemoUser, isDemoActivated, type DemoUserProfile } from '@/lib/config/demo';
+import { getMockStats } from '@/lib/services/demo-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,25 +20,21 @@ export async function GET(request: Request) {
         const userId = decodedToken.uid;
         const userEmail = decodedToken.email;
 
-        // Check if MVP demo user and not activated - return empty data
+        // Return mock data for MVP demo users (no Firestore queries)
         if (isMVPDemoUser(userEmail)) {
-            const userDoc = await db.collection('users').doc(userId).get();
-            const userData = userDoc.data() as DemoUserProfile | undefined;
-
-            if (!isDemoActivated(userData)) {
-                // Return empty stats for non-activated demo user
-                return NextResponse.json({
-                    properties: 0,
-                    tenants: 0,
-                    financials: {
-                        revenue: 0,
-                        expenses: 0,
-                        netIncome: 0,
-                        occupancyRate: 0
-                    }
-                });
-            }
+            const mockStats = getMockStats();
+            return NextResponse.json({
+                properties: mockStats.totalProperties,
+                tenants: mockStats.activeTenants,
+                financials: {
+                    revenue: mockStats.monthlyRevenue,
+                    expenses: 0,
+                    netIncome: mockStats.monthlyRevenue,
+                    occupancyRate: mockStats.occupancyRate
+                }
+            });
         }
+
 
         // Fetch properties owned by the user
         const propertiesSnapshot = await db.collection('properties')

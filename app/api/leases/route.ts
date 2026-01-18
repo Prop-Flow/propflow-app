@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/services/firebase-admin';
 import { getSessionUser } from '@/lib/auth/session';
 import { z } from 'zod';
+import { isMVPDemoUser } from '@/lib/config/demo';
+import { getMockLeases } from '@/lib/services/demo-data';
 
 const LeaseSchema = z.object({
     propertyId: z.string(),
@@ -27,6 +29,11 @@ export async function GET(request: NextRequest) {
 
         const searchParams = request.nextUrl.searchParams;
         const propertyId = searchParams.get('propertyId');
+
+        // Return mock data for demo users (no Firestore queries)
+        if (isMVPDemoUser(session.email)) {
+            return NextResponse.json(getMockLeases(propertyId || undefined));
+        }
 
         if (!propertyId) {
             return NextResponse.json({ error: 'Property ID required' }, { status: 400 });

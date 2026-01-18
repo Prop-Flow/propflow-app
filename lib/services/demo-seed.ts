@@ -1,5 +1,12 @@
 /**
- * Demo Data Seeding Service
+ * Demo Data Seeding Service (Server-Side)
+ * 
+ * ⚠️ DEPRECATED: This server-side seeding approach has been replaced by client-side mock data.
+ * 
+ * The demo account (demo@propflow.com) now uses in-memory mock data returned directly from API routes.
+ * See lib/services/demo-data.ts for the new implementation.
+ * 
+ * This file is kept for reference and backward compatibility but should not be used for new features.
  * 
  * Seeds realistic mock data for demo mode based on The Rise at State College property.
  * All data is idempotent and namespaced under the demo user.
