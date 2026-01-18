@@ -1,308 +1,286 @@
+/**
+ * Manual Demo Data Seeding Script
+ * 
+ * Seeds realistic lease data directly into the MVP Demo account
+ * Run with: npx tsx scripts/seed-demo-data.ts
+ */
+
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin
-if (!getApps().length) {
+if (getApps().length === 0) {
     initializeApp({
-        projectId: 'propflow-ai-483621',
+        credential: cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
     });
 }
 
-const auth = getAuth();
 const db = getFirestore();
 
-interface DemoAccount {
-    email: string;
-    password: string;
-    displayName: string;
-    role: 'OWNER' | 'MANAGER' | 'TENANT';
-    firstName: string;
-    lastName: string;
-    phone: string;
-}
+// MVP Demo user email
+const MVP_DEMO_EMAIL = 'demo@propflow.com';
 
-const DEMO_ACCOUNTS: DemoAccount[] = [
+// Realistic mock data for The Rise at State College
+const MOCK_PROPERTY = {
+    name: 'The Rise at State College LLC',
+    address: '532 E College Ave',
+    city: 'State College',
+    state: 'PA',
+    zipCode: '16801',
+    propertyType: 'MULTI_FAMILY',
+    units: 12,
+    status: 'ACTIVE',
+    yearBuilt: 2018,
+    propertyManager: 'Michael Chen',
+    purchasePrice: 2800000,
+    currentValue: 3200000,
+    financials: {
+        totalMonthlyIncome: 6125,
+        totalMonthlyExpenses: 2450,
+        monthlyNetIncome: 3675,
+        vacancyRate: 58, // 7 vacant units out of 12
+    },
+};
+
+const MOCK_TENANTS = [
     {
-        email: 'demo-owner@propflow.com',
-        password: 'DemoOwner123!',
-        displayName: 'Sarah Johnson',
-        role: 'OWNER',
+        firstName: 'Priya',
+        lastName: 'Patel',
+        email: 'priya.patel@psu.edu',
+        phone: '(814) 555-0123',
+        unitNumber: '1203',
+        monthlyRent: 1625,
+        securityDeposit: 1625,
+        leaseStartDate: '2025-08-15',
+        leaseEndDate: '2026-07-31',
+        leaseTerm: 12,
+        status: 'active',
+        specialNotes: 'Graduate student floor - PhD Candidate, Materials Science',
+        parking: 'Space A-95 (Underground, EV charging)',
+        vehicle: 'Tesla Model 3',
+        insurance: 'Liberty Mutual (LM-8472-PP)',
+        guarantor: 'Raj Patel (Spouse)',
+    },
+    {
+        firstName: 'Marcus',
+        lastName: 'Thompson',
+        email: 'marcus.thompson@psu.edu',
+        phone: '(814) 555-0124',
+        unitNumber: '823',
+        monthlyRent: 1295,
+        petRent: 35,
+        securityDeposit: 1295,
+        petDeposit: 300,
+        leaseStartDate: '2025-08-15',
+        leaseEndDate: '2026-05-15',
+        leaseTerm: 9,
+        status: 'active',
+        specialNotes: 'Pet: Shadow (Black cat, 12 lbs)',
+        parking: 'Space B-23 (Underground)',
+        vehicle: '2020 Toyota Camry (Blue, HBN-7392)',
+        insurance: 'Allstate (482-MT-9471)',
+        guarantor: 'David Thompson (Father)',
+    },
+    {
+        firstName: 'Emily',
+        lastName: 'Rodriguez',
+        email: 'emily.rodriguez@psu.edu',
+        phone: '(814) 555-0125',
+        unitNumber: '407',
+        monthlyRent: 1485,
+        securityDeposit: 1485,
+        leaseStartDate: '2025-08-15',
+        leaseEndDate: '2026-05-15',
+        leaseTerm: 9,
+        status: 'active',
+        specialNotes: 'No pets',
+        parking: 'Space A-47 (Underground)',
+        vehicle: '2021 Honda Civic (Silver, KXY-4821)',
+        insurance: 'State Farm (75-B9-K472-8)',
+        guarantor: 'Maria Rodriguez (Mother)',
+    },
+    {
+        firstName: 'Alexander',
+        lastName: 'Patterson',
+        email: 'alexander.patterson@psu.edu',
+        phone: '(814) 555-0126',
+        unitNumber: '614',
+        monthlyRent: 785,
+        additionalParkingFee: 75,
+        securityDeposit: 785,
+        leaseStartDate: '2025-08-15',
+        leaseEndDate: '2026-05-15',
+        leaseTerm: 9,
+        status: 'active',
+        specialNotes: '3BR/3BA Shared - Bedroom 1 (Individual lease)',
+        parking: 'Space B-45 + B-46 (Additional $75/month)',
+        vehicle: '2019 Ford F-150 (Black, MKT-5621)',
+        insurance: 'State Farm (84-AP-6621)',
+        guarantor: 'Robert Patterson (Father)',
+        roommates: 'Christopher Ryan Martinez, Daniel Scott Kim',
+    },
+    {
         firstName: 'Sarah',
-        lastName: 'Johnson',
-        phone: '+15551234567',
-    },
-    {
-        email: 'demo-manager@propflow.com',
-        password: 'DemoManager123!',
-        displayName: 'Mike Chen',
-        role: 'MANAGER',
-        firstName: 'Mike',
         lastName: 'Chen',
-        phone: '+15551234568',
-    },
-    {
-        email: 'demo-tenant@propflow.com',
-        password: 'DemoTenant123!',
-        displayName: 'Alex Rivera',
-        role: 'TENANT',
-        firstName: 'Alex',
-        lastName: 'Rivera',
-        phone: '+15551234569',
+        email: 'sarah.chen@psu.edu',
+        phone: '(814) 555-0127',
+        unitNumber: '1105',
+        monthlyRent: 875,
+        securityDeposit: 875,
+        leaseStartDate: '2025-08-15',
+        leaseEndDate: '2026-07-31',
+        leaseTerm: 12,
+        status: 'active',
+        specialNotes: '2BR/2BA Shared - Bedroom 1 (Individual lease)',
+        parking: 'Space A-91 (Underground, shared with unit)',
+        vehicle: '2022 Mazda CX-5 (Red, PLM-8273)',
+        insurance: 'Geico (7291-SC-4482)',
+        guarantor: 'Linda Chen (Mother)',
+        roommate: 'Jessica Marie Williams',
     },
 ];
 
-async function createDemoAccounts() {
-    console.log('🔐 Creating demo accounts...\n');
+async function seedDemoData() {
+    try {
+        console.log('🔍 Finding MVP Demo user...');
 
-    const createdAccounts: { [key: string]: string } = {};
+        // Find the demo user by email
+        const usersSnapshot = await db.collection('users')
+            .where('email', '==', MVP_DEMO_EMAIL)
+            .limit(1)
+            .get();
 
-    for (const account of DEMO_ACCOUNTS) {
-        try {
-            // Check if user already exists
-            let user;
-            try {
-                user = await auth.getUserByEmail(account.email);
-                console.log(`✓ User ${account.email} already exists (UID: ${user.uid})`);
-            } catch (error) {
-                // User doesn't exist, create it
-                user = await auth.createUser({
-                    email: account.email,
-                    password: account.password,
-                    displayName: account.displayName,
-                    emailVerified: true,
-                });
-                console.log(`✓ Created user ${account.email} (UID: ${user.uid})`);
+        if (usersSnapshot.empty) {
+            console.error('❌ MVP Demo user not found with email:', MVP_DEMO_EMAIL);
+            console.log('Please create the user account first');
+            process.exit(1);
+        }
+
+        const demoUserId = usersSnapshot.docs[0].id;
+        console.log('✅ Found demo user:', demoUserId);
+
+        // Check if already seeded
+        const existingProperties = await db.collection('properties')
+            .where('ownerUserId', '==', demoUserId)
+            .limit(1)
+            .get();
+
+        if (!existingProperties.empty) {
+            console.log('⚠️  Demo data already exists. Clearing first...');
+
+            // Delete existing data
+            const batch = db.batch();
+
+            const allProperties = await db.collection('properties')
+                .where('ownerUserId', '==', demoUserId)
+                .get();
+
+            for (const doc of allProperties.docs) {
+                batch.delete(doc.ref);
+
+                // Delete associated tenants
+                const tenants = await db.collection('tenants')
+                    .where('propertyId', '==', doc.id)
+                    .get();
+                tenants.docs.forEach(t => batch.delete(t.ref));
+
+                // Delete associated leases
+                const leases = await db.collection('leases')
+                    .where('propertyId', '==', doc.id)
+                    .get();
+                leases.docs.forEach(l => batch.delete(l.ref));
             }
 
-            // Create/update user document in Firestore
-            await db.collection('users').doc(user.uid).set({
-                email: account.email,
-                firstName: account.firstName,
-                lastName: account.lastName,
-                phone: account.phone,
-                role: account.role,
-                uid: user.uid,
-                createdAt: Timestamp.now(),
-                updatedAt: Timestamp.now(),
-            }, { merge: true });
-
-            console.log(`✓ Created/updated Firestore document for ${account.email}`);
-            createdAccounts[account.role] = user.uid;
-
-        } catch (error) {
-            console.error(`✗ Error creating account ${account.email}:`, error);
+            await batch.commit();
+            console.log('✅ Cleared existing demo data');
         }
-    }
 
-    console.log('\n📋 Demo Account Summary:');
-    console.log('========================');
-    for (const account of DEMO_ACCOUNTS) {
-        console.log(`\n${account.role}:`);
-        console.log(`  Email: ${account.email}`);
-        console.log(`  Password: ${account.password}`);
-        console.log(`  Name: ${account.displayName}`);
-    }
+        console.log('\n📝 Seeding realistic lease data...');
 
-    return createdAccounts;
-}
+        // Create the property
+        const propertyRef = db.collection('properties').doc();
+        const propertyId = propertyRef.id;
 
-async function createDemoProperties(ownerUid: string, managerUid: string) {
-    console.log('\n🏢 Creating demo properties...\n');
-
-    const properties = [
-        {
-            name: 'Sunset Apartments',
-            address: '123 Main Street',
-            city: 'San Francisco',
-            state: 'CA',
-            zipCode: '94102',
-            units: 12,
-            occupiedUnits: 10,
-            ownerUserId: ownerUid,
-            managerIds: [managerUid],
-            monthlyRent: 36000, // $3,000/unit average
-        },
-        {
-            name: 'Downtown Lofts',
-            address: '456 Oak Avenue',
-            city: 'San Francisco',
-            state: 'CA',
-            zipCode: '94103',
-            units: 8,
-            occupiedUnits: 8,
-            ownerUserId: ownerUid,
-            managerIds: [managerUid],
-            monthlyRent: 32000, // $4,000/unit average
-        },
-        {
-            name: 'Riverside Complex',
-            address: '789 River Road',
-            city: 'Oakland',
-            state: 'CA',
-            zipCode: '94601',
-            units: 20,
-            occupiedUnits: 18,
-            ownerUserId: ownerUid,
-            managerIds: [], // Self-managed
-            monthlyRent: 45000, // $2,500/unit average
-        },
-    ];
-
-    const propertyIds: string[] = [];
-
-    for (const property of properties) {
-        const propertyRef = await db.collection('properties').add({
-            ...property,
-            createdAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
+        await propertyRef.set({
+            ...MOCK_PROPERTY,
+            ownerUserId: demoUserId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
         });
 
-        console.log(`✓ Created property: ${property.name} (ID: ${propertyRef.id})`);
-        propertyIds.push(propertyRef.id);
-    }
+        console.log('✅ Created property:', MOCK_PROPERTY.name);
 
-    return propertyIds;
-}
+        // Create tenants and leases
+        let tenantCount = 0;
+        for (const tenantData of MOCK_TENANTS) {
+            const tenantRef = db.collection('tenants').doc();
+            const tenantId = tenantRef.id;
 
-async function createDemoTenants(propertyIds: string[], tenantUid: string) {
-    console.log('\n👥 Creating demo tenants...\n');
+            // Calculate total monthly rent
+            const totalRent = tenantData.monthlyRent +
+                (tenantData.petRent || 0) +
+                (tenantData.additionalParkingFee || 0);
 
-    const tenants = [
-        // Sunset Apartments (10 tenants)
-        {
-            propertyId: propertyIds[0],
-            name: 'Alex Rivera',
-            email: 'demo-tenant@propflow.com',
-            phone: '+15551234569',
-            userId: tenantUid, // Link to demo tenant account
-            apartmentNumber: '2A',
-            rentAmount: 3200,
-            leaseStartDate: new Date('2024-01-01'),
-            leaseEndDate: new Date('2025-01-01'),
-            status: 'active',
-        },
-        {
-            propertyId: propertyIds[0],
-            name: 'John Smith',
-            email: 'john.smith@example.com',
-            phone: '+15551111111',
-            apartmentNumber: '1A',
-            rentAmount: 3000,
-            leaseStartDate: new Date('2024-03-01'),
-            leaseEndDate: new Date('2025-03-01'),
-            status: 'active',
-        },
-        {
-            propertyId: propertyIds[0],
-            name: 'Emily Davis',
-            email: 'emily.davis@example.com',
-            phone: '+15552222222',
-            apartmentNumber: '1B',
-            rentAmount: 3100,
-            leaseStartDate: new Date('2024-02-15'),
-            leaseEndDate: new Date('2025-02-15'),
-            status: 'active',
-        },
-        // Add more tenants for other properties...
-        // Downtown Lofts (8 tenants)
-        {
-            propertyId: propertyIds[1],
-            name: 'Michael Brown',
-            email: 'michael.brown@example.com',
-            phone: '+15553333333',
-            apartmentNumber: '301',
-            rentAmount: 4200,
-            leaseStartDate: new Date('2024-01-15'),
-            leaseEndDate: new Date('2025-01-15'),
-            status: 'active',
-        },
-        // Riverside Complex (18 tenants)
-        {
-            propertyId: propertyIds[2],
-            name: 'Jessica Wilson',
-            email: 'jessica.wilson@example.com',
-            phone: '+15554444444',
-            apartmentNumber: 'A101',
-            rentAmount: 2400,
-            leaseStartDate: new Date('2024-04-01'),
-            leaseEndDate: new Date('2025-04-01'),
-            status: 'active',
-        },
-    ];
+            await tenantRef.set({
+                propertyId,
+                firstName: tenantData.firstName,
+                lastName: tenantData.lastName,
+                name: `${tenantData.firstName} ${tenantData.lastName}`,
+                email: tenantData.email,
+                phone: tenantData.phone,
+                apartmentNumber: tenantData.unitNumber,
+                rentAmount: totalRent,
+                status: tenantData.status,
+                specialNotes: tenantData.specialNotes,
+                parking: tenantData.parking,
+                vehicle: tenantData.vehicle,
+                insurance: tenantData.insurance,
+                guarantor: tenantData.guarantor,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
 
-    for (const tenant of tenants) {
-        await db.collection('tenants').add({
-            ...tenant,
-            createdAt: Timestamp.now(),
+            // Create lease
+            const leaseRef = db.collection('leases').doc();
+            await leaseRef.set({
+                propertyId,
+                tenantId,
+                unitNumber: tenantData.unitNumber,
+                startDate: new Date(tenantData.leaseStartDate),
+                endDate: new Date(tenantData.leaseEndDate),
+                monthlyRent: tenantData.monthlyRent,
+                petRent: tenantData.petRent || 0,
+                additionalFees: tenantData.additionalParkingFee || 0,
+                securityDeposit: tenantData.securityDeposit,
+                petDeposit: tenantData.petDeposit || 0,
+                leaseTerm: tenantData.leaseTerm,
+                status: 'active',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            tenantCount++;
+            console.log(`✅ Created tenant ${tenantCount}/5: ${tenantData.firstName} ${tenantData.lastName} (Unit ${tenantData.unitNumber})`);
+        }
+
+        // Update user to mark as demo seeded and activated
+        await db.collection('users').doc(demoUserId).update({
+            demoSeeded: true,
+            demoActivated: true,
+            demoProfile: 'mvp_demo',
+            updatedAt: new Date(),
         });
 
-        console.log(`✓ Created tenant: ${tenant.name} at ${tenant.apartmentNumber}`);
-    }
-}
-
-async function createDemoMaintenanceRequests(propertyIds: string[]) {
-    console.log('\n🔧 Creating demo maintenance requests...\n');
-
-    const requests = [
-        {
-            propertyId: propertyIds[0],
-            apartmentNumber: '2A',
-            title: 'Leaking faucet in kitchen',
-            description: 'The kitchen faucet has been dripping constantly for the past week.',
-            status: 'open',
-            priority: 'medium',
-            category: 'plumbing',
-        },
-        {
-            propertyId: propertyIds[0],
-            apartmentNumber: '1B',
-            title: 'AC not cooling properly',
-            description: 'Air conditioning unit is running but not cooling the apartment.',
-            status: 'in_progress',
-            priority: 'high',
-            category: 'hvac',
-        },
-        {
-            propertyId: propertyIds[1],
-            apartmentNumber: '301',
-            title: 'Broken window latch',
-            description: 'Window latch in bedroom is broken and won\'t lock.',
-            status: 'open',
-            priority: 'low',
-            category: 'general',
-        },
-    ];
-
-    for (const request of requests) {
-        await db.collection('maintenance').add({
-            ...request,
-            createdAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
-        });
-
-        console.log(`✓ Created maintenance request: ${request.title}`);
-    }
-}
-
-async function main() {
-    try {
-        console.log('🚀 Starting demo data seeding...\n');
-
-        // Step 1: Create demo accounts
-        const accounts = await createDemoAccounts();
-
-        // Step 2: Create demo properties
-        const propertyIds = await createDemoProperties(accounts.OWNER, accounts.MANAGER);
-
-        // Step 3: Create demo tenants
-        await createDemoTenants(propertyIds, accounts.TENANT);
-
-        // Step 4: Create demo maintenance requests
-        await createDemoMaintenanceRequests(propertyIds);
-
-        console.log('\n✅ Demo data seeding complete!\n');
-        console.log('You can now login with any of the demo accounts listed above.');
+        console.log('\n✅ Demo data seeded successfully!');
+        console.log(`📊 Summary:`);
+        console.log(`   - 1 property: ${MOCK_PROPERTY.name}`);
+        console.log(`   - 5 tenants with realistic details`);
+        console.log(`   - 5 active leases`);
+        console.log(`   - Demo activated and ready for use`);
 
     } catch (error) {
         console.error('❌ Error seeding demo data:', error);
@@ -310,4 +288,13 @@ async function main() {
     }
 }
 
-main();
+// Run the seeding
+seedDemoData()
+    .then(() => {
+        console.log('\n🎉 Done!');
+        process.exit(0);
+    })
+    .catch((error) => {
+        console.error('Fatal error:', error);
+        process.exit(1);
+    });

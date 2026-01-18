@@ -64,7 +64,9 @@ interface LocalPropertyData {
 }
 
 export default function PropertyUploader({ onAnalysisComplete, initialStep, className }: PropertyUploaderProps) {
-    const [step, setStep] = useState<UploadStep>('occupancy-check');
+    const demoMode = isDemoMode();
+    // Start at 'upload-lease' step in demo mode to ensure file input exists for auto-trigger
+    const [step, setStep] = useState<UploadStep>(demoMode ? 'upload-lease' : 'occupancy-check');
     const [isDragging, setIsDragging] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [parsingProgress, setParsingProgress] = useState<{ current: number; total: number; filename: string } | null>(null);
@@ -73,7 +75,6 @@ export default function PropertyUploader({ onAnalysisComplete, initialStep, clas
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
     const router = useRouter();
-    const demoMode = isDemoMode();
 
     const [propertyData, setPropertyData] = useState<LocalPropertyData>({
         address: '',
