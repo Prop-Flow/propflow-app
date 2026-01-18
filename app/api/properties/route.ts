@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
         const user = await getSessionUser(request);
 
         // Return mock data for demo users (no Firestore queries)
-        if (isMVPDemoUser(user.email)) {
+        if (user && isMVPDemoUser(user.email)) {
             return NextResponse.json({
                 properties: getMockProperties()
             });

@@ -27,13 +27,15 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const searchParams = request.nextUrl.searchParams;
-        const propertyId = searchParams.get('propertyId');
-
         // Return mock data for demo users (no Firestore queries)
         if (isMVPDemoUser(session.email)) {
+            const searchParams = request.nextUrl.searchParams;
+            const propertyId = searchParams.get('propertyId');
             return NextResponse.json(getMockLeases(propertyId || undefined));
         }
+
+        const searchParams = request.nextUrl.searchParams;
+        const propertyId = searchParams.get('propertyId');
 
         if (!propertyId) {
             return NextResponse.json({ error: 'Property ID required' }, { status: 400 });
