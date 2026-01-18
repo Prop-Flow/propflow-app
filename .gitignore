@@ -43,5 +43,6 @@ next-env.d.ts
 
 
 temp-vertex-key.json
+firebase-service-account-key.json
 tools/
 extensions/
