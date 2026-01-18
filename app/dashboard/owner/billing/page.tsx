@@ -1,34 +1,46 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
 import { RubsCalculator } from '@/components/billing/RubsCalculator';
-import { db } from '@/lib/services/firebase-admin';
+import { useAuth } from '@/hooks/useAuth';
+import { Loader2 } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
-export default async function BillingPage() {
+export default function BillingPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let properties: any[] = [];
+    const [properties, setProperties] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
 
-    try {
-        const propsSnapshot = await db.collection('properties').get();
-        if (!propsSnapshot.empty) {
-            properties = await Promise.all(propsSnapshot.docs.map(async doc => {
-                const data = doc.data();
-                const tenantsSnapshot = await db.collection('tenants')
-                    .where('propertyId', '==', doc.id)
-                    .get();
+    useEffect(() => {
+        const fetchBillingData = async () => {
+            if (!user) return;
 
-                return {
-                    id: doc.id,
-                    ...data,
-                    tenants: tenantsSnapshot.docs.map(t => ({ id: t.id, ...t.data() }))
-                };
-            }));
+            try {
+                const token = await user.getIdToken();
+
+                // Fetch properties with tenants for billing
+                const res = await fetch('/api/billing/properties', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setProperties(data.properties || []);
+                }
+            } catch (error) {
+                console.error("Error fetching billing data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user) {
+            fetchBillingData();
         }
-    } catch (error) {
-        console.error("Error fetching billing data:", error);
-        // Fallback to empty array
-    }
+    }, [user]);
 
     return (
         <DashboardShell role="owner">
@@ -38,8 +50,14 @@ export default async function BillingPage() {
                     <p className="text-gray-500">Calculate and distribute utility costs using R.U.B.S.</p>
                 </div>
 
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                <RubsCalculator properties={properties as any} />
+                {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                    </div>
+                ) : (
+                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                    <RubsCalculator properties={properties as any} />
+                )}
             </div>
         </DashboardShell>
     );
